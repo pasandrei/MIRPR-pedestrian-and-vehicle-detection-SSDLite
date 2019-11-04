@@ -1,0 +1,10 @@
+{
+"model_id": "ssdnet",
+"optimizer": "adam",
+"learning_rate": 1e-3,
+"batch_size": 1,
+"n_epochs": 10,
+"train_stats_step": 10,
+"eval_step": 4
+}
+
