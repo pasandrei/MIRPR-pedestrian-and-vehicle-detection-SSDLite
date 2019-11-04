@@ -21,6 +21,10 @@ class CocoDetection(VisionDataset):
             and returns a transformed version.
     """
 
+    '''
+    return B x C x H x W image tensor and [B x img_bboxes, B x img_classes]
+    '''
+
     def __init__(self, root, annFile, transform=None, target_transform=None, transforms=None):
         super().__init__(root, transforms, transform, target_transform)
         from pycocotools.coco import COCO

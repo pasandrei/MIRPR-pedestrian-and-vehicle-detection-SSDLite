@@ -8,7 +8,7 @@ from train import train
 from architectures.models import SSDNet
 
 
-def run(path):
+def run(path, resume=False):
     '''
     args: path - string path to the json config file
     trains model refered by that file, saves model and optimizer dict at the same location
@@ -23,6 +23,10 @@ def run(path):
     
     if params.optimizer == 'adam':
         optimizer = optim.Adam(model.parameters(), lr = params.learning_rate)
+
+    if resume:
+        # init model and optim dict
+        pass
    
     train_loader, valid_loader = dataloaders.get_dataloaders()
     

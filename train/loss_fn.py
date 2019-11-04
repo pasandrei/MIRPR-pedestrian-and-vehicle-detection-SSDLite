@@ -35,7 +35,6 @@ def ssd_1_loss(b_c,b_bb,bbox,clas):
     
     # compute IOU for obj x anchor
     overlaps = jaccard(bbox.data, anchor_cnr.data)
-    print(overlaps, overlaps.shape)
     
     # map each anchor to the highest IOU obj, gt_idx - indexes of mapped objects
     gt_overlap,gt_idx = map_to_ground_truth(overlaps)
@@ -61,8 +60,8 @@ def ssd_1_loss(b_c,b_bb,bbox,clas):
 
 def ssd_loss(pred,targ,batch_size=1):
     '''
-    args: pred - model output - two tensors of dim anchors x 4 and anchors x n_classes
-    targ - ground truth - two tensors of dim #obj x 4 and #obj 
+    args: pred - model output - two tensors of dim anchors x 4 and anchors x n_classes in a list
+    targ - ground truth - two tensors of dim #obj x 4 and #obj in a list
     '''
     lcs,lls = 0.,0.
     
@@ -73,7 +72,5 @@ def ssd_loss(pred,targ,batch_size=1):
         loc_loss,clas_loss = ssd_1_loss(b_c,b_bb,bbox,clas)
         lls += loc_loss
         lcs += clas_loss
-    
-    print(lls,lcs)
-        
+   
     return lls+lcs

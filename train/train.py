@@ -1,5 +1,5 @@
 from train.loss_fn import ssd_loss
-from train.helpers import prepare_gt
+from train.helpers import *
 
 def train(model, optimizer, train_loader, valid_loader,
           device, params):
@@ -30,9 +30,11 @@ def train(model, optimizer, train_loader, valid_loader,
             optimizer.step()
             
             if (batch_idx + 1) % params.train_stats_step == 0:
-                helpers.print_batch_stats(epoch, batch_idx, train_loader, batch_loss, params)
+                print_batch_stats(epoch, batch_idx, train_loader, batch_loss, params)
                 batch_loss = 0
-            
+
+
         if (epoch + 1) % params.eval_step == 0:
-            helpers.evaluate(model, valid_loader, epoch_loss, device, params)
+            evaluate(model, optimizer, valid_loader, epoch_loss, epoch, device, params)
             epoch_loss = 0
+

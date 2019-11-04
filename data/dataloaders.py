@@ -5,6 +5,7 @@ from data.dataset import CocoDetection
 
 
 def get_dataloaders():
+    ''' creates and returns train and validation data loaders ''' 
     
     composed_transforms = transforms.Compose([transforms.ToTensor()])
 

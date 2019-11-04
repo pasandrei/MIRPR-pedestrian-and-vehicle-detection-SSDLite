@@ -21,6 +21,7 @@ class OutConv(nn.Module):
     
 
 class SSD_Head(nn.Module):
+    ''' so far returns just [B x 16 x 4, B x 16 x 3] ''' 
     def __init__(self, in_channels=1280, n_classes=3, k=1):
         super().__init__()
         
