@@ -48,19 +48,14 @@ class CocoDetection(VisionDataset):
 
         # incredibly, it only comes in RGB format if to_tensor is passed as transform, so to apply other transforms i have to reconvert to PIL and then back to tensor jesus
         img = Image.open(os.path.join(self.root, path)).convert('RGB')
-        print(img.size)
-        if self.transforms is not None:
-            img, target = self.transforms(img, target)
-        
+
         # bring target in correct format
         target = prepare_gt(target, img)
-        
-        img = F.to_pil_image(img)
-        img = F.resize(img, size=(224,224), interpolation=2)
-        img = F.to_tensor(img)
-          
-        return img, target
 
+        img = F.resize(img, size=(224, 224), interpolation=2)
+        img = F.to_tensor(img)
+
+        return img, target
 
     def __len__(self):
         return len(self.ids)

@@ -4,7 +4,7 @@
     "learning_rate": 0.001,
     "batch_size": 1,
     "n_epochs": 10,
-    "train_stats_step": 1,
+    "train_stats_step": 200,
     "eval_step": 1,
     "loss": 17.257595074293203
 }
