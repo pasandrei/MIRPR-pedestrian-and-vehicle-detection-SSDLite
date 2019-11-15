@@ -6,17 +6,20 @@ class OutConv(nn.Module):
     def __init__(self, in_channels, n_classes, k):
         super().__init__()
         self.k = k
-        self.oconv1 = nn.Conv2d(in_channels, n_classes*k, 3, padding=1)
-        self.oconv2 = nn.Conv2d(in_channels, 4*k, 3, padding=1)
+        self.oconv1 = nn.Conv2d(in_channels, 4*k, 3, padding=1)
+        self.oconv2 = nn.Conv2d(in_channels, n_classes*k, 3, padding=1)
+        
         
     def forward(self, x):
         return [self.flatten_conv(self.oconv1(x), self.k),
                 self.flatten_conv(self.oconv2(x), self.k)]
     
     def flatten_conv(self, x, k):
-        bs,nf,gx,gy = x.size()
+        batch_size, channels, H, W = x.size()
         x = x.permute(0,2,3,1).contiguous()
-        return x.view(bs,-1,nf//k)
+
+        # batch, H*W*k, #classes or 4 (bbox coords)
+        return x.view(batch_size,-1,channels//k)
     
     
 

@@ -1,6 +1,5 @@
 import torch
 from torch import nn
-import torch.nn.functional as F
 
 from train.helpers import *
 
@@ -19,7 +18,7 @@ class BCE_Loss(nn.Module):
             t.append(bg)
         t = torch.FloatTensor(t)
         
-        return F.binary_cross_entropy_with_logits(pred, t, size_average=False)/self.num_classes
+        return torch.nn.functional.binary_cross_entropy_with_logits(pred, t, size_average=False)/self.num_classes
     
     def get_weight(self,x,t): return None
     
@@ -62,15 +61,18 @@ def ssd_loss(pred,targ,batch_size=1):
     '''
     args: pred - model output - two tensors of dim anchors x 4 and anchors x n_classes in a list
     targ - ground truth - two tensors of dim #obj x 4 and #obj in a list
+
+    anchors will be mappend to overlapping GT bboxes, thus feature map cells corresponding to those anchors will have to predict those gt bboxes
     '''
-    lcs,lls = 0.,0.
+    localization_loss, classification_loss = 0., 0.
     
     # computes the loss for each image in the batch
     for idx in range(batch_size):
-        b_c, b_bb = pred[0][idx], pred[1][idx]
-        bbox,clas = targ[0][idx], targ[1][idx]
-        loc_loss,clas_loss = ssd_1_loss(b_c,b_bb,bbox,clas)
-        lls += loc_loss
-        lcs += clas_loss
+        pred_bbox, pred_class = pred[0][idx], pred[1][idx]
+        gt_bbox, gt_class = targ[0][idx], targ[1][idx]
+
+        l_loss, c_loss = ssd_1_loss(pred_bbox, pred_class, gt_bbox, gt_class)
+        localization_loss += l_loss
+        classification_loss += c_loss
    
-    return lls+lcs
+    return localization_loss + classification_loss

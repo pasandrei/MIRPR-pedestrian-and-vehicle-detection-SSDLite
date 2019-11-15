@@ -74,11 +74,11 @@ def prepare_gt(y, x):
     bring gt bboxes in correct format and scales values to [0,1]
     '''
     
-    gt_bbox, gt_clas = [], []
+    gt_bbox, gt_class = [], []
     for obj in y:
         gt_bbox.append(obj['bbox'])
-        gt_clas.append(obj['category_id'])
-    gt = [torch.FloatTensor(gt_bbox), torch.IntTensor(gt_clas)]
+        gt_class.append(obj['category_id'])
+    gt = [torch.FloatTensor(gt_bbox), torch.IntTensor(gt_class)]
     
     x_size, y_size = x.shape[2], x.shape[1]
     for idx, bbox in enumerate(gt[0]):
