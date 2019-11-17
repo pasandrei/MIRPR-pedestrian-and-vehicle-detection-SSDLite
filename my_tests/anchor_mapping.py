@@ -8,13 +8,14 @@ from train import train
 from architectures.models import SSDNet
 from train.helpers import *
 
+
 def test_anchor_mapping():
     '''
     assume for simplicity k=6 (# of anchors per feature map cell = FMC), batch = 1
     similarily, assume model only computes predictions from a 10x10 feature map
 
     things to consider:
-    a) The network output format: 
+    a) The network output format:
     - the net computes a tensord of shape 10*10*6 x 4 for bounding box prediction
     so in this 600x4 for matrix, the first 6 lines correspond to the top left FMC, the next 6 to the one next to it and so on
     in the net we take a tensor of Bx(4*k)xHxW and spit out BxH*W*kx4
@@ -25,19 +26,20 @@ def test_anchor_mapping():
     '''
 
     def test_a():
-        a = torch.rand(1,4*2,2,2)
-        x = a.permute(0,2,3,1).contiguous()
-        x = x.view(1,-1,4)
+        a = torch.rand(1, 4*2, 2, 2)
+        a = a.permute(0, 2, 3, 1).contiguous()
+        x = a.view(1, -1, 4)
 
-        print(a)
-    
+        print(a[0][0][0])
+        print(a[0][0][1])
+        print(a[0][1][0])
+        print(a[0][1][1])
+
         print('---------------------------')
 
         print(x)
 
     test_a()
-
-
 
     def check_anchors():
         params = Params('misc/experiments/ssdnet/params.json')
@@ -45,7 +47,8 @@ def test_anchor_mapping():
         anchors, grid_sizes = create_anchors()
 
         print(anchors, grid_sizes)
-         
-    #check_anchors()
+
+    check_anchors()
+
 
 test_anchor_mapping()
