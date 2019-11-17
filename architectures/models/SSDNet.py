@@ -5,7 +5,7 @@ import torch.nn as nn
 from architectures.backbones.MobileNet import ConvBNReLU, InvertedResidual, mobilenet_v2, _make_divisible
 
 '''
-understand and implement SSD Lite for 320x320 res 
+understand and implement SSD Lite for 320x320 res
 '''
 
 
@@ -18,20 +18,23 @@ class OutConv(nn.Module):
         '''
         self.prepare_bbox = ConvBNReLU(in_channels, in_channels, groups=in_channels)
         self.prepare_class = ConvBNReLU(in_channels, in_channels, groups=in_channels)
+        # Bx(4*k)xHxW
         self.oconv1 = nn.Conv2d(in_channels, 4*k, 1)
         self.oconv2 = nn.Conv2d(in_channels, n_classes*k, 1)
-        
+
     def forward(self, x):
         return [self.flatten_conv(self.oconv1(self.prepare_bbox(x)), self.k),
                 self.flatten_conv(self.oconv2(self.prepare_class(x)), self.k)]
 
     def flatten_conv(self, x, k):
         batch_size, channels, H, W = x.size()
-        x = x.permute(0,2,3,1).contiguous()
+
+        x = x.permute(0, 2, 3, 1).contiguous()  # B x H x W x (4*k)
 
         # batch, H*W*k, #classes or 4 (bbox coords)
-        return x.view(batch_size,-1,channels//k)
-    
+        return x.view(batch_size, -1, channels//k)
+
+
 class SSD_Head(nn.Module):
     def __init__(self, n_classes=3, k=6, width_mult=1):
         super().__init__()
