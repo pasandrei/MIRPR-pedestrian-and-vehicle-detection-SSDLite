@@ -3,6 +3,7 @@ from PIL import Image
 import os
 import os.path
 import torchvision.transforms.functional as F
+import numpy
 
 from train.helpers import *
 
@@ -21,39 +22,38 @@ class CocoDetection(VisionDataset):
             and returns a transformed version.
     """
 
-    '''
-    return B x C x H x W image tensor and [B x img_bboxes, B x img_classes]
-    '''
-
     def __init__(self, root, annFile, transform=None, target_transform=None, transforms=None):
         super().__init__(root, transforms, transform, target_transform)
         from pycocotools.coco import COCO
         self.coco = COCO(annFile)
         self.ids = list(sorted(self.coco.imgs.keys()))
 
-    def __getitem__(self, index):
+    def __getitem__(self, batched_indices):
         """
-        Args:
-            index (int): Index
-
-        Returns:
-            tuple: Tuple (image, target). target is the object returned by ``coco.loadAnns``.
+        return B x C x H x W image tensor and [B x img_bboxes, B x img_classes]
         """
-        coco = self.coco
-        img_id = self.ids[index]
-        ann_ids = coco.getAnnIds(imgIds=img_id)
-        target = coco.loadAnns(ann_ids)
 
-        path = coco.loadImgs(img_id)[0]['file_name']
+        imgs, targets_bbox, targets_class = [], [], []
+        for index in batched_indices:
+            coco = self.coco
+            img_id = self.ids[index]
+            ann_ids = coco.getAnnIds(imgIds=img_id)
+            target = coco.loadAnns(ann_ids)
+            path = coco.loadImgs(img_id)[0]['file_name']
+            img = Image.open(os.path.join(self.root, path)).convert('RGB')
 
-        # incredibly, it only comes in RGB format if to_tensor is passed as transform, so to apply other transforms i have to reconvert to PIL and then back to tensor jesus
-        img = Image.open(os.path.join(self.root, path)).convert('RGB')
+            # bring target in correct format
+            target = prepare_gt(img, target)
 
-        # bring target in correct format
-        target = prepare_gt(target, img)
+            img = F.resize(img, size=(320, 320), interpolation=2)
+            img = F.to_tensor(img)
 
-        img = F.resize(img, size=(224, 224), interpolation=2)
-        img = F.to_tensor(img)
+            imgs.append(img)
+            targets_bbox.append(target[0])
+            targets_class.append(target[1])
+
+        img = torch.stack(imgs)
+        target = [targets_bbox, targets_class]
 
         return img, target
 

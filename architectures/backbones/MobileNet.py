@@ -156,8 +156,16 @@ class MobileNetV2(nn.Module):
                 nn.init.zeros_(m.bias)
 
     def _forward(self, x):
-        x = self.features(x)
-        return x
+        for idx, layer in enumerate(self.features):
+            # want to get expansion of layer 15
+            if idx == 14:
+                x = layer.conv[0](x)
+                inter = x
+                x = layer.conv[1](x)
+                x = layer.conv[2](x)
+            else:
+                x = layer(x)
+        return inter, x
 
     # Allow for accessing forward method in a inherited class
     forward = _forward

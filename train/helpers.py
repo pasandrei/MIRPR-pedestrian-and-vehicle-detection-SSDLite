@@ -3,13 +3,7 @@ import numpy as np
 import cv2
 from matplotlib import pyplot as plt
 
-# from train.loss_fn import *
-
-
 # inspired by fastai course
-
-# helpers for lossss
-
 def hw2corners(ctr, hw):
     #a = torch.cat([ctr-hw/2, ctr+hw/2], dim=1)
     #print('in hw2corners')
@@ -36,62 +30,77 @@ def jaccard(box_a, box_b):
     union = box_sz(box_a).unsqueeze(1) + box_sz(box_b).unsqueeze(0) - inter
     return inter / union
 
-
-def get_y(bbox, clas):
-    """ not useful for now, will be when training on mini-batches """
-    bbox = bbox.view(-1, 4)/224
-    bb_keep = ((bbox[:, 2]-bbox[:, 0]) > 0).nonzero()[:, 0]
-    return bbox[bb_keep], clas[bb_keep]
-
-
 def actn_to_bb(actn, anchors, grid_sizes):
-    """ activations to bounding boxes """
-    actn_bbs = torch.tanh(actn)
-    #print('in actn_to_bb')
+    """ activations to bounding boxes format """
 
-    actn_centers = (actn_bbs[:, :2]/2 * 0.25) + anchors[:, :2]
-    actn_hw = (actn_bbs[:, 2:]/2+1) * anchors[:, 2:]
-
-    # print('gridSIZE', grid_sizes)
-    # print('act_bbs', actn_bbs)
-    # print('centers', torch.max(actn_centers))
-    # print('act_hw', torch.max(actn_hw))
-    # print('anchors', torch.max(anchors))
+    # this is probably a bug, all tensors should be the same size if slicing operations with addition are performed
+    anchors = anchors.type(torch.float64)
+    actn_offsets = torch.tanh(actn)
+    actn_centers = actn_offsets[:, :2]/2 * grid_sizes + anchors[:, :2]
+    actn_hw = (actn_offsets[:, 2:]/2+1) * anchors[:, 2:]
 
     return hw2corners(actn_centers, actn_hw)
 
+def map_to_ground_truth(overlaps, gt_bbox, gt_class):
+    """ maps priors to max IOU obj
+   returns:
+   - matched_gt_bbox: tensor of size matched_priors x 4 - essentially assigning GT bboxes to corresponding highest IOU priors
+   - matched_gt_class_ids: tensor of size priors - where each value of the tensor indicates the class id that the priors feature map cell should predict
+    """
 
-def map_to_ground_truth(overlaps):
-    """ maps priors to max IOU obj """
+    # for each object, what is the prior of maximum overlap
     prior_overlap, prior_idx = overlaps.max(1)
-    gt_overlap, gt_idx = overlaps.max(0)
-    gt_overlap[prior_idx] = 1.99
-    for i, o in enumerate(prior_idx):
-        gt_idx[o] = i
-    return gt_overlap, gt_idx
 
+    # for each prior, what is the object of maximum overlap
+    gt_overlap, gt_idx = overlaps.max(0)
+
+    # for priors of max overlap, set a high value to make sure they match
+    gt_overlap[prior_idx] = 1.99
+
+    # for each prior, get the actual id of the class it should predict, unmatched anchors (low IOU) should predict background
+    matched_gt_class_ids = gt_class[gt_idx]
+    pos = gt_overlap > 0.4
+    matched_gt_class_ids[~pos] = 100 # background code
+
+    # for each matched prior, get the bbox it should predict
+    raw_matched_bbox = gt_bbox[gt_idx]
+    pos_idx = torch.nonzero(pos)[:,0]
+    matched_gt_bbox = raw_matched_bbox[pos_idx]
+
+    # so now we have the GT represented with priors
+    return matched_gt_bbox, matched_gt_class_ids, pos_idx
 
 def create_anchors():
     ''' anchors and sizes, 4x4 basic atm '''
-    anc_grid = 4
-    k = 1
 
-    anc_offset = 1/(anc_grid*2)
-    anc_x = np.repeat(np.linspace(anc_offset, 1-anc_offset, anc_grid), anc_grid)
-    anc_y = np.tile(np.linspace(anc_offset, 1-anc_offset, anc_grid), anc_grid)
+    anc_grids = [20,10,5,3,2,1]
+    anc_zooms = [0.75, 1.]
+    anc_ratios = [(1.,1.), (1.,0.5), (0.5,1.)]
+    anchor_scales = [(anz*i,anz*j) for anz in anc_zooms for (i,j) in anc_ratios]
+    anc_offsets = [1/(o*2) for o in anc_grids]
+    k = len(anchor_scales)
 
-    anc_ctrs = np.tile(np.stack([anc_x, anc_y], axis=1), (k, 1))
-    anc_sizes = np.array([[1/anc_grid, 1/anc_grid] for i in range(anc_grid*anc_grid)])
+    anc_x = np.concatenate([np.repeat(np.linspace(ao, 1-ao, ag), ag)
+                        for ao,ag in zip(anc_offsets,anc_grids)])
+    anc_y = np.concatenate([np.tile(np.linspace(ao, 1-ao, ag), ag)
+                        for ao,ag in zip(anc_offsets,anc_grids)])
+    anc_ctrs = np.repeat(np.stack([anc_x,anc_y], axis=1), k, axis=0)
+
+    anc_sizes  =   np.concatenate([np.array([[o/ag,p/ag] for i in range(ag*ag) for o,p in anchor_scales])
+               for ag in anc_grids])
+
+    grid_sizes = torch.from_numpy(np.concatenate([np.array([ 1/ag       for i in range(ag*ag) for o,p in anchor_scales])
+                   for ag in anc_grids])).unsqueeze(1)
+
     anchors = torch.from_numpy(np.concatenate([anc_ctrs, anc_sizes], axis=1)).float()
+    anchor_cnr = hw2corners(anchors[:, :2], anchors[:, 2:])
 
-    grid_sizes = torch.from_numpy(np.array([1/anc_grid])).unsqueeze(1)
-
-    return anchors, grid_sizes
+    return anchor_cnr, grid_sizes
 
 # helper for dataset
 
 
-def prepare_gt(y, x):
+def prepare_gt(x, y):
     '''
     bring gt bboxes in correct format and scales values to [0,1]
     '''
@@ -110,17 +119,19 @@ def prepare_gt(y, x):
         new_bbox[2] = (bbox[0] + bbox[2]) / height_size
         new_bbox[3] = (bbox[1] + bbox[3]) / width_size
         gt[0][idx] = torch.FloatTensor(new_bbox)
+
     return gt
 
 # helper for train
 
-def print_batch_stats(epoch, batch_idx, train_loader, batch_loss, params):
+def print_batch_stats(epoch, batch_idx, train_loader, losses, params):
     '''
     prints statistics about the recently seen batches
     '''
     print('Epoch: {} of {}'.format(epoch, params.n_epochs))
     print('Batch: {} of {}'.format(batch_idx, len(train_loader)))
-    print('Batch_loss: {}'.format(batch_loss / params.train_stats_step))
+    print('Loss past {} batches: Localization {} Classification {}'.format(params.train_stats_step, 
+                                                                           losses[0] / params.train_stats_step, losses[1] / params.train_stats_step))
 
 
 def visualize_data(dataloader, model=None):
@@ -129,12 +140,11 @@ def visualize_data(dataloader, model=None):
     '''
     x, y = next(iter(dataloader))
     width_size, height_size = x.shape[3], x.shape[2]
+
     # have to keep track of initial size to have the corect rescaling factor for bbox coords
-    bboxes, classes = (y[0].squeeze().numpy() * 224).astype(int), y[1].squeeze().numpy()
+    bboxes, classes = (y[0].squeeze().numpy() * 320).astype(int), y[1].squeeze().numpy()
     image = (x.squeeze().numpy() * 255).astype(int)
-
     image = image.transpose((1, 2, 0))
-
     plt.imshow(image)
     plt.show()
 
@@ -142,19 +152,15 @@ def visualize_data(dataloader, model=None):
         x1, y1, x2, y2 = bbox
 
         image = cv2.rectangle(image, (x1, y1), (x2, y2), (36, 255, 12), 2)
-        # image = cv2.rectangle(image, (412, 157), (53, 138), (36, 255, 12), 3)
 
         cv2.putText(image, str(class_id), (x1, y1+10),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.9, (36, 255, 12), 2)
 
         if idx == 1:
             break
-
     image = image.get()
-
     plt.imshow(image)
     plt.show()
-
     if model:
         # show model prediction
         pass
