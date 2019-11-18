@@ -21,7 +21,7 @@ class BCE_Loss(nn.Module):
         t = []
         for clas_id in targ:
             bg = [0] * self.n_classes
-            #bg[self.id2idx[clas_id]] = 1
+            bg[self.id2idx[clas_id.item()]] = 1
             t.append(bg)
         t = torch.FloatTensor(t).to(self.device)
         weight=self.get_weight(pred, t)
@@ -48,13 +48,15 @@ def ssd_1_loss(pred_bbox, pred_class, gt_bbox, gt_class, anchors, grid_sizes, de
     overlaps = jaccard(gt_bbox, anchors)
 
     # map each anchor to the highest IOU obj, gt_idx - ids of mapped objects
-    matched_gt_bbox, matched_gt_class_ids, pos_idx = map_to_ground_truth(overlaps, gt_bbox, gt_class)
+    matched_gt_bbox, matched_gt_class_ids, pos_idx = map_to_ground_truth(
+        overlaps, gt_bbox, gt_class)
 
     loc_loss = ((pred_bbox[pos_idx] - matched_gt_bbox).abs()).mean()
 
     loss_f = BCE_Loss(3, device)
     class_loss = loss_f(pred_class, matched_gt_class_ids)
     return loc_loss, class_loss
+
 
 def ssd_loss(pred, targ, anchors, grid_sizes, device, params):
     '''
@@ -64,14 +66,15 @@ def ssd_loss(pred, targ, anchors, grid_sizes, device, params):
     anchors will be mappend to overlapping GT bboxes, thus feature map cells corresponding to those anchors will have to predict those gt bboxes
     '''
     localization_loss, classification_loss = 0., 0.
-    
+
     # computes the loss for each image in the batch
-    for idx in range(params.batch_size):
+    for idx in range(pred[0]):
         pred_bbox, pred_class = pred[0][idx], pred[1][idx]
         gt_bbox, gt_class = targ[0][idx].to(device), targ[1][idx].to(device)
 
-        l_loss, c_loss = ssd_1_loss(pred_bbox, pred_class, gt_bbox, gt_class, anchors, grid_sizes, device)
+        l_loss, c_loss = ssd_1_loss(pred_bbox, pred_class, gt_bbox,
+                                    gt_class, anchors, grid_sizes, device)
         localization_loss += l_loss
         classification_loss += c_loss
-   
+
     return localization_loss, classification_loss

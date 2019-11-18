@@ -2,6 +2,8 @@ from train.loss_fn import ssd_loss
 from train.helpers import *
 from train.validate import evaluate
 from train.lr_policies import constant_decay
+import datetime
+
 
 def train(model, optimizer, train_loader, valid_loader,
           device, params, start_epoch=0):
@@ -12,16 +14,23 @@ def train(model, optimizer, train_loader, valid_loader,
     trains model, saves best model by validation
     '''
 
-    
     anchors, grid_sizes = create_anchors()
     anchors, grid_sizes = anchors.to(device), grid_sizes.to(device)
 
     print('Train start...')
+    print(len(train_loader))
+    print(len(train_loader.dataset))
+
+    print(len(valid_loader))
+    print(len(valid_loader.dataset))
+
+    print(datetime.datetime.now())
     for epoch in range(start_epoch, params.n_epochs):
         model.train()
 
         losses = [0] * 4
         for batch_idx, (input_, label) in enumerate(train_loader):
+            print(datetime.datetime.now())
             input_ = input_.to(device)
 
             optimizer.zero_grad()
@@ -38,17 +47,15 @@ def train(model, optimizer, train_loader, valid_loader,
             if (batch_idx + 1) % params.train_stats_step == 0:
                 print_batch_stats(epoch, batch_idx, train_loader, losses, params)
                 losses[0], losses[1] = 0, 0
-            
-            if batch_idx == 10:
-                break
 
         if (epoch + 1) % params.eval_step == 0:
-            evaluate(model, optimizer, anchors, grid_sizes, train_loader, valid_loader, losses, epoch, device, params)
+            evaluate(model, optimizer, anchors, grid_sizes, train_loader,
+                     valid_loader, losses, epoch, device, params)
             losses[2], losses[3] = 0, 0
-        break
 
         # decay lr after epoch
         constant_decay.lr_decay(optimizer)
+
 
 def update_losses(losses, l_loss, c_loss):
     '''
