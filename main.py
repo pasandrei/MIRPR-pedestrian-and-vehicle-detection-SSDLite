@@ -9,7 +9,7 @@ from architectures.models import SSDNet
 from train.helpers import visualize_data
 
 
-def run(path='misc/experiments/ssdnet/params.json', resume=True, visualize=False):
+def run(path='misc/experiments/ssdnet/params.json', resume=False, visualize=False):
     '''
     args: path - string path to the json config file
     trains model refered by that file, saves model and optimizer dict at the same location
@@ -23,7 +23,7 @@ def run(path='misc/experiments/ssdnet/params.json', resume=True, visualize=False
     model.to(device)
 
     if params.optimizer == 'adam':
-        optimizer = optim.Adam(model.parameters(), lr=params.learning_rate)
+        optimizer = optim.Adam(model.parameters(), lr=params.learning_rate, weight_decay=params.weight_decay)
 
     print('Number of epochs:', params.n_epochs)
     print('Total number of parameters of model: ', sum(p.numel() for p in model.parameters() if p.requires_grad))
