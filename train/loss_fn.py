@@ -24,9 +24,19 @@ class BCE_Loss(nn.Module):
             #bg[self.id2idx[clas_id]] = 1
             t.append(bg)
         t = torch.FloatTensor(t).to(self.device)
-        return torch.nn.functional.binary_cross_entropy_with_logits(pred, t)
+        return torch.nn.functional.binary_cross_entropy_with_logits(pred, t, weight=self.get_weight(pred, t))
 
-    def get_weight(self, x, t): return None
+    def get_weight(self, x, t): 
+        alpha, gamma = 0.9, 2.
+        p = x
+        # confidence of prediction
+        pt = p*t + (1-p)*(1-t)
+
+        # non-background / background weight
+        w = alpha*t + (1-alpha)*(1-t)
+
+        # complete weighing factor
+        return w * ((1-pt).pow(gamma))
 
 
 def ssd_1_loss(pred_bbox, pred_class, gt_bbox, gt_class, anchors, grid_sizes, device):

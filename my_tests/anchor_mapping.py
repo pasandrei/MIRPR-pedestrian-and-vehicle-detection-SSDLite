@@ -36,9 +36,6 @@ def test_anchor_mapping():
         print(x)
 
     test_a()
-
-
-
     def check_anchors():
         params = Params('misc/experiments/ssdnet/params.json')
         train_loader, valid_loader = dataloaders.get_dataloaders(params)

@@ -23,7 +23,7 @@ def run(path='misc/experiments/ssdnet/params.json', resume=True, visualize=False
     model.to(device)
 
     if params.optimizer == 'adam':
-        optimizer = optim.Adam(model.parameters(), lr=params.learning_rate)
+        optimizer = optim.Adam(model.parameters(), lr=params.learning_rate, weight_decay=params.weight_decay)
 
     print('Number of epochs:', params.n_epochs)
     print('Total number of parameters of model: ', sum(p.numel() for p in model.parameters() if p.requires_grad))

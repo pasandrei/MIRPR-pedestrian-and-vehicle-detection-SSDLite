@@ -20,10 +20,11 @@ class OutConv(nn.Module):
         self.prepare_class = ConvBNReLU(in_channels, in_channels, groups=in_channels)
         self.oconv1 = nn.Conv2d(in_channels, 4*k, 1)
         self.oconv2 = nn.Conv2d(in_channels, n_classes*k, 1)
-        
+        self.sigmoid = nn.Sigmoid()
+
     def forward(self, x):
         return [self.flatten_conv(self.oconv1(self.prepare_bbox(x)), self.k),
-                self.flatten_conv(self.oconv2(self.prepare_class(x)), self.k)]
+                self.flatten_conv(self.sigmoid(self.oconv2(self.prepare_class(x))), self.k)]
 
     def flatten_conv(self, x, k):
         batch_size, channels, H, W = x.size()
