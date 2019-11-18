@@ -33,12 +33,19 @@ def train(model, optimizer, train_loader, valid_loader,
             print(datetime.datetime.now())
             input_ = input_.to(device)
 
+            print(input_.shape)
+
+            gt_bboxes_batch, gt_classes_batch = label
+            for i in range(len(gt_bboxes_batch)):
+                gt_bboxes_batch[i].to(device)
+
             optimizer.zero_grad()
             output = model(input_)
             output[0].to(device)
             output[1].to(device)
 
             l_loss, c_loss = ssd_loss(output, label, anchors, grid_sizes, device, params)
+            print('BACKWARDING AND UasdsdING THE LOSSES')
             loss = l_loss + c_loss
             update_losses(losses, l_loss, c_loss)
             loss.backward()

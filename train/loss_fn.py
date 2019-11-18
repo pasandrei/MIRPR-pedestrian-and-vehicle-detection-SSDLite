@@ -21,7 +21,7 @@ class BCE_Loss(nn.Module):
         t = []
         for clas_id in targ:
             bg = [0] * self.n_classes
-            bg[self.id2idx[clas_id.item()]] = 1
+            #bg[self.id2idx[clas_id.item()]] = 1
             t.append(bg)
         t = torch.FloatTensor(t).to(self.device)
         weight=self.get_weight(pred, t)
@@ -59,6 +59,9 @@ def ssd_1_loss(pred_bbox, pred_class, gt_bbox, gt_class, anchors, grid_sizes, de
 
 
 def ssd_loss(pred, targ, anchors, grid_sizes, device, params):
+
+    print('ENTERING THE LOSS')
+
     '''
     args: pred - model output - two tensors of dim anchors x 4 and anchors x n_classes in a list
     targ - ground truth - two tensors of dim #obj x 4 and #obj in a list
@@ -68,9 +71,9 @@ def ssd_loss(pred, targ, anchors, grid_sizes, device, params):
     localization_loss, classification_loss = 0., 0.
 
     # computes the loss for each image in the batch
-    for idx in range(pred[0]):
+    for idx in range(pred[0].shape[0]):
         pred_bbox, pred_class = pred[0][idx], pred[1][idx]
-        gt_bbox, gt_class = targ[0][idx].to(device), targ[1][idx].to(device)
+        gt_bbox, gt_class = targ[0][idx], targ[1][idx]
 
         l_loss, c_loss = ssd_1_loss(pred_bbox, pred_class, gt_bbox,
                                     gt_class, anchors, grid_sizes, device)
