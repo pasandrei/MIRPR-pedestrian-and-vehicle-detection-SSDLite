@@ -7,5 +7,5 @@
     "n_epochs": 10,
     "train_stats_step": 1,
     "eval_step": 1,
-    "loss": 5.199645067915109
+    "loss": 5.033016312273598
 }
