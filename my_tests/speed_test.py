@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import torchvision.models as models
+
 
 from train.config import Params
 from data import dataloaders
@@ -18,7 +20,7 @@ def measure_mobilenet():
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     params = Params('misc/experiments/ssdnet/params.json')
 
-    model = MobileNet.mobilenet_v2()
+    model = models.mobilenet_v2()
     model.to(device)
 
     optimizer = optim.Adam(model.parameters())
@@ -27,11 +29,8 @@ def measure_mobilenet():
 
     train_loader, valid_loader = dataloaders.get_dataloaders(params)
     
-    dummy_targ = torch.rand(params.batch_size, 1)
-    compress_all = nn.Conv2d(1280, 1, 1)
-    compress_further = nn.Linear(100, 1)
-    criterion = nn.BCELoss()
-    sig = nn.Sigmoid()
+    dummy_targ = torch.rand(params.batch_size, 1000).to(device)
+    criterion = nn.BCEWithLogitsLoss()
 
     prev = datetime.datetime.now()
     print(prev)
@@ -49,13 +48,7 @@ def measure_mobilenet():
 
         optimizer.zero_grad()
         output = model(input_)
-        output[0].to(device)
 
-        rez = output[1].to(device)
-        rez = compress_all(rez)
-        rez = rez.view(params.batch_size, 1, -1)
-        rez = compress_further(rez)
-        dummy_pred = sig(rez)
         loss = criterion(dummy_pred, dummy_targ)
 
         loss.backward()
