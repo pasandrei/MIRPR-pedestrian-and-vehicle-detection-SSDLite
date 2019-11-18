@@ -24,11 +24,12 @@ class BCE_Loss(nn.Module):
             #bg[self.id2idx[clas_id]] = 1
             t.append(bg)
         t = torch.FloatTensor(t).to(self.device)
-        return torch.nn.functional.binary_cross_entropy_with_logits(pred, t, weight=self.get_weight(pred, t))
+        weight=self.get_weight(pred, t)
+        return torch.nn.functional.binary_cross_entropy_with_logits(pred, t, weight)
 
     def get_weight(self, x, t): 
         alpha, gamma = 0.9, 2.
-        p = x
+        p = x.detach()
         # confidence of prediction
         pt = p*t + (1-p)*(1-t)
 
