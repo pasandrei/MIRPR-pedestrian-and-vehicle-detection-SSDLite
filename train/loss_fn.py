@@ -34,7 +34,7 @@ class BCE_Loss(nn.Module):
         pt = p*t + (1-p)*(1-t)
 
         # non-background / background weight
-        w = torch.FloatTensor([1, 1, 0.1])
+        w = torch.FloatTensor([1, 1, 0.01])
 
         # complete weighing factor
         return w * ((1-pt).pow(gamma))
