@@ -36,7 +36,7 @@ def train(model, optimizer, train_loader, valid_loader,
             optimizer.step()
 
             if (batch_idx + 1) % params.train_stats_step == 0:
-                print_batch_stats(epoch, batch_idx, train_loader, losses, params)
+                print_batch_stats(model, epoch, batch_idx, train_loader, losses, params)
                 losses[0], losses[1] = 0, 0
             
             if batch_idx == 10:

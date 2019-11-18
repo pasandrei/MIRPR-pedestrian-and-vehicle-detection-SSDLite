@@ -50,9 +50,9 @@ def measure_mobilenet():
         optimizer.zero_grad()
         output = model(input_)
         output[0].to(device)
+
         rez = output[1].to(device)
         rez = compress_all(rez)
-        print(rez.shape)
         rez = rez.view(params.batch_size, 1, -1)
         rez = compress_further(rez)
         dummy_pred = sig(rez)
