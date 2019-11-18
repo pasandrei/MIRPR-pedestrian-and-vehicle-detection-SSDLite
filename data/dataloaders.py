@@ -11,21 +11,21 @@ import json
 def get_dataloaders(params):
     ''' creates and returns train and validation data loaders '''
 
-    train_annotations_path = 'C:\\Users\\Andrei Popovici\\Desktop\\COCO_new\\annotations\\instances_train2017.json'
-    train_dataset = CocoDetection(root='C:\\Users\\Andrei Popovici\\Desktop\\COCO_new\\train2017',
-                                       annFile=train_annotations_path)
+    # train_annotations_path = 'C:\\Users\\Andrei Popovici\\Desktop\\COCO_new\\annotations\\instances_train2017.json'
+    # train_dataset = CocoDetection(root='C:\\Users\\Andrei Popovici\\Desktop\\COCO_new\\train2017',
+    #                                    annFile=train_annotations_path)
 
     val_annotations_path = 'C:\\Users\\Andrei Popovici\\Desktop\\COCO_new\\annotations\\instances_val2017.json'
     validation_dataset = CocoDetection(root='C:\\Users\\Andrei Popovici\\Desktop\\COCO_new\\val2017',
                                        annFile=val_annotations_path)
 
-    with open(train_annotations_path) as json_file:
-        data = json.load(json_file)
-        nr_images_in_train = len(data['images'])
+    # with open(train_annotations_path) as json_file:
+    #     data = json.load(json_file)
+    #     nr_images_in_train = len(data['images'])
 
-    train_dataloader = DataLoader(train_dataset, batch_size=None,
-                                  shuffle=False, num_workers=4,
-                                  sampler=BatchSampler(SequentialSampler([i for i in range(nr_images_in_train)]), batch_size=params.batch_size, drop_last=False))
+    # train_dataloader = DataLoader(train_dataset, batch_size=None,
+    #                               shuffle=False, num_workers=4,
+    #                               sampler=BatchSampler(SequentialSampler([i for i in range(nr_images_in_train)]), batch_size=params.batch_size, drop_last=False))
 
     with open(val_annotations_path) as json_file:
         data = json.load(json_file)

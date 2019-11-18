@@ -143,6 +143,42 @@ def prepare_gt(x, y):
 # helper for train
 
 
+def help_calculate_AP(gt_bboxes, prediction_bboxes, IoU):
+    """
+    IN:
+        gt_bboxes: [[[x1, y1, x2, y2] class] ... ]
+        prediction_bboxes: [[[x1, y1, x2, y2] class confidence] ... ]
+    """
+
+    def sort_by_confidence(prediction_bbox):
+        return prediction_bbox[2]
+
+    prediction_bboxes.sort(key=sort_by_confidence)
+
+    true_positives = 0
+    false_positives = 0
+
+    for prediction_bbox in prediction_bboxes:
+        ok = 0
+        for gt_bbox in gt_bboxes:
+            if prediction_bbox[1] != gt_bbox[1]:
+                continue
+
+            current_IoU = jaccard(prediction_bbox[0], gt_bbox[0])
+
+            if current_IoU >= IoU:
+                ok = 1
+
+        true_positives += ok
+        false_positives += 1-ok
+
+    return true_positives/(true_positives+false_positives)
+
+
+def calculate_AP(model_output, label):
+    pass
+
+
 def print_batch_stats(model, epoch, batch_idx, train_loader, losses, params):
     '''
     prints statistics about the recently seen batches
@@ -276,8 +312,8 @@ def gradient_weight_check(model):
     '''
     will pring mean abs value of gradients and weights during training to check for stability
     '''
-    avg_grads, max_grads= [], []
-    avg_weigths, max_weigths= [], []
+    avg_grads, max_grads = [], []
+    avg_weigths, max_weigths = [], []
 
     # try to understand comp graph better for why inter variables don't have grad retained and what this means for this stat
     for n, p in model.named_parameters():
@@ -291,20 +327,20 @@ def gradient_weight_check(model):
     avg_weigths, max_weigths = torch.FloatTensor(avg_weigths), torch.FloatTensor(max_weigths)
 
     return torch.mean(avg_grads), torch.mean(max_grads), torch.mean(avg_weigths), torch.mean(max_weigths)
-    
+
 
 def plot_grad_flow(model):
     # taken from Roshan Rane answer on pytorch forums
     '''Plots the gradients flowing through different layers in the net during training.
     Can be used for checking for possible gradient vanishing / exploding problems.
-    
-    Usage: Plug this function in Trainer class after loss.backwards() as 
+
+    Usage: Plug this function in Trainer class after loss.backwards() as
     "plot_grad_flow(self.model.named_parameters())" to visualize the gradient flow
-    
+
     - will want to extend this to write ave_grads and max_grads to a simple csv file and plot progressions after training
     '''
     ave_grads = []
-    max_grads= []
+    max_grads = []
     layers = []
     for n, p in model.named_parameters():
         if(p.requires_grad) and ("bias" not in n):
@@ -313,10 +349,10 @@ def plot_grad_flow(model):
             max_grads.append(p.grad.abs().max())
     plt.bar(np.arange(len(max_grads)), max_grads, alpha=0.1, lw=1, color="c")
     plt.bar(np.arange(len(max_grads)), ave_grads, alpha=0.1, lw=1, color="b")
-    plt.hlines(0, 0, len(ave_grads)+1, lw=2, color="k" )
-    plt.xticks(range(0,len(ave_grads), 1), layers, rotation="vertical")
+    plt.hlines(0, 0, len(ave_grads)+1, lw=2, color="k")
+    plt.xticks(range(0, len(ave_grads), 1), layers, rotation="vertical")
     plt.xlim(left=0, right=len(ave_grads))
-    plt.ylim(bottom = -0.001, top=0.02) # zoom in on the lower gradient regions
+    plt.ylim(bottom=-0.001, top=0.02)  # zoom in on the lower gradient regions
     plt.xlabel("Layers")
     plt.ylabel("average gradient")
     plt.title("Gradient flow")

@@ -29,14 +29,13 @@ def train(model, optimizer, train_loader, valid_loader,
         model.train()
 
         losses = [0] * 4
+        ap_counter = 0
         for batch_idx, (input_, label) in enumerate(train_loader):
             print(datetime.datetime.now())
             input_ = input_.to(device)
 
             optimizer.zero_grad()
             output = model(input_)
-            output[0].to(device)
-            output[1].to(device)
 
             l_loss, c_loss = ssd_loss(output, label, anchors, grid_sizes, device, params)
             loss = l_loss + c_loss
@@ -44,9 +43,16 @@ def train(model, optimizer, train_loader, valid_loader,
             loss.backward()
             optimizer.step()
 
+            '''
+                Calculate AP for this batch
+                add curent batch ap to counter
+            '''
+
             if (batch_idx + 1) % params.train_stats_step == 0:
-                print_batch_stats(model, epoch, batch_idx, train_loader, losses, params)
+                print_batch_stats(model, epoch, batch_idx, train_loader,
+                                  losses, ap_counter, params)
                 losses[0], losses[1] = 0, 0
+                ap_counter = 0
 
         if (epoch + 1) % params.eval_step == 0:
             evaluate(model, optimizer, anchors, grid_sizes, train_loader,

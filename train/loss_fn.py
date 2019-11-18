@@ -21,20 +21,20 @@ class BCE_Loss(nn.Module):
         t = []
         for clas_id in targ:
             bg = [0] * self.n_classes
-            bg[self.id2idx[clas_id.item()]] = 1
+            #bg[self.id2idx[clas_id.item()]] = 1
             t.append(bg)
         t = torch.FloatTensor(t).to(self.device)
-        weight=self.get_weight(pred, t)
+        weight = self.get_weight(pred, t)
         return torch.nn.functional.binary_cross_entropy_with_logits(pred, t, weight)
 
-    def get_weight(self, x, t): 
+    def get_weight(self, x, t):
         alpha, gamma = 0.9, 2.
         p = x.detach()
         # confidence of prediction
         pt = p*t + (1-p)*(1-t)
 
         # non-background / background weight
-        w = torch.FloatTensor([1, 1, 0.01])
+        w = torch.FloatTensor([1, 1, 1]).to(self.device)
 
         # complete weighing factor
         return w * ((1-pt).pow(gamma))
@@ -68,7 +68,7 @@ def ssd_loss(pred, targ, anchors, grid_sizes, device, params):
     localization_loss, classification_loss = 0., 0.
 
     # computes the loss for each image in the batch
-    for idx in range(pred[0]):
+    for idx in range(pred[0].shape[0]):
         pred_bbox, pred_class = pred[0][idx], pred[1][idx]
         gt_bbox, gt_class = targ[0][idx].to(device), targ[1][idx].to(device)
 
