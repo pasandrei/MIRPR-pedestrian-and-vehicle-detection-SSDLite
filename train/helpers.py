@@ -1,4 +1,4 @@
-# import torch
+import torch
 import numpy as np
 import cv2
 from matplotlib import pyplot as plt
@@ -265,3 +265,4 @@ def plot_bounding_boxes(image, bounding_boxes, ok=0):
     # display the image
     cv2.imshow("Image with bounding boxes", image)
     cv2.waitKey(0)
+
