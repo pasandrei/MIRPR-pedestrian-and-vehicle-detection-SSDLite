@@ -2,10 +2,10 @@
     "model_id": "ssdnet",
     "optimizer": "adam",
     "learning_rate": 0.045,
-	"weight_decay": 0.00004,
-    "batch_size": 2,
+    "batch_size": 16,
+    "weight_decay": 0.00004,
     "n_epochs": 10,
-    "train_stats_step": 1,
+    "train_stats_step": 5,
     "eval_step": 1,
     "loss": 5.033016312273598
 }

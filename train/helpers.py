@@ -69,6 +69,7 @@ def map_to_ground_truth(overlaps, gt_bbox, gt_class):
     # for each matched prior, get the bbox it should predict
     raw_matched_bbox = gt_bbox[prior_to_gt_idx]
     pos_idx = torch.nonzero(pos)[:, 0]
+    # which of those max values are actually precise enough?
     matched_gt_bbox = raw_matched_bbox[pos_idx]
 
     # so now we have the GT represented with priors
@@ -91,8 +92,8 @@ def create_anchors():
     '''
 
     anc_grids = [20, 10, 5, 3, 2, 1]
-    anc_zooms = [1., 0.75, 1.2]
-    anc_ratios = [(1., 1.), (1., 0.5)]
+    anc_zooms = [1., 1.2]
+    anc_ratios = [(1., 1.), (1., 0.7), (0.57, 1)]
     anchor_scales = [(anz*i, anz*j) for anz in anc_zooms for (i, j) in anc_ratios]
     anc_offsets = [1/(o*2) for o in anc_grids]
     k = len(anchor_scales)
