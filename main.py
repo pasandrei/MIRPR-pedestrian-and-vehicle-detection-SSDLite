@@ -16,7 +16,7 @@ def run(path='misc/experiments/ssdnet/params.json', resume=True, visualize=False
     '''
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    params = Params('misc/experiments/ssdnet/params.json')
+    params = Params(path)
 
     if params.model_id == 'ssdnet':
         model = SSDNet.SSD_Head()

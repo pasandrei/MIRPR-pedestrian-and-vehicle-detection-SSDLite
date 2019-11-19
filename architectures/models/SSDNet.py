@@ -97,5 +97,7 @@ class SSD_Head(nn.Module):
         x = self.inv5(x)
         _1bbox, _1class = self.out5(x)
 
+        # bboxes prediction:  B x (20*20) * 6 x 4 ...
+        # class prediction:  B x (20*20) * 6 x 3 ...
         return [torch.cat([_20bbox, _10bbox, _5bbox, _3bbox, _2bbox, _1bbox], dim=1),
                 torch.cat([_20class, _10class, _5class, _3class, _2class, _1class], dim=1)]
