@@ -15,8 +15,8 @@ def get_dataloaders(params):
     # train_dataset = CocoDetection(root='C:\\Users\\Andrei Popovici\\Desktop\\COCO_new\\train2017',
     #                                    annFile=train_annotations_path)
 
-    val_annotations_path = '..\\..\\COCO\\annotations\\instances_val2017.json'
-    validation_dataset = CocoDetection(root='..\\..\\COCO\\val2017',
+    val_annotations_path = '..\\..\\COCO_new\\annotations\\instances_val2017.json'
+    validation_dataset = CocoDetection(root='..\\..\\COCO_new\\val2017',
                                        annFile=val_annotations_path)
 
     # with open(train_annotations_path) as json_file:
@@ -32,7 +32,7 @@ def get_dataloaders(params):
         nr_images_in_val = len(data['images'])
 
     valid_dataloader = DataLoader(validation_dataset, batch_size=None,
-                                  shuffle=False, num_workers=0,
+                                  shuffle=False, num_workers=4,
                                   sampler=BatchSampler(SequentialSampler([i for i in range(nr_images_in_val)]), batch_size=params.batch_size, drop_last=False))
 
     return valid_dataloader, valid_dataloader  # de schimbat

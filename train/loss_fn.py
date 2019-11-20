@@ -11,7 +11,6 @@ class BCE_Loss(nn.Module):
         super().__init__()
         self.n_classes = n_classes
         self.device = device
-        self.id2idx = {1: 0, 3: 1, 100: 2}
 
     def forward(self, pred, targ):
         '''
@@ -20,10 +19,14 @@ class BCE_Loss(nn.Module):
         '''
         t = []
         for clas_id in targ:
-            bg = [0] * self.n_classes
-            # bg[self.id2idx[clas_id.item()]] = 1
+            bg = torch.zeros(3).to(self.device)
+            if clas_id.item() == 1:
+                bg[0] = 1
+            elif clas_id.item() == 3:
+                bg[1] = 1
+            else:
+                bg[2] = 1
             t.append(bg)
-        t = torch.FloatTensor(t).to(self.device)
         weight = self.get_weight(pred, t)
         return torch.nn.functional.binary_cross_entropy_with_logits(pred, t, weight)
 
@@ -45,7 +48,7 @@ def ssd_1_loss(pred_bbox, pred_class, gt_bbox, gt_class, anchors, grid_sizes, de
     pred_bbox = activations_to_bboxes(pred_bbox, anchors, grid_sizes)
 
     # compute IOU for obj x anchor
-    overlaps = jaccard(gt_bbox, hw2corners(anchors[:, :2], anchors[:, :2])
+    overlaps = jaccard(gt_bbox, hw2corners(anchors[:, :2], anchors[:, :2]))
 
     # map each anchor to the highest IOU obj, gt_idx - ids of mapped objects
     matched_gt_bbox, matched_gt_class_ids, pos_idx=map_to_ground_truth(
@@ -65,12 +68,20 @@ def ssd_loss(pred, targ, anchors, grid_sizes, device, params):
 
     anchors will be mappend to overlapping GT bboxes, thus feature map cells corresponding to those anchors will have to predict those gt bboxes
     '''
-    localization_loss, classification_loss=0., 0.
+    localization_loss, classification_loss = 0., 0.
 
     # computes the loss for each image in the batch
     for idx in range(pred[0].shape[0]):
-        pred_bbox, pred_class=pred[0][idx], pred[1][idx]
-        gt_bbox, gt_class=targ[0][idx].to(device), targ[1][idx].to(device)
+        pred_bbox, pred_class = pred[0][idx], pred[1][idx]
+        gt_bbox, gt_class = targ[0][idx].to(device), targ[1][idx].to(device)
+
+        # assert that all tensors passed to ssd_1_loss are on GPU !!!!!!!!
+        assert pred_bbox.is_cuda() == True
+        assert pred_class.is_cuda() == True
+        assert gt_bbox.is_cuda() == True
+        assert gt_class.is_cuda() == True
+        assert anchors.is_cuda() == True
+        assert grid_sizes.is_cuda() == True
 
         l_loss, c_loss=ssd_1_loss(pred_bbox, pred_class, gt_bbox,
                                     gt_class, anchors, grid_sizes, device)

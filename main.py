@@ -9,7 +9,7 @@ from architectures.models import SSDNet
 from train.helpers import visualize_data
 
 
-def run(path='misc/experiments/ssdnet/params.json', resume=True, visualize=False):
+def run(path='misc/experiments/ssdnet/params.json', resume=False, visualize=False):
     '''
     args: path - string path to the json config file
     trains model refered by that file, saves model and optimizer dict at the same location
@@ -22,8 +22,8 @@ def run(path='misc/experiments/ssdnet/params.json', resume=True, visualize=False
         model = SSDNet.SSD_Head()
     model.to(device)
 
-    # for param in model.backbone.parameters():
-    #     param.requires_grad = False
+    for param in model.backbone.parameters():
+        param.requires_grad = False
 
     if params.optimizer == 'adam':
         optimizer = optim.Adam(model.parameters(), lr=params.learning_rate,

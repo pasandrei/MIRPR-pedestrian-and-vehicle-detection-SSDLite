@@ -6,6 +6,18 @@ from misc.print_stats import *
 import datetime
 
 
+def train_step(model, input_, label, optimizer, losses, device, params):
+    print(datetime.datetime.now())
+    input_ = input_.to(device)
+
+    optimizer.zero_grad()
+    output = model(input_)
+    l_loss, c_loss = ssd_loss(output, label, anchors, grid_sizes, device, params)
+    loss = l_loss + c_loss
+    update_losses(losses, l_loss.item(), c_loss.item())
+    loss.backward()
+    optimizer.step()
+
 def train(model, optimizer, train_loader, valid_loader,
           device, params, start_epoch=0):
     '''
@@ -18,31 +30,13 @@ def train(model, optimizer, train_loader, valid_loader,
     anchors, grid_sizes = create_anchors()
     anchors, grid_sizes = anchors.to(device), grid_sizes.to(device)
 
-    print('Train start...')
-    print(len(train_loader))
-    print(len(train_loader.dataset))
-
-    print(len(valid_loader))
-    print(len(valid_loader.dataset))
-
     print(datetime.datetime.now())
     for epoch in range(start_epoch, params.n_epochs):
         model.train()
 
         losses = [0] * 4
-        ap_counter = 0
         for batch_idx, (input_, label) in enumerate(train_loader):
-            print(datetime.datetime.now())
-            input_ = input_.to(device)
-
-            optimizer.zero_grad()
-            output = model(input_)
-
-            l_loss, c_loss = ssd_loss(output, label, anchors, grid_sizes, device, params)
-            loss = l_loss + c_loss
-            update_losses(losses, l_loss, c_loss)
-            loss.backward()
-            optimizer.step()
+            train_step(model, input_, label, optimizer, losses, device, params)
 
             '''
                 Calculate AP for this batch
@@ -68,7 +62,7 @@ def update_losses(losses, l_loss, c_loss):
     '''
     losses[0], losses[1] - batch l and c loss, similarily for idx 2 and 3 epoch loss
     '''
-    losses[0] += l_loss.item()
-    losses[1] += c_loss.item()
-    losses[2] += l_loss.item()
-    losses[3] += c_loss.item()
+    losses[0] += l_loss
+    losses[1] += c_loss
+    losses[2] += l_loss
+    losses[3] += c_loss

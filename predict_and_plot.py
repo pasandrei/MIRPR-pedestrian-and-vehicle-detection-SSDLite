@@ -36,19 +36,18 @@ def model_output_pipeline(params_path):
     anchors, grid_sizes = anchors.to(device), grid_sizes.to(device)
 
     model.eval()
-
     with torch.no_grad():
         for (batch_images, batch_targets) in valid_loader:
             batch_images.to(device)
 
             # predictions[0] = B x #anchors x 4
             # predictions[1] = B x #anchors x 3 -> [0.2, 0.1, 0.9], [0.01, 0.01, 0.8]
+            # are elements of predictions really on GPU?
             predictions = model(batch_images)
 
             # move everything to cpu for plotting
             batch_images = batch_images.cpu()
-            predictions[0] = [activations_to_bboxes(
-                x, anchors, grid_sizes).cpu() for x in predictions[0]]
+            predictions[0] = [activations_to_bboxes(x, anchors, grid_sizes).cpu() for x in predictions[0]]
             predictions[1] = sig(predictions[1]).cpu()
 
             for idx in range(len(batch_images)):
@@ -60,6 +59,7 @@ def model_output_pipeline(params_path):
                 current_prediction_bboxes = predictions[0][idx]
                 current_prediction_class_ids = predictions[1][idx]
 
+                # assert everything here is on CPU
                 plot_model_outputs(current_image, current_image_bboxes, current_image_class_ids,
                                    current_prediction_bboxes, current_prediction_class_ids)
             break
