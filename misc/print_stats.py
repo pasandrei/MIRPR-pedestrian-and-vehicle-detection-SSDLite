@@ -1,4 +1,8 @@
+import torch
+
 # print
+
+
 def print_batch_stats(model, epoch, batch_idx, train_loader, losses, params):
     '''
     prints statistics about the recently seen batches
@@ -36,6 +40,8 @@ def gradient_weight_check(model):
     return torch.mean(avg_grads), torch.mean(max_grads), torch.mean(avg_weigths), torch.mean(max_weigths)
 
 # print stats
+
+
 def plot_grad_flow(model):
     # taken from Roshan Rane answer on pytorch forums
     '''Plots the gradients flowing through different layers in the net during training.

@@ -2,6 +2,7 @@ from train.loss_fn import ssd_loss
 from train.helpers import *
 from train.validate import evaluate
 from train.lr_policies import constant_decay
+from misc.print_stats import *
 import datetime
 
 
@@ -50,7 +51,7 @@ def train(model, optimizer, train_loader, valid_loader,
 
             if (batch_idx + 1) % params.train_stats_step == 0:
                 print_batch_stats(model, epoch, batch_idx, train_loader,
-                                  losses, ap_counter, params)
+                                  losses, params)
                 losses[0], losses[1] = 0, 0
                 ap_counter = 0
 

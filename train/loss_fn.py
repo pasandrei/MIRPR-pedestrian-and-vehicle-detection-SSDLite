@@ -21,7 +21,7 @@ class BCE_Loss(nn.Module):
         t = []
         for clas_id in targ:
             bg = [0] * self.n_classes
-            #bg[self.id2idx[clas_id.item()]] = 1
+            # bg[self.id2idx[clas_id.item()]] = 1
             t.append(bg)
         t = torch.FloatTensor(t).to(self.device)
         weight = self.get_weight(pred, t)
@@ -42,19 +42,19 @@ class BCE_Loss(nn.Module):
 
 def ssd_1_loss(pred_bbox, pred_class, gt_bbox, gt_class, anchors, grid_sizes, device):
     # make network outputs same as gt bbox format
-    pred_bbox = actn_to_bb(pred_bbox, anchors, grid_sizes)
+    pred_bbox = activations_to_bboxes(pred_bbox, anchors, grid_sizes)
 
     # compute IOU for obj x anchor
-    overlaps = jaccard(gt_bbox, anchors)
+    overlaps = jaccard(gt_bbox, hw2corners(anchors[:, :2], anchors[:, :2])
 
     # map each anchor to the highest IOU obj, gt_idx - ids of mapped objects
-    matched_gt_bbox, matched_gt_class_ids, pos_idx = map_to_ground_truth(
+    matched_gt_bbox, matched_gt_class_ids, pos_idx=map_to_ground_truth(
         overlaps, gt_bbox, gt_class)
 
-    loc_loss = ((pred_bbox[pos_idx] - matched_gt_bbox).abs()).mean()
+    loc_loss=((pred_bbox[pos_idx] - matched_gt_bbox).abs()).mean()
 
-    loss_f = BCE_Loss(3, device)
-    class_loss = loss_f(pred_class, matched_gt_class_ids)
+    loss_f=BCE_Loss(3, device)
+    class_loss=loss_f(pred_class, matched_gt_class_ids)
     return loc_loss, class_loss
 
 
@@ -65,14 +65,14 @@ def ssd_loss(pred, targ, anchors, grid_sizes, device, params):
 
     anchors will be mappend to overlapping GT bboxes, thus feature map cells corresponding to those anchors will have to predict those gt bboxes
     '''
-    localization_loss, classification_loss = 0., 0.
+    localization_loss, classification_loss=0., 0.
 
     # computes the loss for each image in the batch
     for idx in range(pred[0].shape[0]):
-        pred_bbox, pred_class = pred[0][idx], pred[1][idx]
-        gt_bbox, gt_class = targ[0][idx].to(device), targ[1][idx].to(device)
+        pred_bbox, pred_class=pred[0][idx], pred[1][idx]
+        gt_bbox, gt_class=targ[0][idx].to(device), targ[1][idx].to(device)
 
-        l_loss, c_loss = ssd_1_loss(pred_bbox, pred_class, gt_bbox,
+        l_loss, c_loss=ssd_1_loss(pred_bbox, pred_class, gt_bbox,
                                     gt_class, anchors, grid_sizes, device)
         localization_loss += l_loss
         classification_loss += c_loss
