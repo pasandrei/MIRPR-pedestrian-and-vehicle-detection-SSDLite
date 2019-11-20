@@ -15,8 +15,8 @@ def get_dataloaders(params):
     # train_dataset = CocoDetection(root='C:\\Users\\Andrei Popovici\\Desktop\\COCO_new\\train2017',
     #                                    annFile=train_annotations_path)
 
-    val_annotations_path = '..\\..\\COCO\\annotations_trainval2017\\annotations\\instances_val2017.json'
-    validation_dataset = CocoDetection(root='..\\..\\COCO\\val2017\\val2017',
+    val_annotations_path = '..\\..\\COCO\\annotations\\instances_val2017.json'
+    validation_dataset = CocoDetection(root='..\\..\\COCO\\val2017',
                                        annFile=val_annotations_path)
 
     # with open(train_annotations_path) as json_file:

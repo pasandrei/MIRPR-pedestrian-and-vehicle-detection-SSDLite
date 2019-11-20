@@ -6,6 +6,7 @@ from train import train
 from architectures.models import SSDNet
 
 import random
+import numpy as np
 
 import torch
 import torch.nn as nn
@@ -15,7 +16,8 @@ import torch.optim as optim
 def model_output_pipeline(params_path):
     print('HERE')
 
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cpu")
 
     params = Params(params_path)
 
@@ -33,50 +35,60 @@ def model_output_pipeline(params_path):
     anchors, grid_sizes = create_anchors()
     anchors, grid_sizes = anchors.to(device), grid_sizes.to(device)
 
-    for (batch_images, batch_targets) in valid_loader:
-        batch_images.to(device)
+    model.eval()
 
-        # predictions[0] = B x #anchors x 4
-        # predictions[1] = B x #anchors x 3 -> [0.2, 0.1, 0.9], [0.01, 0.01, 0.8]
-        predictions = model(batch_images)
+    with torch.no_grad():
+        for (batch_images, batch_targets) in valid_loader:
+            batch_images.to(device)
 
-        # move everything to cpu for plotting
-        batch_images = batch_images.cpu()
-        predictions[0] = activations_to_bboxes(predictions[0], anchors, grid_sizes).cpu()
-        predictions[1] = sig(predictions[1]).cpu()
+            # predictions[0] = B x #anchors x 4
+            # predictions[1] = B x #anchors x 3 -> [0.2, 0.1, 0.9], [0.01, 0.01, 0.8]
+            predictions = model(batch_images)
 
-        for idx in range(len(batch_images)):
-            current_image = batch_images[idx]
+            # move everything to cpu for plotting
+            batch_images = batch_images.cpu()
+            predictions[0] = [activations_to_bboxes(
+                x, anchors, grid_sizes).cpu() for x in predictions[0]]
+            predictions[1] = sig(predictions[1]).cpu()
 
-            current_image_bboxes = batch_targets[0][idx]
-            current_image_class_ids = batch_targets[1][idx]
+            for idx in range(len(batch_images)):
+                current_image = batch_images[idx]
 
-            current_prediction_bboxes = predictions[0][idx]
-            current_prediction_class_ids = predictions[1][idx]
+                current_image_bboxes = batch_targets[0][idx]
+                current_image_class_ids = batch_targets[1][idx]
 
-            plot_model_outputs(current_image, current_image_bboxes, current_image_class_ids,
-                               current_prediction_bboxes, current_prediction_class_ids)
+                current_prediction_bboxes = predictions[0][idx]
+                current_prediction_class_ids = predictions[1][idx]
+
+                plot_model_outputs(current_image, current_image_bboxes, current_image_class_ids,
+                                   current_prediction_bboxes, current_prediction_class_ids)
+            break
 
 
 def plot_model_outputs(current_image, current_image_bboxes, current_image_class_ids,
                        current_prediction_bboxes, current_prediction_class_ids):
     """
-
+    ???
     """
     keep_indices = []
     for idx, one_hot_pred in enumerate(current_prediction_class_ids):
-        max_confidence, position = current_prediction_class_ids.max(dim=0)
+        max_confidence, position = one_hot_pred.max(dim=0)
         if position != 2:
             keep_indices.append(position)
 
     current_prediction_bboxes = current_prediction_bboxes.numpy()
-    keep_indices = numpy.array(keep_indices)
+    keep_indices = np.array(keep_indices)
 
     kept_bboxes = current_prediction_bboxes[keep_indices]
 
-    post_nms_bboxes = nms(kept_bboxes)
+    kept_bboxes = (kept_bboxes * 320).astype(int)
+    current_image = (current_image * 255).numpy().astype(np.uint8)
 
-    plot_bounding_boxes(current_image.numpy(), post_nms_bboxes)
+    post_nms_bboxes = nms(kept_bboxes)
+    print(post_nms_bboxes)
+
+    plot_bounding_boxes(current_image, post_nms_bboxes)
+
 
 print("BUCI")
 print(random.random())
