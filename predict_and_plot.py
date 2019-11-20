@@ -1,7 +1,20 @@
-from misc.postprocessingt import nms
+from misc.postprocessing import nms, plot_bounding_boxes
+from train.helpers import activations_to_bboxes, visualize_data, create_anchors
+from train.config import Params
+from data import dataloaders
+from train import train
+from architectures.models import SSDNet
+
+import random
+
+import torch
+import torch.nn as nn
+import torch.optim as optim
 
 
 def model_output_pipeline(params_path):
+    print('HERE')
+
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     params = Params(params_path)
@@ -10,13 +23,17 @@ def model_output_pipeline(params_path):
         model = SSDNet.SSD_Head()
     model.to(device)
 
-    checkpoint = torch.load('misc/experiments/{}/model_checkpoint'.format(params.model_id))
-    model.load_state_dict(checkpoint['model_state_dict'])
-    print('Model loaded successfully')
+    # checkpoint = torch.load('misc/experiments/{}/model_checkpoint'.format(params.model_id))
+    # model.load_state_dict(checkpoint['model_state_dict'])
+    # print('Model loaded successfully')
 
     _, valid_loader = dataloaders.get_dataloaders(params)
+    sig = nn.Sigmoid()
 
-    for batch_images, batch_targets in valid_loader:
+    anchors, grid_sizes = create_anchors()
+    anchors, grid_sizes = anchors.to(device), grid_sizes.to(device)
+
+    for (batch_images, batch_targets) in valid_loader:
         batch_images.to(device)
 
         # predictions[0] = B x #anchors x 4
@@ -25,8 +42,8 @@ def model_output_pipeline(params_path):
 
         # move everything to cpu for plotting
         batch_images = batch_images.cpu()
-        predictions[0] = predictions[0].cpu()
-        predictions[1] = predictions[1].cpu()
+        predictions[0] = activations_to_bboxes(predictions[0], anchors, grid_sizes).cpu()
+        predictions[1] = sig(predictions[1]).cpu()
 
         for idx in range(len(batch_images)):
             current_image = batch_images[idx]
@@ -56,5 +73,11 @@ def plot_model_outputs(current_image, current_image_bboxes, current_image_class_
     keep_indices = numpy.array(keep_indices)
 
     kept_bboxes = current_prediction_bboxes[keep_indices]
-    # RIPPP
+
     post_nms_bboxes = nms(kept_bboxes)
+
+    plot_bounding_boxes(current_image.numpy(), post_nms_bboxes)
+
+print("BUCI")
+print(random.random())
+model_output_pipeline('misc/experiments/ssdnet/params.json')

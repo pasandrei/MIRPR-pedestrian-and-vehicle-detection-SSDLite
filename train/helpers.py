@@ -27,12 +27,16 @@ def jaccard(box_a, box_b):
     return inter / union
 
 
-def actn_to_bb(actn, anchors, grid_sizes):
+def activations_to_bboxes(actn, anchors, grid_sizes):
     """ activations to bounding boxes format """
 
     # this is probably a bug, all tensors should be the same size if slicing operations with addition are performed
     anchors = anchors.type(torch.float64)
+
+    # -1...1
     actn_offsets = torch.tanh(actn)
+
+    # -0.5....0.5
     actn_centers = actn_offsets[:, :2]/2 * grid_sizes + anchors[:, :2]
     actn_hw = (actn_offsets[:, 2:]/2+1) * anchors[:, 2:]
 
@@ -103,9 +107,9 @@ def create_anchors():
                                                   for ag in anc_grids])).unsqueeze(1)
 
     anchors = torch.from_numpy(np.concatenate([anc_ctrs, anc_sizes], axis=1)).float()
-    anchor_cnr = hw2corners(anchors[:, :2], anchors[:, 2:])
+    #anchor_cnr = hw2corners(anchors[:, :2], anchors[:, 2:])
 
-    return anchor_cnr, grid_sizes
+    return anchors, grid_sizes
 
 
 def prepare_gt(input_img, gt_target):
@@ -126,7 +130,7 @@ def prepare_gt(input_img, gt_target):
     gt = [torch.FloatTensor(gt_bboxes), torch.IntTensor(gt_classes)]
 
     width_size, height_size = input_img.size[1], input_img.size[0]
-    
+
     # width_size, height_size = 1, 1
     for idx, bbox in enumerate(gt[0]):
         new_bbox = [0] * 4

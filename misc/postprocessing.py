@@ -72,6 +72,9 @@ def nms(boxes, overlap_threshold=0.3):
 
 #  postprocess
 def plot_bounding_boxes(image, bounding_boxes, ok=0):
+    """
+
+    """
     # loop over the bounding boxes for each image and draw them
     color = (0, 255, 0) if ok else (0, 0, 255)
     for (startX, startY, endX, endY) in bounding_boxes:
