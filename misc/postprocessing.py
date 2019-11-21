@@ -78,9 +78,11 @@ def plot_bounding_boxes(image, bounding_boxes, ok=0):
 
     """
     # loop over the bounding boxes for each image and draw them
+    image = image.transpose(1, 2, 0)
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
     color = (0, 255, 0) if ok else (0, 0, 255)
     for (startX, startY, endX, endY) in bounding_boxes:
-        image = image.transpose(1, 2, 0)
         cv2.rectangle(image, (startX, startY), (endX, endY), color, 2)
 
     # display the image

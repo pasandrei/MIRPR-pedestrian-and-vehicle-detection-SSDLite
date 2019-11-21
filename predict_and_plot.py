@@ -4,7 +4,7 @@ from train.config import Params
 from data import dataloaders
 from architectures.models import SSDNet
 
-import random
+import cv2
 import numpy as np
 
 import torch
@@ -60,7 +60,7 @@ def model_output_pipeline(params_path):
                 # assert everything here is on CPU
                 plot_model_outputs(current_image, current_image_bboxes, current_image_class_ids,
                                    current_prediction_bboxes, current_prediction_class_ids)
-                return
+                # return
             return
 
 
@@ -73,27 +73,26 @@ def plot_model_outputs(current_image, current_image_bboxes, current_image_class_
     for idx, one_hot_pred in enumerate(current_prediction_class_ids):
         max_confidence, position = one_hot_pred.max(dim=0)
         if position != 2:
-            keep_indices.append(position)
+            keep_indices.append(idx)
 
     current_prediction_bboxes = current_prediction_bboxes.numpy()
 
-    for idx, one_hot_pred in enumerate(current_prediction_class_ids):
-        print(one_hot_pred)
-        if idx == 100:
-            break
+    current_image = (current_image * 255).numpy().astype(np.uint8)
 
-    for idx, bbox in enumerate(current_prediction_bboxes):
-        print(bbox)
-        if idx == 100:
-            break
+    # for idx, one_hot_pred in enumerate(current_prediction_class_ids):
+    #     if one_hot_pred.max(dim=0)[1] in [0, 1]:
+    #         print(idx, one_hot_pred, current_prediction_bboxes[idx]*320)
+    #         plot_bounding_boxes(current_image, np.array(
+    #             [current_prediction_bboxes[idx]*320]).astype(np.uint16))
 
     keep_indices = np.array(keep_indices)
 
     kept_bboxes = current_prediction_bboxes[keep_indices]
 
     kept_bboxes = (kept_bboxes * 320).astype(int)
-    current_image = (current_image * 255).numpy().astype(np.uint8)
+    # current_image = (current_image * 255).numpy().astype(np.uint8)
 
+    plot_bounding_boxes(current_image, kept_bboxes)
     print(kept_bboxes)
     post_nms_bboxes = nms(kept_bboxes)
     print(post_nms_bboxes)
@@ -101,6 +100,4 @@ def plot_model_outputs(current_image, current_image_bboxes, current_image_class_
     plot_bounding_boxes(current_image, post_nms_bboxes)
 
 
-print("BUCI")
-print(random.random())
 model_output_pipeline('misc/experiments/ssdnet/params.json')

@@ -75,12 +75,12 @@ def ssd_loss(pred, targ, anchors, grid_sizes, device, params):
         gt_bbox, gt_class = targ[0][idx].to(device), targ[1][idx].to(device)
 
         # assert that all tensors passed to ssd_1_loss are on GPU !!!!!!!!
-        assert pred_bbox.is_cuda == True
-        assert pred_class.is_cuda == True
-        assert gt_bbox.is_cuda == True
-        assert gt_class.is_cuda == True
-        assert anchors.is_cuda == True
-        assert grid_sizes.is_cuda == True
+        assert pred_bbox.is_cuda is True
+        assert pred_class.is_cuda is True
+        assert gt_bbox.is_cuda is True
+        assert gt_class.is_cuda is True
+        assert anchors.is_cuda is True
+        assert grid_sizes.is_cuda is True
 
         l_loss, c_loss = ssd_1_loss(pred_bbox, pred_class, gt_bbox,
                                     gt_class, anchors, grid_sizes, device)
