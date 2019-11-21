@@ -6,7 +6,7 @@ from misc.print_stats import *
 import datetime
 
 
-def train_step(model, input_, label, optimizer, losses, device, params):
+def train_step(model, input_, label, anchors, grid_sizes, optimizer, losses, device, params):
     print(datetime.datetime.now())
     input_ = input_.to(device)
 
@@ -17,6 +17,7 @@ def train_step(model, input_, label, optimizer, losses, device, params):
     update_losses(losses, l_loss.item(), c_loss.item())
     loss.backward()
     optimizer.step()
+
 
 def train(model, optimizer, train_loader, valid_loader,
           device, params, start_epoch=0):
@@ -36,7 +37,8 @@ def train(model, optimizer, train_loader, valid_loader,
 
         losses = [0] * 4
         for batch_idx, (input_, label) in enumerate(train_loader):
-            train_step(model, input_, label, optimizer, losses, device, params)
+            train_step(model, input_, label, anchors, grid_sizes,
+                       optimizer, losses, device, params)
 
             '''
                 Calculate AP for this batch
@@ -56,6 +58,9 @@ def train(model, optimizer, train_loader, valid_loader,
 
         # decay lr after epoch
         constant_decay.lr_decay(optimizer)
+
+        for pg in optimizer.param_groups:
+            print('Current learning_rate:', pg['learning_rate'])
 
 
 def update_losses(losses, l_loss, c_loss):

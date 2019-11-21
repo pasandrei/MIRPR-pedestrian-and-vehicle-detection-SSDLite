@@ -1,5 +1,4 @@
 import torch
-from torch import nn
 import datetime
 
 from train.loss_fn import ssd_loss
@@ -11,7 +10,7 @@ def evaluate(model, optimizer, anchors, grid_sizes, train_loader, valid_loader, 
     '''
 
     print('Average loss this epoch: Localization: {}; Classification: {}'.format(
-        losses[2] / len(train_loader), losses[3] / len(train_loader)))
+        losses[2] / len(train_loader.dataset), losses[3] / len(train_loader.dataset)))
     print('Validation start...')
 
     l_val_loss, c_val_loss = 0, 0

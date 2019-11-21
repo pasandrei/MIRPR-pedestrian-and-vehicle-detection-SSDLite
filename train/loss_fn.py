@@ -11,6 +11,7 @@ class BCE_Loss(nn.Module):
         super().__init__()
         self.n_classes = n_classes
         self.device = device
+        self.id2idx = {1: 0, 3: 1, 100: 2}
 
     def forward(self, pred, targ):
         '''
@@ -18,15 +19,13 @@ class BCE_Loss(nn.Module):
         targ - tensor of shape anchors
         '''
         t = []
+        targ = targ.cpu().numpy()
         for clas_id in targ:
-            bg = torch.zeros(3).to(self.device)
-            if clas_id.item() == 1:
-                bg[0] = 1
-            elif clas_id.item() == 3:
-                bg[1] = 1
-            else:
-                bg[2] = 1
+            bg = [0] * self.n_classes
+            bg[self.id2idx[clas_id]] = 1
             t.append(bg)
+
+        t = torch.FloatTensor(t).to(self.device)
         weight = self.get_weight(pred, t)
         return torch.nn.functional.binary_cross_entropy_with_logits(pred, t, weight)
 
@@ -51,13 +50,13 @@ def ssd_1_loss(pred_bbox, pred_class, gt_bbox, gt_class, anchors, grid_sizes, de
     overlaps = jaccard(gt_bbox, hw2corners(anchors[:, :2], anchors[:, :2]))
 
     # map each anchor to the highest IOU obj, gt_idx - ids of mapped objects
-    matched_gt_bbox, matched_gt_class_ids, pos_idx=map_to_ground_truth(
+    matched_gt_bbox, matched_gt_class_ids, pos_idx = map_to_ground_truth(
         overlaps, gt_bbox, gt_class)
 
-    loc_loss=((pred_bbox[pos_idx] - matched_gt_bbox).abs()).mean()
+    loc_loss = ((pred_bbox[pos_idx] - matched_gt_bbox).abs()).mean()
 
-    loss_f=BCE_Loss(3, device)
-    class_loss=loss_f(pred_class, matched_gt_class_ids)
+    loss_f = BCE_Loss(3, device)
+    class_loss = loss_f(pred_class, matched_gt_class_ids)
     return loc_loss, class_loss
 
 
@@ -76,14 +75,14 @@ def ssd_loss(pred, targ, anchors, grid_sizes, device, params):
         gt_bbox, gt_class = targ[0][idx].to(device), targ[1][idx].to(device)
 
         # assert that all tensors passed to ssd_1_loss are on GPU !!!!!!!!
-        assert pred_bbox.is_cuda() == True
-        assert pred_class.is_cuda() == True
-        assert gt_bbox.is_cuda() == True
-        assert gt_class.is_cuda() == True
-        assert anchors.is_cuda() == True
-        assert grid_sizes.is_cuda() == True
+        assert pred_bbox.is_cuda == True
+        assert pred_class.is_cuda == True
+        assert gt_bbox.is_cuda == True
+        assert gt_class.is_cuda == True
+        assert anchors.is_cuda == True
+        assert grid_sizes.is_cuda == True
 
-        l_loss, c_loss=ssd_1_loss(pred_bbox, pred_class, gt_bbox,
+        l_loss, c_loss = ssd_1_loss(pred_bbox, pred_class, gt_bbox,
                                     gt_class, anchors, grid_sizes, device)
         localization_loss += l_loss
         classification_loss += c_loss

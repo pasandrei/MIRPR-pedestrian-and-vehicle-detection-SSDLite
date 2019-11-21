@@ -7,6 +7,7 @@ from matplotlib import pyplot as plt
 def hw2corners(ctr, hw):
     return torch.cat([ctr-hw/2, ctr+hw/2], dim=1)
 
+
 def intersect(box_a, box_b):
     """ Returns the intersection of two boxes """
     max_xy = torch.min(box_a[:, None, 2:], box_b[None, :, 2:])
@@ -41,6 +42,7 @@ def activations_to_bboxes(actn, anchors, grid_sizes):
     actn_hw = (actn_offsets[:, 2:]/2+1) * anchors[:, 2:]
 
     return hw2corners(actn_centers, actn_hw)
+
 
 def map_to_ground_truth(overlaps, gt_bbox, gt_class):
     """ maps priors to max IOU obj
@@ -143,6 +145,8 @@ def prepare_gt(input_img, gt_target):
     return gt
 
 # probabil inutil
+
+
 def visualize_data(dataloader, model=None):
     '''
     plots some samples from the dataset

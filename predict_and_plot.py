@@ -1,8 +1,7 @@
 from misc.postprocessing import nms, plot_bounding_boxes
-from train.helpers import activations_to_bboxes, visualize_data, create_anchors
+from train.helpers import activations_to_bboxes, create_anchors
 from train.config import Params
 from data import dataloaders
-from train import train
 from architectures.models import SSDNet
 
 import random
@@ -10,14 +9,10 @@ import numpy as np
 
 import torch
 import torch.nn as nn
-import torch.optim as optim
 
 
 def model_output_pipeline(params_path):
-    print('HERE')
-
-    # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    device = torch.device("cpu")
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     params = Params(params_path)
 
@@ -25,9 +20,9 @@ def model_output_pipeline(params_path):
         model = SSDNet.SSD_Head()
     model.to(device)
 
-    # checkpoint = torch.load('misc/experiments/{}/model_checkpoint'.format(params.model_id))
-    # model.load_state_dict(checkpoint['model_state_dict'])
-    # print('Model loaded successfully')
+    checkpoint = torch.load('misc/experiments/{}/model_checkpoint'.format(params.model_id))
+    model.load_state_dict(checkpoint['model_state_dict'])
+    print('Model loaded successfully')
 
     _, valid_loader = dataloaders.get_dataloaders(params)
     sig = nn.Sigmoid()
@@ -38,7 +33,7 @@ def model_output_pipeline(params_path):
     model.eval()
     with torch.no_grad():
         for (batch_images, batch_targets) in valid_loader:
-            batch_images.to(device)
+            batch_images = batch_images.to(device)
 
             # predictions[0] = B x #anchors x 4
             # predictions[1] = B x #anchors x 3 -> [0.2, 0.1, 0.9], [0.01, 0.01, 0.8]
@@ -47,8 +42,11 @@ def model_output_pipeline(params_path):
 
             # move everything to cpu for plotting
             batch_images = batch_images.cpu()
-            predictions[0] = [activations_to_bboxes(x, anchors, grid_sizes).cpu() for x in predictions[0]]
+            predictions[0] = [activations_to_bboxes(
+                x, anchors, grid_sizes).cpu() for x in predictions[0]]
             predictions[1] = sig(predictions[1]).cpu()
+
+            assert predictions[0][0].is_cuda is False
 
             for idx in range(len(batch_images)):
                 current_image = batch_images[idx]
@@ -62,7 +60,8 @@ def model_output_pipeline(params_path):
                 # assert everything here is on CPU
                 plot_model_outputs(current_image, current_image_bboxes, current_image_class_ids,
                                    current_prediction_bboxes, current_prediction_class_ids)
-            break
+                return
+            return
 
 
 def plot_model_outputs(current_image, current_image_bboxes, current_image_class_ids,
@@ -77,6 +76,17 @@ def plot_model_outputs(current_image, current_image_bboxes, current_image_class_
             keep_indices.append(position)
 
     current_prediction_bboxes = current_prediction_bboxes.numpy()
+
+    for idx, one_hot_pred in enumerate(current_prediction_class_ids):
+        print(one_hot_pred)
+        if idx == 100:
+            break
+
+    for idx, bbox in enumerate(current_prediction_bboxes):
+        print(bbox)
+        if idx == 100:
+            break
+
     keep_indices = np.array(keep_indices)
 
     kept_bboxes = current_prediction_bboxes[keep_indices]
@@ -84,6 +94,7 @@ def plot_model_outputs(current_image, current_image_bboxes, current_image_class_
     kept_bboxes = (kept_bboxes * 320).astype(int)
     current_image = (current_image * 255).numpy().astype(np.uint8)
 
+    print(kept_bboxes)
     post_nms_bboxes = nms(kept_bboxes)
     print(post_nms_bboxes)
 
