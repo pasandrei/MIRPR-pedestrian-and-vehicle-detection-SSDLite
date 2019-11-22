@@ -4,7 +4,7 @@ import cv2
 # postprocess
 
 
-def nms(boxes, overlap_threshold=0.3):
+def nms(boxes, overlap_threshold=0.6):
     """
     boxes: bounding boxes coordinates, ie, tuple of 4 integers
     overlap threshold: the threshold for which the overlapping images will be suppressed

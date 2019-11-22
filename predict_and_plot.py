@@ -92,12 +92,14 @@ def plot_model_outputs(current_image, current_image_bboxes, current_image_class_
     kept_bboxes = (kept_bboxes * 320).astype(int)
     # current_image = (current_image * 255).numpy().astype(np.uint8)
 
-    plot_bounding_boxes(current_image, kept_bboxes)
-    print(kept_bboxes)
+    current_image_bboxes = (current_image_bboxes.numpy() * 320).astype(int)
+    plot_bounding_boxes(current_image, current_image_bboxes, 1)
+    # plot_bounding_boxes(current_image, kept_bboxes)
+    # print(kept_bboxes)
     post_nms_bboxes = nms(kept_bboxes)
-    print(post_nms_bboxes)
+    # print(post_nms_bboxes)
 
-    plot_bounding_boxes(current_image, post_nms_bboxes)
+    # plot_bounding_boxes(current_image, post_nms_bboxes)
 
 
 model_output_pipeline('misc/experiments/ssdnet/params.json')

@@ -1,8 +1,11 @@
 import torch
 from torch import nn
+import numpy as np
 # import torch.nn.functional as F
 
 from train.helpers import *
+# system.append()
+from misc.postprocessing import *
 
 
 # inspired by fastai course
@@ -30,19 +33,19 @@ class BCE_Loss(nn.Module):
         return torch.nn.functional.binary_cross_entropy_with_logits(pred, t, weight)
 
     def get_weight(self, x, t):
-        alpha, gamma = 0.9, 2.
+        alpha, gamma = 0.9, 3.
         p = x.detach()
         # confidence of prediction
         pt = p*t + (1-p)*(1-t)
 
         # non-background / background weight
-        w = torch.FloatTensor([1, 1, 1]).to(self.device)
+        w = torch.FloatTensor([1, 1, 0.01]).to(self.device)
 
         # complete weighing factor
         return w * ((1-pt).pow(gamma))
 
 
-def ssd_1_loss(pred_bbox, pred_class, gt_bbox, gt_class, anchors, grid_sizes, device):
+def ssd_1_loss(pred_bbox, pred_class, gt_bbox, gt_class, anchors, grid_sizes, device, image=None):
     # make network outputs same as gt bbox format
     pred_bbox = activations_to_bboxes(pred_bbox, anchors, grid_sizes)
 
@@ -50,17 +53,31 @@ def ssd_1_loss(pred_bbox, pred_class, gt_bbox, gt_class, anchors, grid_sizes, de
     overlaps = jaccard(gt_bbox, hw2corners(anchors[:, :2], anchors[:, :2]))
 
     # map each anchor to the highest IOU obj, gt_idx - ids of mapped objects
-    matched_gt_bbox, matched_gt_class_ids, pos_idx = map_to_ground_truth(
-        overlaps, gt_bbox, gt_class)
+    matched_gt_bbox, matched_gt_class_ids, matched_pred_bbox, pos_idx = map_to_ground_truth(
+        overlaps, gt_bbox, gt_class, pred_bbox)
 
-    loc_loss = ((pred_bbox[pos_idx] - matched_gt_bbox).abs()).mean()
+    loc_loss = ((matched_pred_bbox - matched_gt_bbox).abs()).mean()
+    print(matched_gt_bbox.shape)
+
+    a = (matched_gt_bbox.detach().cpu().numpy()*320).astype(int)
+    print("matched_gt_bbox")
+    print(a)
+
+    image = (image * 255).cpu().numpy().astype(np.uint8)
+
+    pula = (anchors.cpu().numpy() * 320).astype(int)
+    pula = pula[pos_idx.cpu().numpy()]
+    print("pos_idx")
+    print(pos_idx)
+    plot_bounding_boxes(image, pula)
+    plot_bounding_boxes(image, a)
 
     loss_f = BCE_Loss(3, device)
     class_loss = loss_f(pred_class, matched_gt_class_ids)
     return loc_loss, class_loss
 
 
-def ssd_loss(pred, targ, anchors, grid_sizes, device, params):
+def ssd_loss(pred, targ, anchors, grid_sizes, device, params, image=None):
     '''
     args: pred - model output - two tensors of dim anchors x 4 and anchors x n_classes in a list
     targ - ground truth - two tensors of dim #obj x 4 and #obj in a list
@@ -71,6 +88,8 @@ def ssd_loss(pred, targ, anchors, grid_sizes, device, params):
 
     # computes the loss for each image in the batch
     for idx in range(pred[0].shape[0]):
+        cur_img = image[idx]
+
         pred_bbox, pred_class = pred[0][idx], pred[1][idx]
         gt_bbox, gt_class = targ[0][idx].to(device), targ[1][idx].to(device)
 
@@ -83,7 +102,7 @@ def ssd_loss(pred, targ, anchors, grid_sizes, device, params):
         assert grid_sizes.is_cuda is True
 
         l_loss, c_loss = ssd_1_loss(pred_bbox, pred_class, gt_bbox,
-                                    gt_class, anchors, grid_sizes, device)
+                                    gt_class, anchors, grid_sizes, device, cur_img)
         localization_loss += l_loss
         classification_loss += c_loss
 

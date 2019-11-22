@@ -12,8 +12,9 @@ def train_step(model, input_, label, anchors, grid_sizes, optimizer, losses, dev
 
     optimizer.zero_grad()
     output = model(input_)
-    l_loss, c_loss = ssd_loss(output, label, anchors, grid_sizes, device, params)
-    loss = l_loss + c_loss
+    l_loss, c_loss = ssd_loss(output, label, anchors, grid_sizes, device, params, input_)
+    # loss = l_loss + c_loss
+    loss = l_loss  # TREBUIE SCHIMBAT !!!!!!!!!1
     update_losses(losses, l_loss.item(), c_loss.item())
     loss.backward()
     optimizer.step()
@@ -39,6 +40,7 @@ def train(model, optimizer, train_loader, valid_loader,
         for batch_idx, (input_, label) in enumerate(train_loader):
             train_step(model, input_, label, anchors, grid_sizes,
                        optimizer, losses, device, params)
+            return
 
             '''
                 Calculate AP for this batch
@@ -60,7 +62,7 @@ def train(model, optimizer, train_loader, valid_loader,
         constant_decay.lr_decay(optimizer)
 
         for pg in optimizer.param_groups:
-            print('Current learning_rate:', pg['learning_rate'])
+            print('Current learning_rate:', pg['lr'])
 
 
 def update_losses(losses, l_loss, c_loss):
