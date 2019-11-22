@@ -48,9 +48,14 @@ class BCE_Loss(nn.Module):
 def ssd_1_loss(pred_bbox, pred_class, gt_bbox, gt_class, anchors, grid_sizes, device, image=None):
     # make network outputs same as gt bbox format
     pred_bbox = activations_to_bboxes(pred_bbox, anchors, grid_sizes)
+    print("CACAT")
+    print(jaccard(torch.FloatTensor([[0, 0, 50, 50], [0, 0, 25, 25]])/100,
+                  torch.FloatTensor([[25, 25, 50, 50], [25, 25, 100, 100]])/100))
 
     # compute IOU for obj x anchor
-    overlaps = jaccard(gt_bbox, hw2corners(anchors[:, :2], anchors[:, :2]))
+    overlaps = jaccard(gt_bbox, hw2corners(anchors[:, :2], anchors[:, 2:]))
+    print("OVERLAPS", overlaps)
+    anchors = hw2corners(anchors[:, :2], anchors[:, 2:])
 
     # map each anchor to the highest IOU obj, gt_idx - ids of mapped objects
     matched_gt_bbox, matched_gt_class_ids, matched_pred_bbox, pos_idx = map_to_ground_truth(
@@ -66,10 +71,27 @@ def ssd_1_loss(pred_bbox, pred_class, gt_bbox, gt_class, anchors, grid_sizes, de
     image = (image * 255).cpu().numpy().astype(np.uint8)
 
     pula = (anchors.cpu().numpy() * 320).astype(int)
+
+    curent_pulici = []
+    for index, pulica in enumerate(pula):
+        if index < 3000:
+            continue
+
+        if index % 6 == 0:
+            print("\n**************\n", overlaps[0][index])
+            curent_pulici.append(pulica)
+
+        if index >= 3110:
+            break
+
+    curent_pulici = np.array(curent_pulici)
+
+    pzd = pula[:10]
+    print("PZD: ", pzd)
     pula = pula[pos_idx.cpu().numpy()]
     print("pos_idx")
     print(pos_idx)
-    plot_bounding_boxes(image, pula)
+    plot_bounding_boxes(image, curent_pulici)
     plot_bounding_boxes(image, a)
 
     loss_f = BCE_Loss(3, device)

@@ -30,6 +30,7 @@ def train(model, optimizer, train_loader, valid_loader,
     '''
 
     anchors, grid_sizes = create_anchors()
+    print(anchors[:10])
     anchors, grid_sizes = anchors.to(device), grid_sizes.to(device)
 
     print(datetime.datetime.now())
