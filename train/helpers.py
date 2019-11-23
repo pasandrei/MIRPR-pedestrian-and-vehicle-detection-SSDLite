@@ -116,6 +116,7 @@ def create_anchors():
 
 def prepare_gt(input_img, gt_target):
     '''
+    NUMA SEFU STIE CE SENTAMPLA AICI. NICI MACAR DUMNEZEU NU ARE IDEEE
     args:
     - input_img: PIL image HxW
     - gt_target:
@@ -131,15 +132,15 @@ def prepare_gt(input_img, gt_target):
 
     gt = [torch.FloatTensor(gt_bboxes), torch.IntTensor(gt_classes)]
 
-    width_size, height_size = input_img.size[1], input_img.size[0]
+    height_size, width_size = input_img.size[0], input_img.size[1]
 
     # width_size, height_size = 1, 1
     for idx, bbox in enumerate(gt[0]):
         new_bbox = [0] * 4
-        new_bbox[0] = bbox[0] / height_size
-        new_bbox[1] = bbox[1] / width_size
-        new_bbox[2] = (bbox[0] + bbox[2]) / height_size
-        new_bbox[3] = (bbox[1] + bbox[3]) / width_size
+        new_bbox[1] = bbox[0] / height_size
+        new_bbox[0] = bbox[1] / width_size
+        new_bbox[3] = (bbox[0] + bbox[2]) / height_size
+        new_bbox[2] = (bbox[1] + bbox[3]) / width_size
         gt[0][idx] = torch.FloatTensor(new_bbox)
 
     return gt

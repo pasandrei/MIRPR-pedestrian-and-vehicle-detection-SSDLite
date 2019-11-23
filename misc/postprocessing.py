@@ -73,7 +73,7 @@ def nms(boxes, overlap_threshold=0.6):
 #  postprocess
 
 
-def plot_bounding_boxes(image, bounding_boxes, ok=0):
+def plot_bounding_boxes(image, bounding_boxes, message='MUE', ok=0):
     """
 
     """
@@ -83,8 +83,8 @@ def plot_bounding_boxes(image, bounding_boxes, ok=0):
 
     color = (0, 255, 0) if ok else (0, 0, 255)
     for (startX, startY, endX, endY) in bounding_boxes:
-        cv2.rectangle(image, (startX, startY), (endX, endY), color, 2)
+        cv2.rectangle(image, (startY, startX), (endY, endX), color, 2)
 
     # display the image
-    cv2.imshow("Image with bounding boxes", image)
+    cv2.imshow(message, image)
     cv2.waitKey(0)
