@@ -33,13 +33,16 @@ class BCE_Loss(nn.Module):
         return torch.nn.functional.binary_cross_entropy_with_logits(pred, t, weight)
 
     def get_weight(self, x, t):
-        gamma = 3.
-        p = x.detach()
-        # confidence of prediction
+        # focal loss decreases loss for correctly classified (P>0.5) examples, relative to the missclassified ones
+        # thus increasing focus on them
+        gamma = 2.
+        p = x.detach().sigmoid()
+
+        # focal loss factor
         pt = p*t + (1-p)*(1-t)
 
         # non-background / background weight
-        w = torch.FloatTensor([1, 1, 0.05]).to(self.device)
+        w = torch.FloatTensor([1, 1, 0.1]).to(self.device)
 
         # complete weighing factor
         return w * ((1-pt).pow(gamma))
