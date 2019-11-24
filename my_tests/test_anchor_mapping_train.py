@@ -7,9 +7,9 @@ from train.helpers import *
 from misc.postprocessing import *
 
 
-def test(image, anchors, matched_gt_bbox, matched_pred_bbox, matched_gt_class_ids, gt_bbox, pos_idx):
+def test(image, anchors, matched_gt_bbox, matched_pred_bbox, current_prediction_class_confidences, gt_bbox, pred_bbox, pos_idx):
     '''
-
+    NUMA DOREL STIE CEI ACI
     what we have: - anchors: the set of predifined bounding boxes
                   - gt_bboxes: the ground truth bboxes of objects in the image
                   - using these 2, we want to match those anchors that intersect well with one gt_bbox
@@ -19,36 +19,51 @@ def test(image, anchors, matched_gt_bbox, matched_pred_bbox, matched_gt_class_id
     '''
 
     # first thing first, get the input tensor ready to be plotted
-    image = (image * 255).astype(np.uint8)
+    image = (image * 255).cpu().numpy().astype(np.uint8)
 
     # same for other variables of interest
     anchors = (anchors.cpu().numpy() * 320).astype(int)
-    matched_gt_bbox = (matched_gt_bbox).astype(int)
-    gt_bbox = gt_bbox.astype(int)
-
-    # if anchors.shape
-    matched_anchors = np.array([anchors[pos_idx]])
+    matched_gt_bbox = (matched_gt_bbox.detach().cpu().numpy()*320).astype(int)
+    current_prediction_class_confidences = current_prediction_class_confidences.detach().sigmoid().cpu().numpy()
+    gt_bbox = (gt_bbox.cpu().numpy() * 320).astype(int)
+    pred_bbox = (pred_bbox.detach().cpu().numpy() * 320).astype(int)
+    pos_idx = (pos_idx.cpu().numpy())
+    matched_anchors = anchors[pos_idx]
 
     # print matched anchors, respective gt gt_bboxes
     print("matched ANCHORS: ", matched_anchors, matched_anchors.shape)
     print("Matched BBOXES: ", matched_gt_bbox, matched_gt_bbox.shape)
     print("GT BBOXES: ", gt_bbox, gt_bbox.shape)
 
-    print("POSITIVE INDECES", pos_idx)
-    print('MATCHED ANCHORS', matched_anchors)
-    plot_bounding_boxes(image, matched_anchors)
-    print('WHAT OBJECT EACH MATCHED ANCHOR SHOULD PREDICT: ', matched_gt_class_ids[pos_idx])
-    plot_bounding_boxes(image, gt_bbox)
+    plot_bounding_boxes(image, matched_anchors, "CORRECT ANCHORS")
+    plot_bounding_boxes(image, gt_bbox, "GROUND TRUTH")
 
     '''
     all of the above seems to work well, lets also see what the model predicts from these anchors
     '''
-    matched_pred_bbox = matched_pred_bbox.astype(int)
-    # matched_pred_bbox = (matched_pred_bbox * 320).astype(int)
+    matched_pred_bbox = (matched_pred_bbox.detach().cpu().numpy()*320).astype(int)
     print("Matched Pred BBOXES: ", matched_pred_bbox, matched_pred_bbox.shape)
-    # print('CONFIDENCES FOR PREDICTED BBOXES: ', current_prediction_class_ids[pos_idx])
-    matched_pred_bbox = np.array([matched_pred_bbox])
-    plot_bounding_boxes(image, matched_pred_bbox)
+    print('CONFIDENCES FOR PREDICTED BBOXES: ', current_prediction_class_confidences[pos_idx])
+    plot_bounding_boxes(image, matched_pred_bbox, "PREDICTED (CHEATED) BY THE NETWORK")
+
+    keep_indices = []
+    for index, one_hot_pred in enumerate(current_prediction_class_confidences):
+        max_conf = np.amax(one_hot_pred)
+        if max_conf > 0.5:
+            print("THIS IS A HIGH CONFIDENCE PREDICTION: ", one_hot_pred)
+            keep_indices.append(index)
+
+    if keep_indices == []:
+        pass
+    else:
+        print("INDECES KEPT BY CONFIDENCE", keep_indices)
+        keep_indices = np.array(keep_indices)
+        high_confidence_anchors = anchors[keep_indices]
+        print("THIS IS PRED BBOX", pred_bbox, pred_bbox.shape)
+        high_confidence_model_predictions = pred_bbox[keep_indices]
+
+        plot_bounding_boxes(image, high_confidence_anchors, "HIGH CONFIDENCE ANCHORS")
+        plot_bounding_boxes(image, high_confidence_model_predictions, "ACTUAL MODEL OUTPUTS")
 
     '''
     yet again, results seem all good, so there is only one more crucial thing to check:

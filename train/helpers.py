@@ -89,9 +89,13 @@ def create_anchors():
     .
     after the first grid is finished comes the next and so on
     '''
-    anc_grids = [20, 10, 5, 3, 2, 1]
-    anc_zooms = [1., 1.2]
-    anc_ratios = [(1., 1.), (1., 0.7), (0.57, 1)]
+    anc_grids = [3]
+    # anc_zooms = [1., 1.2]
+    # anc_ratios = [(1., 1.), (1., 0.7), (0.57, 1)]
+
+    anc_zooms = [1.]
+    anc_ratios = [(1., 1.)]
+
     anchor_scales = [(anz*i, anz*j) for anz in anc_zooms for (i, j) in anc_ratios]
     anc_offsets = [1/(o*2) for o in anc_grids]
     k = len(anchor_scales)

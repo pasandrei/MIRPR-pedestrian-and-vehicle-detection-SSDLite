@@ -36,11 +36,11 @@ class OutConv(nn.Module):
 
 
 class SSD_Head(nn.Module):
-    def __init__(self, n_classes, k=6, width_mult=1):
+    def __init__(self, n_classes, k=1, width_mult=1):
         super().__init__()
 
         # intermediate lay 15 with os = 16, will be a 20x20 grid for 320x320 input, 576 is the expansion size of layer 15 in MobileNetV2
-        self.out0 = OutConv(int(576 * width_mult), n_classes, k)
+        # self.out0 = OutConv(int(576 * width_mult), n_classes, k)
 
         # from now we use the 1280 output of the backbone, first grid 10x10
         self.out1 = OutConv(1280, n_classes, k)
@@ -82,22 +82,22 @@ class SSD_Head(nn.Module):
         lay15, x = self.backbone(x)
 
         # 20*20*k x 4
-        _20bbox, _20class = self.out0(lay15)
-        _10bbox, _10class = self.out1(x)
+        # _20bbox, _20class = self.out0(lay15)
+        # _10bbox, _10class = self.out1(x)
 
         x = self.inv2(x)
-        _5bbox, _5class = self.out2(x)
+        # _5bbox, _5class = self.out2(x)
 
         x = self.inv3(x)
         _3bbox, _3class = self.out3(x)
 
-        x = self.inv4(x)
-        _2bbox, _2class = self.out4(x)
+        # x = self.inv4(x)
+        # _2bbox, _2class = self.out4(x)
 
-        x = self.inv5(x)
-        _1bbox, _1class = self.out5(x)
+        # x = self.inv5(x)
+        # _1bbox, _1class = self.out5(x)
 
         # bboxes prediction:  B x (20*20) * 6 x 4 ...
         # class prediction:  B x (20*20) * 6 x 3 ...
-        return [torch.cat([_20bbox, _10bbox, _5bbox, _3bbox, _2bbox, _1bbox], dim=1),
-                torch.cat([_20class, _10class, _5class, _3class, _2class, _1class], dim=1)]
+        return [torch.cat([_3bbox], dim=1),
+                torch.cat([_3class], dim=1)]

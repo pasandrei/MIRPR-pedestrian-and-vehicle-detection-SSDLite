@@ -5,7 +5,7 @@ import random
 # import torch.nn.functional as F
 
 from train.helpers import *
-from my_tests import test_anchor_mapping
+from my_tests import test_anchor_mapping_train
 from misc.postprocessing import *
 
 
@@ -37,18 +37,18 @@ class BCE_Loss(nn.Module):
     def get_weight(self, x, t):
         # focal loss decreases loss for correctly classified (P>0.5) examples, relative to the missclassified ones
         # thus increasing focus on them
-        alpha, gamma = 0.99, 3.
+        alpha, gamma = 0.9, 2.
         p = x.detach().sigmoid()
 
         # focal loss factor - decreases relative loss for well classified examples
         pt = p*t + (1-p)*(1-t)
 
         # counter positive/negative examples imbalance by assigning higher relative values to positives=1
-        w = alpha*t + (1-alpha)*(1-t).to(self.device)
+        # w = alpha*t + (1-alpha)*(1-t).to(self.device)
 
         # these two combined strongly encourage the network to predict a high value when
         # there is indeed a positive example
-        return w * ((1-pt).pow(gamma))
+        return ((1-pt).pow(gamma))
 
 
 def ssd_1_loss(pred_bbox, pred_class, gt_bbox, gt_class, anchors, grid_sizes, device, params, image=None):
@@ -67,10 +67,8 @@ def ssd_1_loss(pred_bbox, pred_class, gt_bbox, gt_class, anchors, grid_sizes, de
 
     loc_loss = ((matched_pred_bbox - matched_gt_bbox).abs()).mean()
 
-    # test_anchor_mapping.test(image, anchors, matched_gt_bbox,
-    #                          matched_pred_bbox, gt_bbox, pos_idx)
-    if random.random() > 0.998:
-        print('These confidences should be high: ', pred_class[pos_idx].sigmoid())
+    test_anchor_mapping_train.test(image, anchors, matched_gt_bbox,
+                                   matched_pred_bbox, pred_class, gt_bbox, pred_bbox, pos_idx)
 
     loss_f = BCE_Loss(params.n_classes, device)
     class_loss = loss_f(pred_class, matched_gt_class_ids)
@@ -88,7 +86,7 @@ def ssd_loss(pred, targ, anchors, grid_sizes, device, params, image=None):
 
     # computes the loss for each image in the batch
     for idx in range(pred[0].shape[0]):
-        # cur_img = image[idx]  # Dubios ca ie None
+        cur_img = image[idx]  # Dubios ca ie None
 
         pred_bbox, pred_class = pred[0][idx], pred[1][idx]
         gt_bbox, gt_class = targ[0][idx].to(device), targ[1][idx].to(device)
@@ -102,7 +100,7 @@ def ssd_loss(pred, targ, anchors, grid_sizes, device, params, image=None):
         # assert grid_sizes.is_cuda is True
 
         l_loss, c_loss = ssd_1_loss(pred_bbox, pred_class, gt_bbox,
-                                    gt_class, anchors, grid_sizes, device, params, image)
+                                    gt_class, anchors, grid_sizes, device, params, cur_img)
         localization_loss += l_loss
         classification_loss += c_loss
 

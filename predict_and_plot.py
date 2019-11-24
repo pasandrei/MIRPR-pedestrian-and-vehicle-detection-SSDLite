@@ -20,7 +20,7 @@ def model_output_pipeline(params_path):
     params = Params(params_path)
 
     if params.model_id == 'ssdnet':
-        model = SSDNet.SSD_Head()
+        model = SSDNet.SSD_Head(params.n_classes)
     model.to(device)
 
     checkpoint = torch.load('misc/experiments/{}/model_checkpoint'.format(params.model_id))
@@ -52,62 +52,41 @@ def model_output_pipeline(params_path):
             assert predictions[0][0].is_cuda is False
 
             for idx in range(len(batch_images)):
-                current_image = batch_images[idx]
+                current_image = (batch_images[idx] * 255).numpy().astype(np.uint8)
 
-                current_image_bboxes = batch_targets[0][idx]
-                current_image_class_ids = batch_targets[1][idx]
+                current_image_bboxes = (batch_targets[0][idx] * 320).numpy().astype(int)
+                current_image_class_ids = batch_targets[1][idx].numpy()
 
-                current_prediction_bboxes = predictions[0][idx]
-                current_prediction_class_ids = predictions[1][idx]
+                current_prediction_bboxes = (predictions[0][idx] * 320).numpy().astype(int)
+                current_prediction_class_confidences = predictions[1][idx].sigmoid().numpy()
 
                 # assert everything here is on CPU
                 plot_model_outputs(current_image, current_image_bboxes, current_image_class_ids,
-                                   current_prediction_bboxes, current_prediction_class_ids, anchors)
+                                   current_prediction_bboxes, current_prediction_class_confidences, anchors)
                 # return
             return
 
 
 def plot_model_outputs(current_image, current_image_bboxes, current_image_class_ids,
-                       current_prediction_bboxes, current_prediction_class_ids, anchors):
+                       current_prediction_bboxes, current_prediction_class_confidences, anchors):
     """
     ???
     """
     keep_indices = []
-    for idx, one_hot_pred in enumerate(current_prediction_class_ids):
-        max_confidence, position = one_hot_pred.max(dim=0)
-        # Vprint('THIS IS CONFIDENCE PREDICTION: ', one_hot_pred)
-        if position != 2:
+    for idx, one_hot_pred in enumerate(current_prediction_class_confidences):
+        max_confidence = np.amax(one_hot_pred)
+        if max_confidence > 0.5:
             keep_indices.append(idx)
-
-    current_prediction_bboxes = current_prediction_bboxes.numpy()
-    current_image = (current_image * 255).numpy().astype(np.uint8)
-    # for idx, one_hot_pred in enumerate(current_prediction_class_ids):
-    #     if one_hot_pred.max(dim=0)[1] in [0, 1]:
-    #         print(idx, one_hot_pred, current_prediction_bboxes[idx]*320)
-    #         plot_bounding_boxes(current_image, np.array(
-    #             [current_prediction_bboxes[idx]*320]).astype(np.uint16))
-
-    overlaps = jaccard(current_image_bboxes, hw2corners(anchors[:, :2], anchors[:, 2:]))
-
-    # print("OVERLAPS", overlaps)
-    anchors = hw2corners(anchors[:, :2], anchors[:, 2:])
-
     print('Number of bboxes predicted: ', len(keep_indices))
-
+    print('KEPT INDECES', keep_indices)
     keep_indices = np.array(keep_indices)
     if len(keep_indices) != 0:
         kept_bboxes = current_prediction_bboxes[keep_indices]
-        kept_bboxes = (kept_bboxes * 320).astype(int)
     else:
         kept_bboxes = np.array([])
-    current_image_bboxes = (current_image_bboxes.numpy() * 320).astype(int)
 
-    # map each anchor to the highest IOU obj, gt_idx - ids of mapped objects
-    matched_gt_bbox, matched_gt_class_ids, matched_pred_bbox, pos_idx = map_to_ground_truth(
-        overlaps, current_image_bboxes, current_image_class_ids, current_prediction_bboxes)
-
-    test_anchor_mapping.test(current_image, anchors, matched_gt_bbox,
-                             matched_pred_bbox, current_image_bboxes, current_prediction_class_ids, pos_idx)
+    anchor_mapping_part(current_image, current_image_bboxes, current_image_class_ids,
+                        current_prediction_bboxes, current_prediction_class_confidences, anchors)
 
     # print ground truth
     plot_bounding_boxes(current_image, current_image_bboxes, 'Ground truth', 1)
@@ -118,6 +97,23 @@ def plot_model_outputs(current_image, current_image_bboxes, current_image_class_
     # apply nms and print again
     post_nms_bboxes = nms(kept_bboxes)
     plot_bounding_boxes(current_image, post_nms_bboxes, 'Post NMS predictions')
+
+
+def anchor_mapping_part(current_image, current_image_bboxes, current_image_class_ids,
+                        current_prediction_bboxes, current_prediction_class_confidences, anchors):
+
+    overlaps = jaccard(torch.FloatTensor(current_image_bboxes),
+                       hw2corners(anchors[:, :2], anchors[:, 2:]))
+
+    # print("OVERLAPS", overlaps)
+    corner_anchors = hw2corners(anchors[:, :2], anchors[:, 2:])
+
+    # map each anchor to the highest IOU obj, gt_idx - ids of mapped objects
+    matched_gt_bbox, matched_gt_class_ids, matched_pred_bbox, pos_idx = map_to_ground_truth(
+        overlaps, current_image_bboxes, current_image_class_ids, current_prediction_bboxes)
+
+    test_anchor_mapping.test(current_image, corner_anchors, matched_gt_bbox,
+                             matched_pred_bbox, current_prediction_class_confidences, current_image_bboxes, pos_idx)
 
 
 model_output_pipeline('misc/experiments/ssdnet/params.json')

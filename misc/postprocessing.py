@@ -82,8 +82,12 @@ def plot_bounding_boxes(image, bounding_boxes, message='MUE', ok=0):
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
     color = (0, 255, 0) if ok else (0, 0, 255)
-    for (startX, startY, endX, endY) in bounding_boxes:
-        cv2.rectangle(image, (startY, startX), (endY, endX), color, 2)
+    if len(bounding_boxes.shape) == 1:
+        cv2.rectangle(image, (bounding_boxes[1], bounding_boxes[0]),
+                      (bounding_boxes[3], bounding_boxes[2]), color, 2)
+    else:
+        for (startX, startY, endX, endY) in bounding_boxes:
+            cv2.rectangle(image, (startY, startX), (endY, endX), color, 2)
 
     # display the image
     cv2.imshow(message, image)
