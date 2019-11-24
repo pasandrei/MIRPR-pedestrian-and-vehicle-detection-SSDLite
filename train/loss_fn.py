@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 import numpy as np
+import random
 # import torch.nn.functional as F
 
 from train.helpers import *
@@ -14,7 +15,7 @@ class BCE_Loss(nn.Module):
         super().__init__()
         self.n_classes = n_classes
         self.device = device
-        self.id2idx = {1: 0, 3: 1, 100: 2}
+        self.id2idx = {1: 0, 3: 1}
 
     def forward(self, pred, targ):
         '''
@@ -25,7 +26,8 @@ class BCE_Loss(nn.Module):
         targ = targ.cpu().numpy()
         for clas_id in targ:
             bg = [0] * self.n_classes
-            bg[self.id2idx[clas_id]] = 1
+            if clas_id != 100:
+                bg[self.id2idx[clas_id]] = 1
             t.append(bg)
 
         t = torch.FloatTensor(t).to(self.device)
@@ -35,20 +37,21 @@ class BCE_Loss(nn.Module):
     def get_weight(self, x, t):
         # focal loss decreases loss for correctly classified (P>0.5) examples, relative to the missclassified ones
         # thus increasing focus on them
-        gamma = 2.
+        alpha, gamma = 0.99, 3.
         p = x.detach().sigmoid()
 
-        # focal loss factor
+        # focal loss factor - decreases relative loss for well classified examples
         pt = p*t + (1-p)*(1-t)
 
-        # non-background / background weight
-        w = torch.FloatTensor([1, 1, 0.1]).to(self.device)
+        # counter positive/negative examples imbalance by assigning higher relative values to positives=1
+        w = alpha*t + (1-alpha)*(1-t).to(self.device)
 
-        # complete weighing factor
+        # these two combined strongly encourage the network to predict a high value when
+        # there is indeed a positive example
         return w * ((1-pt).pow(gamma))
 
 
-def ssd_1_loss(pred_bbox, pred_class, gt_bbox, gt_class, anchors, grid_sizes, device, image=None):
+def ssd_1_loss(pred_bbox, pred_class, gt_bbox, gt_class, anchors, grid_sizes, device, params, image=None):
     # make network outputs same as gt bbox format
     pred_bbox = activations_to_bboxes(pred_bbox, anchors, grid_sizes)
 
@@ -66,8 +69,10 @@ def ssd_1_loss(pred_bbox, pred_class, gt_bbox, gt_class, anchors, grid_sizes, de
 
     # test_anchor_mapping.test(image, anchors, matched_gt_bbox,
     #                          matched_pred_bbox, gt_bbox, pos_idx)
+    if random.random() > 0.998:
+        print('These confidences should be high: ', pred_class[pos_idx].sigmoid())
 
-    loss_f = BCE_Loss(3, device)
+    loss_f = BCE_Loss(params.n_classes, device)
     class_loss = loss_f(pred_class, matched_gt_class_ids)
     return loc_loss, class_loss
 
@@ -97,7 +102,7 @@ def ssd_loss(pred, targ, anchors, grid_sizes, device, params, image=None):
         # assert grid_sizes.is_cuda is True
 
         l_loss, c_loss = ssd_1_loss(pred_bbox, pred_class, gt_bbox,
-                                    gt_class, anchors, grid_sizes, device, image)
+                                    gt_class, anchors, grid_sizes, device, params, image)
         localization_loss += l_loss
         classification_loss += c_loss
 

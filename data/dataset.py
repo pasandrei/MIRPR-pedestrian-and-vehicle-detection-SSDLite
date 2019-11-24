@@ -50,6 +50,8 @@ class CocoDetection(VisionDataset):
 
             # C x H x W
             img = F.to_tensor(img)
+            img = F.normalize(img, mean=[0.485, 0.456, 0.406],
+                                 std=[0.229, 0.224, 0.225])
 
             imgs.append(img)
             targets_bboxes.append(target[0])
