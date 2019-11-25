@@ -36,30 +36,30 @@ class OutConv(nn.Module):
 
 
 class SSD_Head(nn.Module):
-    def __init__(self, n_classes, k=1, width_mult=1):
+    def __init__(self, n_classes, k=1, width_mult=0.5):
         super().__init__()
 
         # intermediate lay 15 with os = 16, will be a 20x20 grid for 320x320 input, 576 is the expansion size of layer 15 in MobileNetV2
         # self.out0 = OutConv(int(576 * width_mult), n_classes, k)
 
         # from now we use the 1280 output of the backbone, first grid 10x10
-        self.out1 = OutConv(1280, n_classes, k)
+        # self.out1 = OutConv(1280, n_classes, k)
 
         # construct second grid 5x5
         self.inv2 = InvertedResidual(inp=1280, oup=512, stride=2, expand_ratio=0.2)
-        self.out2 = OutConv(512, n_classes, k)
+        # self.out2 = OutConv(512, n_classes, k)
 
         # third grid 3x3
         self.inv3 = InvertedResidual(inp=512, oup=256, stride=2, expand_ratio=0.25)
         self.out3 = OutConv(256, n_classes, k)
 
-        # fourth grid 2x2
-        self.inv4 = InvertedResidual(inp=256, oup=256, stride=2, expand_ratio=0.25)
-        self.out4 = OutConv(256, n_classes, k)
-
-        # last grid 1x1
-        self.inv5 = InvertedResidual(inp=256, oup=64, stride=2, expand_ratio=0.5)
-        self.out5 = OutConv(64, n_classes, k)
+        # # fourth grid 2x2
+        # self.inv4 = InvertedResidual(inp=256, oup=256, stride=2, expand_ratio=0.25)
+        # self.out4 = OutConv(256, n_classes, k)
+        #
+        # # last grid 1x1
+        # self.inv5 = InvertedResidual(inp=256, oup=64, stride=2, expand_ratio=0.5)
+        # self.out5 = OutConv(64, n_classes, k)
 
         # weight initialization
         for m in self.modules():

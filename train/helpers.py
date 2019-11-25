@@ -72,7 +72,7 @@ def map_to_ground_truth(overlaps, gt_bbox, gt_class, pred_bbox):
     matched_gt_bbox = raw_matched_bbox[pos_idx]
 
     # so now we have the GT represented with priors
-    return matched_gt_bbox, matched_gt_class_ids, pred_bbox[pos_idx], pos_idx
+    return matched_gt_bbox, matched_gt_class_ids, pos_idx
 
 
 def create_anchors():

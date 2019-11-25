@@ -57,8 +57,19 @@ def train(model, optimizer, train_loader, valid_loader,
                 ap_counter = 0
 
         if (epoch + 1) % params.eval_step == 0:
-            evaluate(model, optimizer, anchors, grid_sizes, train_loader,
-                     valid_loader, losses, epoch, device, params)
+            # evaluate(model, optimizer, anchors, grid_sizes, train_loader,
+            #          valid_loader, losses, epoch, device, params)
+            SAVE_PATH = 'misc/experiments/{}/model_checkpoint'.format(params.model_id)
+            if params.loss > losses[2] + losses[3]:
+                torch.save({
+                    'epoch': epoch,
+                    'model_state_dict': model.state_dict(),
+                    'optimizer_state_dict': optimizer.state_dict(),
+                    'loss': losses[2] + losses[3],
+                }, SAVE_PATH)
+                params.loss = losses[2] + losses[3]
+                params.save('misc/experiments/ssdnet/params.json')
+                print('Model saved succesfully')
             losses[2], losses[3] = 0, 0
 
         # decay lr after epoch

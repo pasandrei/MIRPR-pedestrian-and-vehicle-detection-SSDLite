@@ -62,13 +62,13 @@ def ssd_1_loss(pred_bbox, pred_class, gt_bbox, gt_class, anchors, grid_sizes, de
     anchors = hw2corners(anchors[:, :2], anchors[:, 2:])
 
     # map each anchor to the highest IOU obj, gt_idx - ids of mapped objects
-    matched_gt_bbox, matched_gt_class_ids, matched_pred_bbox, pos_idx = map_to_ground_truth(
+    matched_gt_bbox, matched_gt_class_ids, pos_idx = map_to_ground_truth(
         overlaps, gt_bbox, gt_class, pred_bbox)
 
-    loc_loss = ((matched_pred_bbox - matched_gt_bbox).abs()).mean()
+    loc_loss = ((pred_bbox[pos_idx] - matched_gt_bbox).abs()).mean()
 
     test_anchor_mapping_train.test(image, anchors, matched_gt_bbox,
-                                   matched_pred_bbox, pred_class, gt_bbox, pred_bbox, pos_idx)
+                                   pred_class, gt_bbox, pred_bbox, pos_idx)
 
     loss_f = BCE_Loss(params.n_classes, device)
     class_loss = loss_f(pred_class, matched_gt_class_ids)

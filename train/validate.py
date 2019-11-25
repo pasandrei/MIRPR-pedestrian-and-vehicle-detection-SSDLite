@@ -15,7 +15,7 @@ def evaluate(model, optimizer, anchors, grid_sizes, train_loader, valid_loader, 
 
     l_val_loss, c_val_loss = 0, 0
 
-    BATCHES_TO_TEST = 10
+    BATCHES_TO_TEST = 4
     model.eval()
     with torch.no_grad():
         val_loss = 0

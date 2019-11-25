@@ -21,8 +21,8 @@ def run(path='misc/experiments/ssdnet/params.json', resume=True, visualize=False
         model = SSDNet.SSD_Head(n_classes=params.n_classes)
     model.to(device)
     #
-    # for param_group in model.backbone.parameters():
-    #     param_group.requires_grad = False
+    for param_group in model.parameters():
+        param_group.requires_grad = False
 
     if params.optimizer == 'adam':
         optimizer = optim.Adam(model.parameters(), lr=params.learning_rate,
@@ -50,7 +50,6 @@ def run(path='misc/experiments/ssdnet/params.json', resume=True, visualize=False
 
     train_loader, valid_loader = dataloaders.get_dataloaders(params)
 
-    params.loss = 9999
     if visualize:
         visualize_data(valid_loader, model)
     else:
