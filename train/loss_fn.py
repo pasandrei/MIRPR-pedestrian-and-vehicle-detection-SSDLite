@@ -31,8 +31,10 @@ class BCE_Loss(nn.Module):
             t.append(bg)
 
         t = torch.FloatTensor(t).to(self.device)
-        weight = self.get_weight(pred, t)
-        return torch.nn.functional.binary_cross_entropy_with_logits(pred, t, weight)
+        #print('Class Target for the current image: ', t)
+        #print('Class confidences for current image: ', pred.sigmoid())
+        #weight = self.get_weight(pred, t)
+        return torch.nn.functional.binary_cross_entropy_with_logits(pred, t)
 
     def get_weight(self, x, t):
         # focal loss decreases loss for correctly classified (P>0.5) examples, relative to the missclassified ones
@@ -62,13 +64,13 @@ def ssd_1_loss(pred_bbox, pred_class, gt_bbox, gt_class, anchors, grid_sizes, de
     anchors = hw2corners(anchors[:, :2], anchors[:, 2:])
 
     # map each anchor to the highest IOU obj, gt_idx - ids of mapped objects
-    matched_gt_bbox, matched_gt_class_ids, pos_idx = map_to_ground_truth(
+    matched_gt_bbox, matched_gt_class_ids, matched_pred_class, pos_idx = map_to_ground_truth(
         overlaps, gt_bbox, gt_class, pred_bbox)
 
-    loc_loss = ((pred_bbox[pos_idx] - matched_gt_bbox).abs()).mean()
+    loc_loss = ((matched_pred_class - matched_gt_bbox).abs()).mean()
 
-    test_anchor_mapping_train.test(image, anchors, matched_gt_bbox,
-                                   pred_class, gt_bbox, pred_bbox, pos_idx)
+    # test_anchor_mapping_train.test(image, anchors, matched_gt_bbox,
+    #                                pred_class, gt_bbox, pred_bbox, pos_idx)
 
     loss_f = BCE_Loss(params.n_classes, device)
     class_loss = loss_f(pred_class, matched_gt_class_ids)
@@ -86,7 +88,7 @@ def ssd_loss(pred, targ, anchors, grid_sizes, device, params, image=None):
 
     # computes the loss for each image in the batch
     for idx in range(pred[0].shape[0]):
-        cur_img = image[idx]  # Dubios ca ie None
+        # cur_img = image[idx]  # Dubios ca ie None
 
         pred_bbox, pred_class = pred[0][idx], pred[1][idx]
         gt_bbox, gt_class = targ[0][idx].to(device), targ[1][idx].to(device)
@@ -100,7 +102,7 @@ def ssd_loss(pred, targ, anchors, grid_sizes, device, params, image=None):
         # assert grid_sizes.is_cuda is True
 
         l_loss, c_loss = ssd_1_loss(pred_bbox, pred_class, gt_bbox,
-                                    gt_class, anchors, grid_sizes, device, params, cur_img)
+                                    gt_class, anchors, grid_sizes, device, params)
         localization_loss += l_loss
         classification_loss += c_loss
 

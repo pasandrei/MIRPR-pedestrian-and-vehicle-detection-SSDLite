@@ -35,7 +35,9 @@ def activations_to_bboxes(actn, anchors, grid_sizes):
     anchors = anchors.type(torch.float64)
 
     # -1...1
+    #print("OFFSETS BEFORE TANH: ", actn)
     actn_offsets = torch.tanh(actn)
+    #print("OFFSETS OF CURRENT IMAGE: ", actn_offsets)
 
     # -0.5....0.5
     actn_centers = actn_offsets[:, :2]/2 * grid_sizes + anchors[:, :2]
@@ -72,7 +74,7 @@ def map_to_ground_truth(overlaps, gt_bbox, gt_class, pred_bbox):
     matched_gt_bbox = raw_matched_bbox[pos_idx]
 
     # so now we have the GT represented with priors
-    return matched_gt_bbox, matched_gt_class_ids, pos_idx
+    return matched_gt_bbox, matched_gt_class_ids, pred_bbox[pos_idx], pos_idx
 
 
 def create_anchors():
@@ -89,12 +91,9 @@ def create_anchors():
     .
     after the first grid is finished comes the next and so on
     '''
-    anc_grids = [3]
-    # anc_zooms = [1., 1.2]
-    # anc_ratios = [(1., 1.), (1., 0.7), (0.57, 1)]
-
-    anc_zooms = [1.]
-    anc_ratios = [(1., 1.)]
+    anc_grids = [10, 5, 3, 2, 1]
+    anc_zooms = [1., 1.2]
+    anc_ratios = [(1., 1.), (1., 0.7), (0.57, 1)]
 
     anchor_scales = [(anz*i, anz*j) for anz in anc_zooms for (i, j) in anc_ratios]
     anc_offsets = [1/(o*2) for o in anc_grids]

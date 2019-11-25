@@ -3,10 +3,10 @@
     "optimizer": "adam",
     "n_classes": 2,
     "learning_rate": 0.045,
-    "batch_size": 8,
+    "batch_size": 32,
     "weight_decay": 4e-05,
-    "n_epochs": 60,
-    "train_stats_step": 2,
+    "n_epochs": 120,
+    "train_stats_step": 10,
     "eval_step": 1,
-    "loss": 1.6250063402960826
+    "loss": 276.7816493649715
 }

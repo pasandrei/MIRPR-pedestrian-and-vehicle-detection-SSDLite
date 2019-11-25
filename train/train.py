@@ -15,7 +15,7 @@ def train_step(model, input_, label, anchors, grid_sizes, optimizer, losses, dev
     l_loss, c_loss = ssd_loss(output, label, anchors, grid_sizes, device, params, input_)
     loss = l_loss + c_loss
 
-    return
+    # return
 
     update_losses(losses, l_loss.item(), c_loss.item())
     loss.backward()
@@ -43,7 +43,7 @@ def train(model, optimizer, train_loader, valid_loader,
             train_step(model, input_, label, anchors, grid_sizes,
                        optimizer, losses, device, params)
 
-            return
+            # return
 
             '''
                 Calculate AP for this batch
@@ -60,6 +60,8 @@ def train(model, optimizer, train_loader, valid_loader,
             # evaluate(model, optimizer, anchors, grid_sizes, train_loader,
             #          valid_loader, losses, epoch, device, params)
             SAVE_PATH = 'misc/experiments/{}/model_checkpoint'.format(params.model_id)
+            print("AVERAGES PER EPOCH: ", losses[2] /
+                  (params.batch_size * len(train_loader)), losses[3]/(params.batch_size * len(train_loader)))
             if params.loss > losses[2] + losses[3]:
                 torch.save({
                     'epoch': epoch,

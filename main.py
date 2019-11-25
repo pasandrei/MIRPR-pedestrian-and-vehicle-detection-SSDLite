@@ -8,7 +8,7 @@ from architectures.models import SSDNet
 from train.helpers import visualize_data
 
 
-def run(path='misc/experiments/ssdnet/params.json', resume=True, visualize=False):
+def run(path='misc/experiments/ssdnet/params.json', resume=False, visualize=False):
     '''
     args: path - string path to the json config file
     trains model refered by that file, saves model and optimizer dict at the same location
@@ -16,13 +16,13 @@ def run(path='misc/experiments/ssdnet/params.json', resume=True, visualize=False
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     params = Params(path)
-
-    if params.model_id == 'ssdnet':
+    print("MODEL ID: ", params.model_id)
+    if params.model_id == 'ssdnet' or params.model_id == 'ssdnet_loc':
         model = SSDNet.SSD_Head(n_classes=params.n_classes)
     model.to(device)
     #
-    for param_group in model.parameters():
-        param_group.requires_grad = False
+    # for param_group in model.parameters():
+    #     param_group.requires_grad = False
 
     if params.optimizer == 'adam':
         optimizer = optim.Adam(model.parameters(), lr=params.learning_rate,
@@ -45,8 +45,11 @@ def run(path='misc/experiments/ssdnet/params.json', resume=True, visualize=False
         start_epoch = checkpoint['epoch']
         print('Model loaded successfully')
 
-    # for pg in optimizer.param_groups:
-    #     pg['lr'] = 0.005
+    # for name, params_gr in model.out3.named_parameters():
+    #     print(name, params_gr, params_gr.shape)
+
+    # for param_gr in optimizer.param_groups:
+    #     param_gr['lr'] = 0.001
 
     train_loader, valid_loader = dataloaders.get_dataloaders(params)
 
