@@ -21,8 +21,6 @@ use width_mult to change width of the model, can't do transfer learning this way
 '''
 
 
-
-
 def _make_divisible(v, divisor, min_value=None):
     """
     This function is taken from the original tf repo.
@@ -47,7 +45,8 @@ class ConvBNReLU(nn.Sequential):
     def __init__(self, in_planes, out_planes, kernel_size=3, stride=1, groups=1):
         padding = (kernel_size - 1) // 2
         super(ConvBNReLU, self).__init__(
-            nn.Conv2d(in_planes, out_planes, kernel_size, stride, padding, groups=groups, bias=False),
+            nn.Conv2d(in_planes, out_planes, kernel_size, stride,
+                      padding, groups=groups, bias=False),
             nn.BatchNorm2d(out_planes),
             nn.ReLU6(inplace=True)
         )
@@ -127,7 +126,7 @@ class MobileNetV2(nn.Module):
         input_channel = _make_divisible(input_channel * width_mult, round_nearest)
         self.last_channel = _make_divisible(last_channel * max(1.0, width_mult), round_nearest)
         features = [ConvBNReLU(3, input_channel, stride=2)]
-        
+
         # building inverted residual blocks
         for t, c, n, s in inverted_residual_setting:
             output_channel = _make_divisible(c * width_mult, round_nearest)
@@ -135,10 +134,10 @@ class MobileNetV2(nn.Module):
                 stride = s if i == 0 else 1
                 features.append(block(input_channel, output_channel, stride, expand_ratio=t))
                 input_channel = output_channel
-                
+
         # building last several layers
         features.append(ConvBNReLU(input_channel, self.last_channel, kernel_size=1))
-        
+
         # make it nn.Sequential
         self.features = nn.Sequential(*features)
 
@@ -182,7 +181,7 @@ def mobilenet_v2(pretrained=False, progress=True, **kwargs):
     model = MobileNetV2(**kwargs)
     if pretrained:
         pretrained_dict = load_state_dict_from_url(model_urls['mobilenet_v2'],
-                                              progress=progress)
+                                                   progress=progress)
         model_dict = model.state_dict()
         # only keep keys of the model
         pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}

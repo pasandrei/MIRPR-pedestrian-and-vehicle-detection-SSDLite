@@ -33,7 +33,7 @@ class CocoDetection(VisionDataset):
         return B x C x H x W image tensor and [B x img_bboxes, B x img_classes]
         """
 
-        imgs, targets_bbox, targets_class = [], [], []
+        imgs, targets_bboxes, targets_classes = [], [], []
         for index in batched_indices:
             coco = self.coco
             img_id = self.ids[index]
@@ -42,20 +42,29 @@ class CocoDetection(VisionDataset):
             path = coco.loadImgs(img_id)[0]['file_name']
             img = Image.open(os.path.join(self.root, path)).convert('RGB')
 
-            # bring target in correct format
+            # target[0] = tensor of bboxes of objects in image
+            # target[1] = tensor of class ids in image
             target = prepare_gt(img, target)
 
             img = F.resize(img, size=(320, 320), interpolation=2)
+
+            # C x H x W
             img = F.to_tensor(img)
+            img = F.normalize(img, mean=[0.485, 0.456, 0.406],
+                              std=[0.229, 0.224, 0.225])
 
             imgs.append(img)
-            targets_bbox.append(target[0])
-            targets_class.append(target[1])
+            targets_bboxes.append(target[0])
+            targets_classes.append(target[1])
 
-        img = torch.stack(imgs)
-        target = [targets_bbox, targets_class]
+        # B x C x H x W
+        batch_images = torch.stack(imgs)
 
-        return img, target
+        # target[0] = list of bboxes tensors for each image
+        # target[1] = list of class id tensors for each image
+        batch_targets = [targets_bboxes, targets_classes]
+
+        return batch_images, batch_targets
 
     def __len__(self):
         return len(self.ids)
