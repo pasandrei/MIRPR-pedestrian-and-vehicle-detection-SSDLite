@@ -49,7 +49,7 @@ def activations_to_bboxes(actn, anchors, grid_sizes):
 def map_to_ground_truth(overlaps, gt_bbox, gt_class, pred_bbox):
     """ maps priors to max IOU obj
    returns:
-   - matched_gt_bbox: tensor of size matched_priors x 4 - essentially assigning GT bboxes to corresponding highest IOU priors
+   - gt_bbox_for_matched_anchors: tensor of size matched_priors x 4 - essentially assigning GT bboxes to corresponding highest IOU priors
    - matched_gt_class_ids: tensor of size priors - where each value of the tensor indicates the class id that the priors feature map cell should predict
     """
 
@@ -71,10 +71,10 @@ def map_to_ground_truth(overlaps, gt_bbox, gt_class, pred_bbox):
     raw_matched_bbox = gt_bbox[prior_to_gt_idx]
     pos_idx = torch.nonzero(pos)[:, 0]
     # which of those max values are actually precise enough?
-    matched_gt_bbox = raw_matched_bbox[pos_idx]
+    gt_bbox_for_matched_anchors = raw_matched_bbox[pos_idx]
 
     # so now we have the GT represented with priors
-    return matched_gt_bbox, matched_gt_class_ids, pred_bbox[pos_idx], pos_idx
+    return gt_bbox_for_matched_anchors, matched_gt_class_ids, pred_bbox[pos_idx], pos_idx
 
 
 def create_anchors():

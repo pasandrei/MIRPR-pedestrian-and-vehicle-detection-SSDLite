@@ -2,10 +2,8 @@ import torch
 from torch import nn
 import numpy as np
 import random
-# import torch.nn.functional as F
 
 from train.helpers import *
-from my_tests import test_anchor_mapping_train
 from misc.postprocessing import *
 
 
@@ -31,8 +29,6 @@ class BCE_Loss(nn.Module):
             t.append(bg)
 
         t = torch.FloatTensor(t).to(self.device)
-        #print('Class Target for the current image: ', t)
-        #print('Class confidences for current image: ', pred.sigmoid())
         #weight = self.get_weight(pred, t)
         return torch.nn.functional.binary_cross_entropy_with_logits(pred, t)
 
@@ -60,17 +56,11 @@ def ssd_1_loss(pred_bbox, pred_class, gt_bbox, gt_class, anchors, grid_sizes, de
     # compute IOU for obj x anchor
     overlaps = jaccard(gt_bbox, hw2corners(anchors[:, :2], anchors[:, 2:]))
 
-    # print("OVERLAPS", overlaps)
-    anchors = hw2corners(anchors[:, :2], anchors[:, 2:])
-
     # map each anchor to the highest IOU obj, gt_idx - ids of mapped objects
-    matched_gt_bbox, matched_gt_class_ids, matched_pred_class, pos_idx = map_to_ground_truth(
+    gt_bbox_for_matched_anchors, matched_gt_class_ids, matched_pred_bboxes, pos_idx = map_to_ground_truth(
         overlaps, gt_bbox, gt_class, pred_bbox)
 
-    loc_loss = ((matched_pred_class - matched_gt_bbox).abs()).mean()
-
-    # test_anchor_mapping_train.test(image, anchors, matched_gt_bbox,
-    #                                pred_class, gt_bbox, pred_bbox, pos_idx)
+    loc_loss = ((matched_pred_bboxes - gt_bbox_for_matched_anchors).abs()).mean()
 
     loss_f = BCE_Loss(params.n_classes, device)
     class_loss = loss_f(pred_class, matched_gt_class_ids)
@@ -88,7 +78,6 @@ def ssd_loss(pred, targ, anchors, grid_sizes, device, params, image=None):
 
     # computes the loss for each image in the batch
     for idx in range(pred[0].shape[0]):
-        # cur_img = image[idx]  # Dubios ca ie None
 
         pred_bbox, pred_class = pred[0][idx], pred[1][idx]
         gt_bbox, gt_class = targ[0][idx].to(device), targ[1][idx].to(device)

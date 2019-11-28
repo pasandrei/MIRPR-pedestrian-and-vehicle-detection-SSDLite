@@ -12,10 +12,8 @@ def train_step(model, input_, label, anchors, grid_sizes, optimizer, losses, dev
 
     optimizer.zero_grad()
     output = model(input_)
-    l_loss, c_loss = ssd_loss(output, label, anchors, grid_sizes, device, params, input_)
+    l_loss, c_loss = ssd_loss(output, label, anchors, grid_sizes, device, params)
     loss = l_loss + c_loss
-
-    # return
 
     update_losses(losses, l_loss.item(), c_loss.item())
     loss.backward()
@@ -42,9 +40,6 @@ def train(model, optimizer, train_loader, valid_loader,
         for batch_idx, (input_, label) in enumerate(train_loader):
             train_step(model, input_, label, anchors, grid_sizes,
                        optimizer, losses, device, params)
-
-            # return
-
             '''
                 Calculate AP for this batch
                 add curent batch ap to counter

@@ -20,7 +20,7 @@ def run(path='misc/experiments/ssdnet/params.json', resume=False, visualize=Fals
     if params.model_id == 'ssdnet' or params.model_id == 'ssdnet_loc':
         model = SSDNet.SSD_Head(n_classes=params.n_classes)
     model.to(device)
-    #
+
     # for param_group in model.parameters():
     #     param_group.requires_grad = False
 
@@ -32,6 +32,7 @@ def run(path='misc/experiments/ssdnet/params.json', resume=False, visualize=Fals
     print('Total number of parameters of model: ',
           sum(p.numel() for p in model.parameters() if p.requires_grad))
     print('Total number of parameters given to optimizer: ')
+
     opt_params = 0
     for pg in optimizer.param_groups:
         opt_params += sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -44,12 +45,6 @@ def run(path='misc/experiments/ssdnet/params.json', resume=False, visualize=Fals
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         start_epoch = checkpoint['epoch']
         print('Model loaded successfully')
-
-    # for name, params_gr in model.out3.named_parameters():
-    #     print(name, params_gr, params_gr.shape)
-
-    # for param_gr in optimizer.param_groups:
-    #     param_gr['lr'] = 0.001
 
     train_loader, valid_loader = dataloaders.get_dataloaders(params)
 

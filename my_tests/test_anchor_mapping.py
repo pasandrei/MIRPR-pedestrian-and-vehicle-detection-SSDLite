@@ -7,68 +7,96 @@ from train.helpers import *
 from misc.postprocessing import *
 
 
-def test(image, anchors, matched_gt_bbox, matched_pred_bbox, matched_gt_class_ids, gt_bbox, pos_idx):
-    '''
+class UnNormalize(object):
+    def __init__(self, mean, std):
+        self.mean = mean
+        self.std = std
 
-    what we have: - anchors: the set of predifined bounding boxes
-                  - gt_bboxes: the ground truth bboxes of objects in the image
-                  - using these 2, we want to match those anchors that intersect well with one gt_bbox
-                  - DEBUG: plot gt_bboxes and the anchors that have matched to see if this is done correctly
-                  - pos_idx is supposed to be the indeces of mapped anchors
-                  - matched_gt_bbox is the gt_bbox that each matched anchor has mapped to
+    def __call__(self, tensor):
+        """
+        Args:
+            tensor (Tensor): Tensor image of size (C, H, W) to be normalized.
+        Returns:
+            Tensor: Normalized image.
+        """
+        for t, m, s in zip(tensor, self.mean, self.std):
+            t.mul_(s).add_(m)
+            # The normalize code -> t.sub_(m).div_(s)
+        return tensor
+
+
+def test(image, anchors, gt_bbox_for_matched_anchors, pred_bbox, prediction_class_confidences, gt_bbox, pos_idx, just_outputs=1):
+    '''
+    what we have: - image: C x H x W tensor, scaled in [0, 1] then normalized
+                  - anchors: #anchors x 4 tensor, scaled in [0, 1]: the set of predifined bounding boxes
+                  - gt_bbox_for_matched_anchors: #matches x 4 tensor with values scaled [0,1] is the gt_bbox that each matched anchor has mapped to
+                  - pred_bbox: #anchors x 4 tensor, in [0, 1] scale: all bbox prediction
+                  - prediction_class_confidences: #anchors x 2 tensor -> confidences for each prediction
+                  - gt_bboxes: tensor with scaled values [0, 1]: the ground truth bboxes of objects in the image
+                  - pos_idx: tensor of the indeces of mapped anchors
     '''
 
     # first thing first, get the input tensor ready to be plotted
-    image = (image * 255).astype(np.uint8)
+    unorm = UnNormalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
+    image = unorm(image)
+    image = (image * 255).cpu().numpy().astype(np.uint8)
 
     # same for other variables of interest
     anchors = (anchors.cpu().numpy() * 320).astype(int)
-    matched_gt_bbox = (matched_gt_bbox).astype(int)
-    gt_bbox = gt_bbox.astype(int)
+    gt_bbox_for_matched_anchors = (gt_bbox_for_matched_anchors.detach().cpu().numpy()*320).astype(int)
+    prediction_class_confidences = prediction_class_confidences.detach().sigmoid().cpu().numpy()
+    gt_bbox = (gt_bbox.cpu().numpy() * 320).astype(int)
+    pred_bbox = (pred_bbox.detach().cpu().numpy() * 320).astype(int)
+    pos_idx = (pos_idx.cpu().numpy())
+    matched_anchors = anchors[pos_idx]
 
-    # if anchors.shape
-    matched_anchors = np.array([anchors[pos_idx]])
+    if not just_outputs:
 
-    # print matched anchors, respective gt gt_bboxes
-    print("matched ANCHORS: ", matched_anchors, matched_anchors.shape)
-    print("Matched BBOXES: ", matched_gt_bbox, matched_gt_bbox.shape)
-    print("GT BBOXES: ", gt_bbox, gt_bbox.shape)
+        print("GT BBOXES: ", gt_bbox, gt_bbox.shape)
+        plot_bounding_boxes(image, gt_bbox, "GROUND TRUTH")
 
-    print("POSITIVE INDECES", pos_idx)
-    print('MATCHED ANCHORS', matched_anchors)
-    plot_bounding_boxes(image, matched_anchors)
-    print('WHAT OBJECT EACH MATCHED ANCHOR SHOULD PREDICT: ', matched_gt_class_ids[pos_idx])
-    plot_bounding_boxes(image, gt_bbox)
+        print("ALL ANCHORS WITH THEIR RESPECTIVE OFFSET PREDICTIONS: ")
+        print(anchors, anchors.shape)
+        print(pred_bbox, pred_bbox.shape)
+        # for i in range(len(anchors)):
+        #     cur_anchor_bbox = anchors[i]
+        #     cur_pred_bbox = pred_bbox[i]
+        #     plot_bounding_boxes(image, cur_anchor_bbox, "ANCHOR")
+        #     plot_bounding_boxes(image, cur_pred_bbox, "PRED FROM ANCHOR")
+        #     print('Confidence for this pair of anchor/pred: ', prediction_class_confidences[i])
 
-    '''
-    all of the above seems to work well, lets also see what the model predicts from these anchors
-    '''
-    matched_pred_bbox = matched_pred_bbox.astype(int)
-    # matched_pred_bbox = (matched_pred_bbox * 320).astype(int)
-    print("Matched Pred BBOXES: ", matched_pred_bbox, matched_pred_bbox.shape)
-    # print('CONFIDENCES FOR PREDICTED BBOXES: ', current_prediction_class_ids[pos_idx])
-    matched_pred_bbox = np.array([matched_pred_bbox])
-    plot_bounding_boxes(image, matched_pred_bbox)
+        print("Now let's see correct anchors and their respective predictions")
+        print("Matched ANCHORS: ", matched_anchors, matched_anchors.shape)
+        print("Matched GT BBOXES: ", gt_bbox_for_matched_anchors, gt_bbox_for_matched_anchors.shape)
+        plot_bounding_boxes(image, matched_anchors, "CORRECT ANCHORS")
+        plot_bounding_boxes(image, gt_bbox_for_matched_anchors, "GT BBOXES FOR EACH ANCHOR")
 
-    '''
-    yet again, results seem all good, so there is only one more crucial thing to check:
-    - are anchors generated C row major style? if not, there is a mismatch between anchors and
-    feature map cells
-    - this is easy to check, just print out first 100 anchors
-    '''
-    # first_anchors = anchors[:100]
-    # plot_bounding_boxes(image, first_anchors)
-    #
-    # print("First anchors: ", first_anchors)
-    # plot_bounding_boxes(image, first_anchors[6:7])
+        matched_pred_bbox = pred_bbox[pos_idx]
+        print("Matched Pred BBOXES: ", matched_pred_bbox, matched_pred_bbox.shape)
+        print('CONFIDENCES FOR PREDICTED BBOXES: ', prediction_class_confidences[pos_idx])
+        plot_bounding_boxes(image, matched_pred_bbox, "PREDICTED (CHEATED) BY THE NETWORK")
 
-    '''
-    this is a major issue, it seems that anchors are generated by columns, while feature maps,
-    when unpacked into a long tensor, this is 99% done line by line, so in this way, the first
-    100 lines from the anchors tensor, which are responsible to mapping with objects on the first
-    column of an image, are mapped to feature map cells coming from the first LINE of the image. Thus,
-    feature map cells are wrongly mapped to parts of the image that their receptive fields
-    have nothing to do with => no wonder loss is stagnant
-    - the question still remains, how the hell does it work for mr jeremy?
-    - one more possibility, openCV takes x and y mathematically, not row and col
-    '''
+    print("Actual model outputs are: ")
+    keep_indices = []
+    for index, one_hot_pred in enumerate(prediction_class_confidences):
+        max_conf = np.amax(one_hot_pred)
+        if max_conf > 0.5:
+            keep_indices.append(index)
+
+    print("KEPT INDICDES LENGTH: ", len(keep_indices))
+    if keep_indices == []:
+        prediction_class_confidences.sort()
+        print("THERE WERE NO CONFIDENCES > 0.5, THESE ARE THE MAX: ",
+              prediction_class_confidences[:15])
+        pass
+    else:
+        print("INDECES KEPT BY CONFIDENCE", keep_indices)
+        keep_indices = np.array(keep_indices)
+        high_confidence_anchors = anchors[keep_indices]
+        high_confidence_model_predictions = pred_bbox[keep_indices]
+        print("THIS IS PRED BBOX KEPT BY CONFIDENCE", high_confidence_model_predictions,
+              high_confidence_model_predictions.shape)
+        plot_bounding_boxes(image, high_confidence_anchors, "HIGH CONFIDENCE ANCHORS")
+        plot_bounding_boxes(image, high_confidence_model_predictions, "ACTUAL MODEL OUTPUTS")
+        post_nms_bboxes = nms(high_confidence_model_predictions)
+        plot_bounding_boxes(image, post_nms_bboxes, 'Post NMS predictions')
