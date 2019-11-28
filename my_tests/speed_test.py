@@ -8,7 +8,6 @@ from train.config import Params
 from data import dataloaders
 from train import train
 from architectures.backbones import MobileNet
-from train.helpers import visualize_data
 
 import datetime
 
@@ -28,7 +27,7 @@ def measure_mobilenet():
     print('Total number of parameters of model: ', sum(p.numel() for p in model.parameters() if p.requires_grad))
 
     train_loader, valid_loader = dataloaders.get_dataloaders(params)
-    
+
     dummy_targ = torch.rand(params.batch_size, 1000).to(device)
     criterion = nn.BCEWithLogitsLoss()
 
@@ -38,7 +37,7 @@ def measure_mobilenet():
 
     for batch_idx, (input_, label) in enumerate(train_loader):
         input_ = input_.to(device)
-            
+
         cur = datetime.datetime.now()
         print(cur)
 

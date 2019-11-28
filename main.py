@@ -5,10 +5,9 @@ from train.config import Params
 from data import dataloaders
 from train import train
 from architectures.models import SSDNet
-from train.helpers import visualize_data
 
 
-def run(path='misc/experiments/ssdnet/params.json', resume=False, visualize=False):
+def run(path='misc/experiments/ssdnet/params.json', resume=False):
     '''
     args: path - string path to the json config file
     trains model refered by that file, saves model and optimizer dict at the same location
@@ -21,14 +20,14 @@ def run(path='misc/experiments/ssdnet/params.json', resume=False, visualize=Fals
         model = SSDNet.SSD_Head(n_classes=params.n_classes)
     model.to(device)
 
-    # for param_group in model.parameters():
-    #     param_group.requires_grad = False
+    for param_group in model.backbone.parameters():
+        param_group.requires_grad = False
 
     if params.optimizer == 'adam':
         optimizer = optim.Adam(model.parameters(), lr=params.learning_rate,
                                weight_decay=params.weight_decay)
-
     print('Number of epochs:', params.n_epochs)
+    
     print('Total number of parameters of model: ',
           sum(p.numel() for p in model.parameters() if p.requires_grad))
     print('Total number of parameters given to optimizer: ')
@@ -39,7 +38,7 @@ def run(path='misc/experiments/ssdnet/params.json', resume=False, visualize=Fals
     print(opt_params)
 
     start_epoch = 0
-    if resume or visualize:
+    if resume:
         checkpoint = torch.load('misc/experiments/{}/model_checkpoint'.format(params.model_id))
         model.load_state_dict(checkpoint['model_state_dict'])
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
@@ -47,11 +46,6 @@ def run(path='misc/experiments/ssdnet/params.json', resume=False, visualize=Fals
         print('Model loaded successfully')
 
     train_loader, valid_loader = dataloaders.get_dataloaders(params)
-
-    if visualize:
-        visualize_data(valid_loader, model)
-    else:
-        train.train(model, optimizer, train_loader, valid_loader, device, params, start_epoch)
-
+    train.train(model, optimizer, train_loader, valid_loader, device, params, start_epoch)
 
 # run()

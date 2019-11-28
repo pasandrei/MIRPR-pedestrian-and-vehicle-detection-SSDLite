@@ -91,31 +91,41 @@ def create_anchors():
     .
     after the first grid is finished comes the next and so on
     '''
-    anc_grids = [10, 5, 3, 2, 1]
-    anc_zooms = [1., 1.2]
-    anc_ratios = [(1., 1.), (1., 0.7), (0.57, 1)]
+    anc_grids_10 = [10]
+    anc_zooms_10 = [1., 1.2]
+    anc_ratios_10 = [(1., 1.), (1., 0.7), (0.57, 1)]
 
-    anchor_scales = [(anz*i, anz*j) for anz in anc_zooms for (i, j) in anc_ratios]
-    anc_offsets = [1/(o*2) for o in anc_grids]
-    k = len(anchor_scales)
+    # add more anchors for smaller feature maps, considering people and cars are large objects
+    anc_grids_5 = [5, 3, 2, 1]
+    anc_zooms_5 = [0.8, 1., 1.2, 1.5]
+    anc_ratios_5 = [(1., 1.), (1., 0.7), (0.57, 1)]
 
-    anc_x = np.concatenate([np.repeat(np.linspace(ao, 1-ao, ag), ag)
-                            for ao, ag in zip(anc_offsets, anc_grids)])
-    anc_y = np.concatenate([np.tile(np.linspace(ao, 1-ao, ag), ag)
-                            for ao, ag in zip(anc_offsets, anc_grids)])
-    anc_ctrs = np.repeat(np.stack([anc_x, anc_y], axis=1), k, axis=0)
+    def create(anc_grids, anc_zooms, anc_ratios):
+        anchor_scales = [(anz*i, anz*j) for anz in anc_zooms for (i, j) in anc_ratios]
+        anc_offsets = [1/(o*2) for o in anc_grids]
+        k = len(anchor_scales)
 
-    anc_sizes = np.concatenate([np.array([[o/ag, p/ag] for i in range(ag*ag) for o, p in anchor_scales])
-                                for ag in anc_grids])
+        anc_x = np.concatenate([np.repeat(np.linspace(ao, 1-ao, ag), ag)
+                                for ao, ag in zip(anc_offsets, anc_grids)])
+        anc_y = np.concatenate([np.tile(np.linspace(ao, 1-ao, ag), ag)
+                                for ao, ag in zip(anc_offsets, anc_grids)])
+        anc_ctrs = np.repeat(np.stack([anc_x, anc_y], axis=1), k, axis=0)
 
-    grid_sizes = torch.from_numpy(np.concatenate([np.array([1/ag for i in range(ag*ag) for o, p in anchor_scales])
-                                                  for ag in anc_grids])).unsqueeze(1)
+        anc_sizes = np.concatenate([np.array([[o/ag, p/ag] for i in range(ag*ag) for o, p in anchor_scales])
+                                    for ag in anc_grids])
 
-    anchors = torch.from_numpy(np.concatenate([anc_ctrs, anc_sizes], axis=1)).float()
-    #anchor_cnr = hw2corners(anchors[:, :2], anchors[:, 2:])
+        grid_sizes = torch.from_numpy(np.concatenate([np.array([1/ag for i in range(ag*ag) for o, p in anchor_scales])
+                                                      for ag in anc_grids])).unsqueeze(1)
 
+        anchors = torch.from_numpy(np.concatenate([anc_ctrs, anc_sizes], axis=1)).float()
+
+        return anchors, grid_sizes
+
+    anc10, grid10 = create(anc_grids_10, anc_zooms_10, anc_ratios_10)
+    anc5, grid5 = create(anc_grids_5, anc_zooms_5, anc_ratios_5)
+
+    anchors, grid_sizes = torch.cat((anc10, anc5)), torch.cat((grid10, grid5))
     return anchors, grid_sizes
-
 
 def prepare_gt(input_img, gt_target):
     '''
@@ -147,37 +157,3 @@ def prepare_gt(input_img, gt_target):
         gt[0][idx] = torch.FloatTensor(new_bbox)
 
     return gt
-
-# probabil inutil
-
-
-def visualize_data(dataloader, model=None):
-    '''
-    plots some samples from the dataset
-    '''
-    x, y = next(iter(dataloader))
-    width_size, height_size = x.shape[3], x.shape[2]
-
-    # have to keep track of initial size to have the corect rescaling factor for bbox coords
-    bboxes, classes = (y[0].squeeze().numpy() * 320).astype(int), y[1].squeeze().numpy()
-    image = (x.squeeze().numpy() * 255).astype(int)
-    image = image.transpose((1, 2, 0))
-    plt.imshow(image)
-    plt.show()
-
-    for idx, (bbox, class_id) in enumerate(zip(bboxes, classes)):
-        x1, y1, x2, y2 = bbox
-
-        image = cv2.rectangle(image, (x1, y1), (x2, y2), (36, 255, 12), 2)
-
-        cv2.putText(image, str(class_id), (x1, y1+10),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.9, (36, 255, 12), 2)
-
-        if idx == 1:
-            break
-    image = image.get()
-    plt.imshow(image)
-    plt.show()
-    if model:
-        # show model prediction
-        pass

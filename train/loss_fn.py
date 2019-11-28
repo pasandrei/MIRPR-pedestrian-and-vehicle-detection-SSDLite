@@ -9,11 +9,12 @@ from misc.postprocessing import *
 
 # inspired by fastai course
 class BCE_Loss(nn.Module):
-    def __init__(self, n_classes, device):
+    def __init__(self, n_classes, device, norm_factor):
         super().__init__()
         self.n_classes = n_classes
         self.device = device
         self.id2idx = {1: 0, 3: 1}
+        self.norm_factor = norm_factor
 
     def forward(self, pred, targ):
         '''
@@ -29,24 +30,25 @@ class BCE_Loss(nn.Module):
             t.append(bg)
 
         t = torch.FloatTensor(t).to(self.device)
-        #weight = self.get_weight(pred, t)
-        return torch.nn.functional.binary_cross_entropy_with_logits(pred, t)
+        weight = self.get_weight(pred, t)
+        return torch.nn.functional.binary_cross_entropy_with_logits(pred, t, weight=None,
+                                size_average=None, reduce=None, reduction='sum') / self.norm_factor
 
     def get_weight(self, x, t):
         # focal loss decreases loss for correctly classified (P>0.5) examples, relative to the missclassified ones
         # thus increasing focus on them
-        alpha, gamma = 0.9, 2.
+        alpha, gamma = 0.25, 2.
         p = x.detach().sigmoid()
 
         # focal loss factor - decreases relative loss for well classified examples
         pt = p*t + (1-p)*(1-t)
 
         # counter positive/negative examples imbalance by assigning higher relative values to positives=1
-        # w = alpha*t + (1-alpha)*(1-t).to(self.device)
+        w = alpha*t + (1-alpha)*(1-t).to(self.device)
 
         # these two combined strongly encourage the network to predict a high value when
         # there is indeed a positive example
-        return ((1-pt).pow(gamma))
+        return w * ((1-pt).pow(gamma))
 
 
 def ssd_1_loss(pred_bbox, pred_class, gt_bbox, gt_class, anchors, grid_sizes, device, params, image=None):
@@ -62,7 +64,8 @@ def ssd_1_loss(pred_bbox, pred_class, gt_bbox, gt_class, anchors, grid_sizes, de
 
     loc_loss = ((matched_pred_bboxes - gt_bbox_for_matched_anchors).abs()).mean()
 
-    loss_f = BCE_Loss(params.n_classes, device)
+    print("Is this the len?: ", matched_pred_bboxes.shape)
+    loss_f = BCE_Loss(params.n_classes, device, matched_pred_bboxes.shape[0])
     class_loss = loss_f(pred_class, matched_gt_class_ids)
     return loc_loss, class_loss
 
