@@ -36,7 +36,7 @@ class OutConv(nn.Module):
 
 
 class SSD_Head(nn.Module):
-    def __init__(self, n_classes, k_10=6, k_5=12, width_mult=1):
+    def __init__(self, n_classes, k_10=6, k_5=6, width_mult=1):
         super().__init__()
         '''
         k_10 - number of anchors per feature map cell for the 10x10 grid
