@@ -1,5 +1,4 @@
 import torch
-import torch.nn as nn
 import torch.optim as optim
 
 from train.config import Params
@@ -9,30 +8,35 @@ from architectures.models import SSDNet
 from train.helpers import visualize_data
 
 
-def run(path='misc/experiments/ssdnet/params.json', resume=True, visualize=False):
+def run(path='misc/experiments/ssdnet/params.json', resume=False, visualize=False):
     '''
     args: path - string path to the json config file
     trains model refered by that file, saves model and optimizer dict at the same location
     '''
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    params = Params('misc/experiments/ssdnet/params.json')
-
-    if params.model_id == 'ssdnet':
-        model = SSDNet.SSD_Head()
+    params = Params(path)
+    print("MODEL ID: ", params.model_id)
+    if params.model_id == 'ssdnet' or params.model_id == 'ssdnet_loc':
+        model = SSDNet.SSD_Head(n_classes=params.n_classes)
     model.to(device)
 
-    for param in model.backbone.parameters():
-        param.requires_grad = False
+    # for param_group in model.parameters():
+    #     param_group.requires_grad = False
 
     if params.optimizer == 'adam':
         optimizer = optim.Adam(model.parameters(), lr=params.learning_rate,
                                weight_decay=params.weight_decay)
 
     print('Number of epochs:', params.n_epochs)
-    print('Total number of parameters of model: ', sum(p.numel()
-                                                       for p in model.parameters() if p.requires_grad))
-    #print('Total number of parameters given to optimizer: ', sum(p.numel() for p in optimizer.named_parameters()))
+    print('Total number of parameters of model: ',
+          sum(p.numel() for p in model.parameters() if p.requires_grad))
+    print('Total number of parameters given to optimizer: ')
+
+    opt_params = 0
+    for pg in optimizer.param_groups:
+        opt_params += sum(p.numel() for p in model.parameters() if p.requires_grad)
+    print(opt_params)
 
     start_epoch = 0
     if resume or visualize:
@@ -43,10 +47,11 @@ def run(path='misc/experiments/ssdnet/params.json', resume=True, visualize=False
         print('Model loaded successfully')
 
     train_loader, valid_loader = dataloaders.get_dataloaders(params)
+
     if visualize:
         visualize_data(valid_loader, model)
     else:
         train.train(model, optimizer, train_loader, valid_loader, device, params, start_epoch)
 
 
-run()
+# run()

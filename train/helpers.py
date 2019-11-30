@@ -3,13 +3,8 @@ import numpy as np
 import cv2
 from matplotlib import pyplot as plt
 
-# inspired by fastai course
-
 
 def hw2corners(ctr, hw):
-    #a = torch.cat([ctr-hw/2, ctr+hw/2], dim=1)
-    #print('in hw2corners')
-    # print(torch.max(a))
     return torch.cat([ctr-hw/2, ctr+hw/2], dim=1)
 
 
@@ -33,22 +28,28 @@ def jaccard(box_a, box_b):
     return inter / union
 
 
-def actn_to_bb(actn, anchors, grid_sizes):
+def activations_to_bboxes(actn, anchors, grid_sizes):
     """ activations to bounding boxes format """
 
     # this is probably a bug, all tensors should be the same size if slicing operations with addition are performed
     anchors = anchors.type(torch.float64)
+
+    # -1...1
+    #print("OFFSETS BEFORE TANH: ", actn)
     actn_offsets = torch.tanh(actn)
+    #print("OFFSETS OF CURRENT IMAGE: ", actn_offsets)
+
+    # -0.5....0.5
     actn_centers = actn_offsets[:, :2]/2 * grid_sizes + anchors[:, :2]
     actn_hw = (actn_offsets[:, 2:]/2+1) * anchors[:, 2:]
 
     return hw2corners(actn_centers, actn_hw)
 
 
-def map_to_ground_truth(overlaps, gt_bbox, gt_class):
+def map_to_ground_truth(overlaps, gt_bbox, gt_class, pred_bbox):
     """ maps priors to max IOU obj
    returns:
-   - matched_gt_bbox: tensor of size matched_priors x 4 - essentially assigning GT bboxes to corresponding highest IOU priors
+   - gt_bbox_for_matched_anchors: tensor of size matched_priors x 4 - essentially assigning GT bboxes to corresponding highest IOU priors
    - matched_gt_class_ids: tensor of size priors - where each value of the tensor indicates the class id that the priors feature map cell should predict
     """
 
@@ -70,10 +71,10 @@ def map_to_ground_truth(overlaps, gt_bbox, gt_class):
     raw_matched_bbox = gt_bbox[prior_to_gt_idx]
     pos_idx = torch.nonzero(pos)[:, 0]
     # which of those max values are actually precise enough?
-    matched_gt_bbox = raw_matched_bbox[pos_idx]
+    gt_bbox_for_matched_anchors = raw_matched_bbox[pos_idx]
 
     # so now we have the GT represented with priors
-    return matched_gt_bbox, matched_gt_class_ids, pos_idx
+    return gt_bbox_for_matched_anchors, matched_gt_class_ids, pred_bbox[pos_idx], pos_idx
 
 
 def create_anchors():
@@ -90,10 +91,10 @@ def create_anchors():
     .
     after the first grid is finished comes the next and so on
     '''
-
-    anc_grids = [20, 10, 5, 3, 2, 1]
+    anc_grids = [10, 5, 3, 2, 1]
     anc_zooms = [1., 1.2]
     anc_ratios = [(1., 1.), (1., 0.7), (0.57, 1)]
+
     anchor_scales = [(anz*i, anz*j) for anz in anc_zooms for (i, j) in anc_ratios]
     anc_offsets = [1/(o*2) for o in anc_grids]
     k = len(anchor_scales)
@@ -111,87 +112,43 @@ def create_anchors():
                                                   for ag in anc_grids])).unsqueeze(1)
 
     anchors = torch.from_numpy(np.concatenate([anc_ctrs, anc_sizes], axis=1)).float()
-    anchor_cnr = hw2corners(anchors[:, :2], anchors[:, 2:])
+    #anchor_cnr = hw2corners(anchors[:, :2], anchors[:, 2:])
 
-    return anchor_cnr, grid_sizes
-
-# helper for dataset
+    return anchors, grid_sizes
 
 
-def prepare_gt(x, y):
+def prepare_gt(input_img, gt_target):
     '''
+    NUMA SEFU STIE CE SENTAMPLA AICI. NICI MACAR DUMNEZEU NU ARE IDEEE
+    args:
+    - input_img: PIL image HxW
+    - gt_target:
+
     bring gt bboxes in correct format and scales values to [0,1]
-    '''
-    gt_bbox, gt_class = [], []
-    for obj in y:
-        gt_bbox.append(obj['bbox'])
-        gt_class.append(obj['category_id'])
-    gt = [torch.FloatTensor(gt_bbox), torch.IntTensor(gt_class)]
 
-    width_size, height_size = x.size[1], x.size[0]
+    return: gt[0] = tensor of bboxes of objects in image, gt[1] = tensor of class ids in image
+    '''
+    gt_bboxes, gt_classes = [], []
+    for obj in gt_target:
+        gt_bboxes.append(obj['bbox'])
+        gt_classes.append(obj['category_id'])
+
+    gt = [torch.FloatTensor(gt_bboxes), torch.IntTensor(gt_classes)]
+
+    height_size, width_size = input_img.size[0], input_img.size[1]
+
     # width_size, height_size = 1, 1
     for idx, bbox in enumerate(gt[0]):
         new_bbox = [0] * 4
-        new_bbox[0] = bbox[0] / height_size
-        new_bbox[1] = bbox[1] / width_size
-        new_bbox[2] = (bbox[0] + bbox[2]) / height_size
-        new_bbox[3] = (bbox[1] + bbox[3]) / width_size
+        new_bbox[1] = bbox[0] / height_size
+        new_bbox[0] = bbox[1] / width_size
+        new_bbox[3] = (bbox[0] + bbox[2]) / height_size
+        new_bbox[2] = (bbox[1] + bbox[3]) / width_size
         gt[0][idx] = torch.FloatTensor(new_bbox)
 
     return gt
 
-# helper for train
-
-
-def help_calculate_AP(gt_bboxes, prediction_bboxes, IoU):
-    """
-    IN:
-        gt_bboxes: [[[x1, y1, x2, y2] class] ... ]
-        prediction_bboxes: [[[x1, y1, x2, y2] class confidence] ... ]
-    """
-
-    def sort_by_confidence(prediction_bbox):
-        return prediction_bbox[2]
-
-    prediction_bboxes.sort(key=sort_by_confidence)
-
-    true_positives = 0
-    false_positives = 0
-
-    for prediction_bbox in prediction_bboxes:
-        ok = 0
-        for gt_bbox in gt_bboxes:
-            if prediction_bbox[1] != gt_bbox[1]:
-                continue
-
-            current_IoU = jaccard(prediction_bbox[0], gt_bbox[0])
-
-            if current_IoU >= IoU:
-                ok = 1
-
-        true_positives += ok
-        false_positives += 1-ok
-
-    return true_positives/(true_positives+false_positives)
-
-
-def calculate_AP(model_output, label):
-    pass
-
-
-def print_batch_stats(model, epoch, batch_idx, train_loader, losses, params):
-    '''
-    prints statistics about the recently seen batches
-    '''
-    print('Epoch: {} of {}'.format(epoch, params.n_epochs))
-    print('Batch: {} of {}'.format(batch_idx, len(train_loader)))
-    print('Loss past {} batches: Localization {} Classification {}'.format(params.train_stats_step,
-                                                                           losses[0] / params.train_stats_step, losses[1] / params.train_stats_step))
-
-    mean_grads, max_grads, mean_weights, max_weights = gradient_weight_check(model)
-
-    print('Mean and max gradients over whole network: ', mean_grads, max_grads)
-    print('Mean and max weights over whole network: ', mean_weights, max_weights)
+# probabil inutil
 
 
 def visualize_data(dataloader, model=None):
@@ -224,139 +181,3 @@ def visualize_data(dataloader, model=None):
     if model:
         # show model prediction
         pass
-
-def nms(boxes, overlap_threshold=0.3):
-        """
-        boxes: bounding boxes coordinates, ie, tuple of 4 integers
-        overlap threshold: the threshold for which the overlapping images will be suppressed
-        return the coordinates of the correct bounding boxes
-        """
-
-        # if there are no boxes, return an empty list
-        if len(boxes) == 0:
-            return []
-
-        pick = []
-
-
-        # grab the coordinates of the bounding boxes
-        x1 = boxes[:, 0]
-        y1 = boxes[:, 1]
-        x2 = boxes[:, 2]
-        y2 = boxes[:, 3]
-
-
-        # compute the area of the bounding boxes and sort the bounding
-        # boxes by the bottom-right y-coordinate of the bounding box
-        area = (x2 - x1 + 1) * (y2 - y1 + 1)
-        idxs = np.argsort(y2)
-
-        while len(idxs) > 0:
-            # grab the last index in the indexes list, add the index
-            # value to the list of picked indexes, then initialize
-            # the suppression list (i.e. indexes that will be deleted)
-            # using the last index
-            last = len(idxs) - 1
-            i = idxs[last]
-            pick.append(i)
-            suppress = [last]
-
-            for pos in range(0, last):
-                # grab the current index
-                j = idxs[pos]
-
-
-                # find the largest (x, y) coordinates for the start of
-                # the bounding box and the smallest (x, y) coordinates
-                # for the end of the bounding box
-                xx1 = max(x1[i], x1[j])
-                yy1 = max(y1[i], y1[j])
-                xx2 = min(x2[i], x2[j])
-                yy2 = min(y2[i], y2[j])
-
-
-                # compute the width and height of the bounding box
-                w = max(0, xx2 - xx1 + 1)
-                h = max(0, yy2 - yy1 + 1)
-
-
-                # compute the ratio of overlap between the computed
-                # bounding box and the bounding box in the area list
-                overlap = float(w * h) / area[j]
-
-                # if there is sufficient overlap, suppress the
-                # current bounding box
-                if overlap > overlap_threshold:
-                    suppress.append(pos)
-
-            # delete all indexes from the index list that are in the
-            # suppression list
-            idxs = np.delete(idxs, suppress)
-
-        # return only the bounding boxes that were picked
-        return boxes[pick]
-
-
-def plot_bounding_boxes(image, bounding_boxes, ok=0):
-    # loop over the bounding boxes for each image and draw them
-    color = (0, 255, 0) if ok else (0, 0, 255)
-    for (startX, startY, endX, endY) in bounding_boxes:
-        cv2.rectangle(image, (startX, startY), (endX, endY), color, 2)
- 
-    # display the image
-    cv2.imshow("Image with bounding boxes", image)
-    cv2.waitKey(0)
-
-    
-def gradient_weight_check(model):
-    '''
-    will pring mean abs value of gradients and weights during training to check for stability
-    '''
-    avg_grads, max_grads = [], []
-    avg_weigths, max_weigths = [], []
-
-    # try to understand comp graph better for why inter variables don't have grad retained and what this means for this stat
-    for n, p in model.named_parameters():
-        if (p.requires_grad) and (type(p.grad) != type(None)):
-            avg_grads.append(p.grad.abs().mean())
-            max_grads.append(p.grad.abs().max())
-            avg_weigths.append(p.abs().mean())
-            max_weigths.append(p.abs().max())
-
-    avg_grads, max_grads = torch.FloatTensor(avg_grads), torch.FloatTensor(max_grads)
-    avg_weigths, max_weigths = torch.FloatTensor(avg_weigths), torch.FloatTensor(max_weigths)
-
-    return torch.mean(avg_grads), torch.mean(max_grads), torch.mean(avg_weigths), torch.mean(max_weigths)
-
-
-def plot_grad_flow(model):
-    # taken from Roshan Rane answer on pytorch forums
-    '''Plots the gradients flowing through different layers in the net during training.
-    Can be used for checking for possible gradient vanishing / exploding problems.
-
-    Usage: Plug this function in Trainer class after loss.backwards() as
-    "plot_grad_flow(self.model.named_parameters())" to visualize the gradient flow
-
-    - will want to extend this to write ave_grads and max_grads to a simple csv file and plot progressions after training
-    '''
-    ave_grads = []
-    max_grads = []
-    layers = []
-    for n, p in model.named_parameters():
-        if(p.requires_grad) and ("bias" not in n):
-            layers.append(n)
-            ave_grads.append(p.grad.abs().mean())
-            max_grads.append(p.grad.abs().max())
-    plt.bar(np.arange(len(max_grads)), max_grads, alpha=0.1, lw=1, color="c")
-    plt.bar(np.arange(len(max_grads)), ave_grads, alpha=0.1, lw=1, color="b")
-    plt.hlines(0, 0, len(ave_grads)+1, lw=2, color="k")
-    plt.xticks(range(0, len(ave_grads), 1), layers, rotation="vertical")
-    plt.xlim(left=0, right=len(ave_grads))
-    plt.ylim(bottom=-0.001, top=0.02)  # zoom in on the lower gradient regions
-    plt.xlabel("Layers")
-    plt.ylabel("average gradient")
-    plt.title("Gradient flow")
-    plt.grid(True)
-    plt.legend([Line2D([0], [0], color="c", lw=4),
-                Line2D([0], [0], color="b", lw=4),
-                Line2D([0], [0], color="k", lw=4)], ['max-gradient', 'mean-gradient', 'zero-gradient'])

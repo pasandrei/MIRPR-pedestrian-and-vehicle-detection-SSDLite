@@ -1,0 +1,1 @@
+with focal loss: ~ 0.04 loc, 0.007 classif, 147 total loss

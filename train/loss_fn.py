@@ -1,8 +1,10 @@
 import torch
 from torch import nn
-# import torch.nn.functional as F
+import numpy as np
+import random
 
 from train.helpers import *
+from misc.postprocessing import *
 
 
 # inspired by fastai course
@@ -11,7 +13,7 @@ class BCE_Loss(nn.Module):
         super().__init__()
         self.n_classes = n_classes
         self.device = device
-        self.id2idx = {1: 0, 3: 1, 100: 2}
+        self.id2idx = {1: 0, 3: 1}
 
     def forward(self, pred, targ):
         '''
@@ -19,46 +21,53 @@ class BCE_Loss(nn.Module):
         targ - tensor of shape anchors
         '''
         t = []
+        targ = targ.cpu().numpy()
         for clas_id in targ:
             bg = [0] * self.n_classes
-            #bg[self.id2idx[clas_id.item()]] = 1
+            if clas_id != 100:
+                bg[self.id2idx[clas_id]] = 1
             t.append(bg)
+
         t = torch.FloatTensor(t).to(self.device)
-        weight = self.get_weight(pred, t)
-        return torch.nn.functional.binary_cross_entropy_with_logits(pred, t, weight)
+        #weight = self.get_weight(pred, t)
+        return torch.nn.functional.binary_cross_entropy_with_logits(pred, t)
 
     def get_weight(self, x, t):
+        # focal loss decreases loss for correctly classified (P>0.5) examples, relative to the missclassified ones
+        # thus increasing focus on them
         alpha, gamma = 0.9, 2.
-        p = x.detach()
-        # confidence of prediction
+        p = x.detach().sigmoid()
+
+        # focal loss factor - decreases relative loss for well classified examples
         pt = p*t + (1-p)*(1-t)
 
-        # non-background / background weight
-        w = torch.FloatTensor([1, 1, 1]).to(self.device)
+        # counter positive/negative examples imbalance by assigning higher relative values to positives=1
+        # w = alpha*t + (1-alpha)*(1-t).to(self.device)
 
-        # complete weighing factor
-        return w * ((1-pt).pow(gamma))
+        # these two combined strongly encourage the network to predict a high value when
+        # there is indeed a positive example
+        return ((1-pt).pow(gamma))
 
 
-def ssd_1_loss(pred_bbox, pred_class, gt_bbox, gt_class, anchors, grid_sizes, device):
+def ssd_1_loss(pred_bbox, pred_class, gt_bbox, gt_class, anchors, grid_sizes, device, params, image=None):
     # make network outputs same as gt bbox format
-    pred_bbox = actn_to_bb(pred_bbox, anchors, grid_sizes)
+    pred_bbox = activations_to_bboxes(pred_bbox, anchors, grid_sizes)
 
     # compute IOU for obj x anchor
-    overlaps = jaccard(gt_bbox, anchors)
+    overlaps = jaccard(gt_bbox, hw2corners(anchors[:, :2], anchors[:, 2:]))
 
     # map each anchor to the highest IOU obj, gt_idx - ids of mapped objects
-    matched_gt_bbox, matched_gt_class_ids, pos_idx = map_to_ground_truth(
-        overlaps, gt_bbox, gt_class)
+    gt_bbox_for_matched_anchors, matched_gt_class_ids, matched_pred_bboxes, pos_idx = map_to_ground_truth(
+        overlaps, gt_bbox, gt_class, pred_bbox)
 
-    loc_loss = ((pred_bbox[pos_idx] - matched_gt_bbox).abs()).mean()
+    loc_loss = ((matched_pred_bboxes - gt_bbox_for_matched_anchors).abs()).mean()
 
-    loss_f = BCE_Loss(3, device)
+    loss_f = BCE_Loss(params.n_classes, device)
     class_loss = loss_f(pred_class, matched_gt_class_ids)
     return loc_loss, class_loss
 
 
-def ssd_loss(pred, targ, anchors, grid_sizes, device, params):
+def ssd_loss(pred, targ, anchors, grid_sizes, device, params, image=None):
     '''
     args: pred - model output - two tensors of dim anchors x 4 and anchors x n_classes in a list
     targ - ground truth - two tensors of dim #obj x 4 and #obj in a list
@@ -69,11 +78,12 @@ def ssd_loss(pred, targ, anchors, grid_sizes, device, params):
 
     # computes the loss for each image in the batch
     for idx in range(pred[0].shape[0]):
+
         pred_bbox, pred_class = pred[0][idx], pred[1][idx]
         gt_bbox, gt_class = targ[0][idx].to(device), targ[1][idx].to(device)
 
         l_loss, c_loss = ssd_1_loss(pred_bbox, pred_class, gt_bbox,
-                                    gt_class, anchors, grid_sizes, device)
+                                    gt_class, anchors, grid_sizes, device, params)
         localization_loss += l_loss
         classification_loss += c_loss
 
