@@ -48,8 +48,8 @@ def extract_from_annotations_file(annotations_file_path, folder, wanted_categori
                 cnt+=1
                 print(image_id_to_image_info[image_id], annotations_to_image_ratio)
 
-            # shutil.copy(folder / image_id_to_image_file_name[image_id],
-            #             destination_images / image_id_to_image_file_name[image_id])
+            shutil.copy(folder / image_id_to_image_file_name[image_id],
+                        destination_images / image_id_to_image_file_name[image_id])
             new_data['images'].append(image_id_to_image_info[image_id])
             new_data['annotations'] = new_data['annotations'] + annotations
 
