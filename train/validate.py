@@ -15,7 +15,6 @@ def evaluate(model, optimizer, anchors, grid_sizes, train_loader, valid_loader, 
 
     l_val_loss, c_val_loss = 0, 0
 
-    BATCHES_TO_TEST = 4
     model.eval()
     with torch.no_grad():
         val_loss = 0
@@ -26,8 +25,6 @@ def evaluate(model, optimizer, anchors, grid_sizes, train_loader, valid_loader, 
             l_loss, c_loss = ssd_loss(output, label, anchors, grid_sizes, device, params)
             l_val_loss += l_loss.item()
             c_val_loss += c_loss.item()
-            if batch_idx == BATCHES_TO_TEST:
-                break
 
         # metric of performance... for now i take the loss
         SAVE_PATH = 'misc/experiments/{}/model_checkpoint'.format(params.model_id)

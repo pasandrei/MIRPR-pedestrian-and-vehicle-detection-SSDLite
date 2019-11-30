@@ -15,7 +15,7 @@ class OutConv(nn.Module):
         self.k = k
         '''
         idea: adding a DWSC is cheap anyway, so might as well try to use it to 'specialize' features onto this particular output from the main stream
-        # '''
+        '''
         self.prepare_bbox = ConvBNReLU(in_channels, in_channels, groups=in_channels)
         self.prepare_class = ConvBNReLU(in_channels, in_channels, groups=in_channels)
         # Bx(4*k)xHxW
@@ -53,11 +53,11 @@ class SSD_Head(nn.Module):
         self.inv3 = InvertedResidual(inp=512, oup=256, stride=2, expand_ratio=0.25)
         self.out3 = OutConv(256, n_classes, k)
 
-        # # fourth grid 2x2
+        # fourth grid 2x2
         self.inv4 = InvertedResidual(inp=256, oup=256, stride=2, expand_ratio=0.25)
         self.out4 = OutConv(256, n_classes, k)
-        #
-        # # last grid 1x1
+        
+        # last grid 1x1
         self.inv5 = InvertedResidual(inp=256, oup=64, stride=2, expand_ratio=0.5)
         self.out5 = OutConv(64, n_classes, k)
 
