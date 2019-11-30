@@ -40,20 +40,15 @@ def extract_from_annotations_file(annotations_file_path, folder, wanted_categori
             image_id_to_image_file_name[image['id']] = image['file_name']
             image_id_to_image_info[image['id']] = image
 
-        cnt = 0
         for image_id, annotations in useful_images_to_labels.items():
             annotations_to_image_ratio = compute_annotations_area_to_image_area(annotations, image_id_to_image_info[image_id])
 
-            if annotations_to_image_ratio < 0.07:
-                cnt+=1
-                print(image_id_to_image_info[image_id], annotations_to_image_ratio)
+            if annotations_to_image_ratio > 0.07:
+                shutil.copy(folder / image_id_to_image_file_name[image_id],
+                            destination_images / image_id_to_image_file_name[image_id])
+                new_data['images'].append(image_id_to_image_info[image_id])
+                new_data['annotations'] = new_data['annotations'] + annotations
 
-            shutil.copy(folder / image_id_to_image_file_name[image_id],
-                        destination_images / image_id_to_image_file_name[image_id])
-            new_data['images'].append(image_id_to_image_info[image_id])
-            new_data['annotations'] = new_data['annotations'] + annotations
-
-        print(cnt, len(useful_images_to_labels))
         for category in data['categories']:
             if category['id'] in wanted_categories_id:
                 new_data['categories'].append(category)
