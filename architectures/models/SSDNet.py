@@ -36,7 +36,7 @@ class OutConv(nn.Module):
 
 
 class SSD_Head(nn.Module):
-    def __init__(self, n_classes, k_10=6, k_5=6, width_mult=1):
+    def __init__(self, n_classes, k=6, width_mult=0.5):
         super().__init__()
         '''
         k_10 - number of anchors per feature map cell for the 10x10 grid
@@ -59,9 +59,9 @@ class SSD_Head(nn.Module):
 
         # # fourth grid 2x2
         self.inv4 = InvertedResidual(inp=256, oup=256, stride=2, expand_ratio=0.25)
-        self.out4 = OutConv(256, n_classes, k_5)
-        #
-        # # last grid 1x1
+        self.out4 = OutConv(256, n_classes, k)
+
+        # last grid 1x1
         self.inv5 = InvertedResidual(inp=256, oup=64, stride=2, expand_ratio=0.5)
         self.out5 = OutConv(64, n_classes, k_5)
 

@@ -112,6 +112,9 @@ def create_anchors():
                                                   for ag in anc_grids])).unsqueeze(1)
 
     anchors = torch.from_numpy(np.concatenate([anc_ctrs, anc_sizes], axis=1)).float()
+    #anchor_cnr = hw2corners(anchors[:, :2], anchors[:, 2:])
+
+    return anchors, grid_sizes
 
     return anchors, grid_sizes
 
@@ -145,3 +148,37 @@ def prepare_gt(input_img, gt_target):
         gt[0][idx] = torch.FloatTensor(new_bbox)
 
     return gt
+
+# probabil inutil
+
+
+def visualize_data(dataloader, model=None):
+    '''
+    plots some samples from the dataset
+    '''
+    x, y = next(iter(dataloader))
+    width_size, height_size = x.shape[3], x.shape[2]
+
+    # have to keep track of initial size to have the corect rescaling factor for bbox coords
+    bboxes, classes = (y[0].squeeze().numpy() * 320).astype(int), y[1].squeeze().numpy()
+    image = (x.squeeze().numpy() * 255).astype(int)
+    image = image.transpose((1, 2, 0))
+    plt.imshow(image)
+    plt.show()
+
+    for idx, (bbox, class_id) in enumerate(zip(bboxes, classes)):
+        x1, y1, x2, y2 = bbox
+
+        image = cv2.rectangle(image, (x1, y1), (x2, y2), (36, 255, 12), 2)
+
+        cv2.putText(image, str(class_id), (x1, y1+10),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.9, (36, 255, 12), 2)
+
+        if idx == 1:
+            break
+    image = image.get()
+    plt.imshow(image)
+    plt.show()
+    if model:
+        # show model prediction
+        pass

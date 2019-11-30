@@ -7,7 +7,6 @@ def run():
     #     speed_test.measure_mobilenet()
     #
     # def run_nms_test():
-    #     print('afsf')
     #     test_nms.test()
     # test_tensor_unfolding.test()
 run()

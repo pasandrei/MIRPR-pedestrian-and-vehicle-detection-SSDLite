@@ -15,12 +15,11 @@ def evaluate(model, optimizer, anchors, grid_sizes, train_loader, valid_loader, 
     '''
     loc_loss_train, class_loss_train = losses[2] / len(train_loader.dataset), losses[3] / len(train_loader.dataset)
     print('Average loss this epoch: Localization: {}; Classification: {}'.format(
-        loc_loss_train, class_loss_train))
+        losses[2] / len(train_loader.dataset), losses[3] / len(train_loader.dataset)))
     print('Validation start...')
 
-    loc_loss_val, class_loss_val = 0, 0
+    l_val_loss, c_val_loss = 0, 0
 
-    BATCHES_TO_TEST = 1
     model.eval()
     with torch.no_grad():
         val_loss = 0
@@ -29,15 +28,12 @@ def evaluate(model, optimizer, anchors, grid_sizes, train_loader, valid_loader, 
             input_ = input_.to(device)
             output = model(input_)
             l_loss, c_loss = ssd_loss(output, label, anchors, grid_sizes, device, params)
-            loc_loss_val += l_loss.item()
-            class_loss_val += c_loss.item()
-            if batch_idx == BATCHES_TO_TEST:
-                break
+            l_val_loss += l_loss.item()
+            c_val_loss += c_loss.item()
 
         # metric of performance... for now i take the loss
         SAVE_PATH = 'misc/experiments/{}/model_checkpoint'.format(params.model_id)
-        loc_loss_val, class_loss_val = loc_loss_val / BATCHES_TO_TEST, class_loss_val / BATCHES_TO_TEST
-        val_loss = loc_loss_val + class_loss_val
+        val_loss = (l_val_loss + c_val_loss) / BATCHES_TO_TEST
         if params.loss > val_loss:
             torch.save({
                 'epoch': epoch,

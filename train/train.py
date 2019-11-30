@@ -22,6 +22,20 @@ def train_step(model, input_, label, anchors, grid_sizes, optimizer, losses, dev
     optimizer.step()
 
 
+def train_step(model, input_, label, anchors, grid_sizes, optimizer, losses, device, params):
+    print(datetime.datetime.now())
+    input_ = input_.to(device)
+
+    optimizer.zero_grad()
+    output = model(input_)
+    l_loss, c_loss = ssd_loss(output, label, anchors, grid_sizes, device, params)
+    loss = l_loss + c_loss
+
+    update_losses(losses, l_loss.item(), c_loss.item())
+    loss.backward()
+    optimizer.step()
+
+
 def train(model, optimizer, train_loader, valid_loader,
           device, params, start_epoch=0):
     '''
