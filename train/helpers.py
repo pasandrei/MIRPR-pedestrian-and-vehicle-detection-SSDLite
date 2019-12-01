@@ -112,9 +112,6 @@ def create_anchors():
                                                   for ag in anc_grids])).unsqueeze(1)
 
     anchors = torch.from_numpy(np.concatenate([anc_ctrs, anc_sizes], axis=1)).float()
-    #anchor_cnr = hw2corners(anchors[:, :2], anchors[:, 2:])
-
-    return anchors, grid_sizes
 
     return anchors, grid_sizes
 
