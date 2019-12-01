@@ -7,7 +7,7 @@ from train import train
 from architectures.models import SSDNet
 
 
-def run(path='misc/experiments/ssdnet/params.json', resume=False, visualize=False):
+def run(path='misc/experiments/ssdnet/params.json', resume=False):
     '''
     args: path - string path to the json config file
     trains model refered by that file, saves model and optimizer dict at the same location
@@ -19,9 +19,6 @@ def run(path='misc/experiments/ssdnet/params.json', resume=False, visualize=Fals
     if params.model_id == 'ssdnet' or params.model_id == 'ssdnet_loc':
         model = SSDNet.SSD_Head(n_classes=params.n_classes)
     model.to(device)
-
-    # for param_group in model.parameters():
-    #     param_group.requires_grad = False
 
     if params.optimizer == 'adam':
         optimizer = optim.Adam(model.parameters(), lr=params.learning_rate,
@@ -46,10 +43,5 @@ def run(path='misc/experiments/ssdnet/params.json', resume=False, visualize=Fals
 
     train_loader, valid_loader = dataloaders.get_dataloaders(params)
 
-    if visualize:
-        visualize_data(valid_loader, model)
-    else:
-        train.train(model, optimizer, train_loader, valid_loader, device, params, start_epoch)
-
-
+    train.train(model, optimizer, train_loader, valid_loader, device, params, start_epoch)
 # run()
