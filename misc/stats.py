@@ -3,6 +3,10 @@ import math
 import matplotlib.pyplot as plt
 import numpy as np
 from pathlib import Path
+from configparser import ConfigParser
+
+config = ConfigParser()
+config.read("../config.ini")
 
 
 def extract_from_annotations_file(annotations_file_path, folder, wanted_categories_id):
@@ -32,7 +36,7 @@ def extract_from_annotations_file(annotations_file_path, folder, wanted_categori
 
 
 # path = sys.argv[1]
-path = Path('C:\\Users\\Andrei Popovici\\Desktop\\COCO_new')
+path = Path(config["DATASET"]["coco"])
 
 wanted_categories_id = [3]
 

@@ -2,14 +2,18 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torchvision.models as models
+import datetime
 
 
 from train.config import Params
 from data import dataloaders
 from train import train
 from architectures.backbones import MobileNet
+from configparser import ConfigParser
 
-import datetime
+
+config = ConfigParser()
+config.read("../config.ini")
 
 def measure_mobilenet():
     '''
@@ -17,7 +21,7 @@ def measure_mobilenet():
     '''
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    params = Params('misc/experiments/ssdnet/params.json')
+    params = Params(config["PARAMS"]["ssdnet"])
 
     model = models.mobilenet_v2()
     model.to(device)

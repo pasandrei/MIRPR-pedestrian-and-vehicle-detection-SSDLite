@@ -1,10 +1,15 @@
 import torchvision
-from torch.utils.data import Dataset, DataLoader
+import json
 import torchvision.transforms as transforms
+
+from torch.utils.data import Dataset, DataLoader
 from data.dataset import CocoDetection
 from torch.utils.data.sampler import *
-import json
+from configparser import ConfigParser
 
+
+config = ConfigParser()
+config.read("../config.ini")
 # get actual train and valid datasets, will be done when merging
 
 
@@ -15,8 +20,8 @@ def get_dataloaders(params):
     # train_dataset = CocoDetection(root='..\\..\\COCO\\train2017',
     #                                    annFile=train_annotations_path)
 
-    val_annotations_path = '..\\..\\COCO\\annotations\\instances_val2017.json'
-    validation_dataset = CocoDetection(root='..\\..\\COCO\\val2017',
+    val_annotations_path = config["DATASET"]["annotations"]
+    validation_dataset = CocoDetection(root=config["DATASET"]["data"],
                                        annFile=val_annotations_path)
 
     # with open(train_annotations_path) as json_file:

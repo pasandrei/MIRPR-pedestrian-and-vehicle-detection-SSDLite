@@ -5,9 +5,12 @@ from train.config import Params
 from data import dataloaders
 from train import train
 from architectures.models import SSDNet
+from configparser import ConfigParser
 
+config = ConfigParser()
+config.read("config.ini")
 
-def run(path='misc/experiments/ssdnet/params.json', resume=False, visualize=False):
+def run(path=config["PARAMS"]["ssdnet"], resume=False, visualize=False):
     '''
     args: path - string path to the json config file
     trains model refered by that file, saves model and optimizer dict at the same location

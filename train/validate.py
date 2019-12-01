@@ -2,6 +2,10 @@ import torch
 import datetime
 
 from train.loss_fn import ssd_loss
+from configparser import ConfigParser
+
+config = ConfigParser()
+config.read("../config.ini")
 
 def update_tensorboard_graphs(writer, loc_loss_train, class_loss_train, loc_loss_val, class_loss_val, epoch):
     writer.add_scalar('Localization Loss/train', loc_loss_train, epoch)
@@ -42,7 +46,7 @@ def evaluate(model, optimizer, anchors, grid_sizes, train_loader, valid_loader, 
                 'loss': val_loss,
             }, SAVE_PATH)
             params.loss = val_loss
-            params.save('misc/experiments/ssdnet/params.json')
+            params.save(config["PARAMS"]["ssdnet"])
             print('Model saved succesfully')
 
 
