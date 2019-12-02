@@ -23,20 +23,6 @@ def train_step(model, input_, label, anchors, grid_sizes, optimizer, losses, dev
     optimizer.step()
 
 
-def train_step(model, input_, label, anchors, grid_sizes, optimizer, losses, device, params):
-    print(datetime.datetime.now())
-    input_ = input_.to(device)
-
-    optimizer.zero_grad()
-    output = model(input_)
-    l_loss, c_loss = ssd_loss(output, label, anchors, grid_sizes, device, params)
-    loss = l_loss + c_loss
-
-    update_losses(losses, l_loss.item(), c_loss.item())
-    loss.backward()
-    optimizer.step()
-
-
 def train(model, optimizer, train_loader, valid_loader,
           device, params, start_epoch=0):
     '''
@@ -68,14 +54,14 @@ def train(model, optimizer, train_loader, valid_loader,
                 print_batch_stats(model, epoch, batch_idx, train_loader,
                                   losses, params)
                 losses[0], losses[1] = 0, 0
-                ap_counter = 0
+            break
 
         if (epoch + 1) % params.eval_step == 0:
             # evaluate(model, optimizer, anchors, grid_sizes, train_loader,
             #          valid_loader, losses, epoch, device, writer, params)
             SAVE_PATH = 'misc/experiments/{}/model_checkpoint'.format(params.model_id)
             print("AVERAGES PER EPOCH: ", losses[2] /
-                  (params.batch_size * len(train_loader)), losses[3]/(params.batch_size * len(train_loader)))
+                  (len(train_loader.dataset)), losses[3]/(len(train_loader.dataset)))
             if params.loss > losses[2] + losses[3]:
                 torch.save({
                     'epoch': epoch,

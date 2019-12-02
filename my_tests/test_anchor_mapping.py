@@ -5,6 +5,7 @@ import numpy as np
 
 from train.helpers import *
 from misc.postprocessing import *
+from misc.metrics import get_IoU
 
 
 class UnNormalize(object):
@@ -43,7 +44,8 @@ def test(image, anchors, gt_bbox_for_matched_anchors, pred_bbox, prediction_clas
 
     # same for other variables of interest
     anchors = (anchors.cpu().numpy() * 320).astype(int)
-    gt_bbox_for_matched_anchors = (gt_bbox_for_matched_anchors.detach().cpu().numpy()*320).astype(int)
+    gt_bbox_for_matched_anchors = (
+        gt_bbox_for_matched_anchors.detach().cpu().numpy()*320).astype(int)
     prediction_class_confidences = prediction_class_confidences.detach().sigmoid().cpu().numpy()
     gt_bbox = (gt_bbox.cpu().numpy() * 320).astype(int)
     pred_bbox = (pred_bbox.detach().cpu().numpy() * 320).astype(int)
@@ -67,14 +69,15 @@ def test(image, anchors, gt_bbox_for_matched_anchors, pred_bbox, prediction_clas
 
         print("Now let's see correct anchors and their respective predictions")
         print("Matched ANCHORS: ", matched_anchors, matched_anchors.shape)
-        print("Matched GT BBOXES: ", gt_bbox_for_matched_anchors, gt_bbox_for_matched_anchors.shape)
-        plot_bounding_boxes(image, matched_anchors, "CORRECT ANCHORS")
-        plot_bounding_boxes(image, gt_bbox_for_matched_anchors, "GT BBOXES FOR EACH ANCHOR")
+        print("Matched GT BBOXES: ", gt_bbox_for_matched_anchors,
+              gt_bbox_for_matched_anchors.shape)
+        # plot_bounding_boxes(image, matched_anchors, "CORRECT ANCHORS")
+        # plot_bounding_boxes(image, gt_bbox_for_matched_anchors, "GT BBOXES FOR EACH ANCHOR")
 
         matched_pred_bbox = pred_bbox[pos_idx]
         print("Matched Pred BBOXES: ", matched_pred_bbox, matched_pred_bbox.shape)
         print('CONFIDENCES FOR PREDICTED BBOXES: ', prediction_class_confidences[pos_idx])
-        plot_bounding_boxes(image, matched_pred_bbox, "PREDICTED (CHEATED) BY THE NETWORK")
+        # plot_bounding_boxes(image, matched_pred_bbox, "PREDICTED (CHEATED) BY THE NETWORK")
 
     print("Actual model outputs are: ")
     keep_indices = []
@@ -96,7 +99,16 @@ def test(image, anchors, gt_bbox_for_matched_anchors, pred_bbox, prediction_clas
         high_confidence_model_predictions = pred_bbox[keep_indices]
         print("THIS IS PRED BBOX KEPT BY CONFIDENCE", high_confidence_model_predictions,
               high_confidence_model_predictions.shape)
-        plot_bounding_boxes(image, high_confidence_anchors, "HIGH CONFIDENCE ANCHORS")
-        plot_bounding_boxes(image, high_confidence_model_predictions, "ACTUAL MODEL OUTPUTS")
-        post_nms_bboxes = nms(high_confidence_model_predictions)
-        plot_bounding_boxes(image, post_nms_bboxes, 'Post NMS predictions')
+        # plot_bounding_boxes(image, high_confidence_anchors, "HIGH CONFIDENCE ANCHORS")
+        # plot_bounding_boxes(image, high_confidence_model_predictions, "ACTUAL MODEL OUTPUTS")
+        kept_after_nms = nms(high_confidence_model_predictions)
+        post_nms_predictions = high_confidence_model_predictions[kept_after_nms]
+        plot_bounding_boxes(
+            image, high_confidence_model_predictions[kept_after_nms], 'Post NMS predictions')
+        print("THIS IS POST NMS PREDICTIONS", post_nms_predictions,
+              post_nms_predictions.shape)
+
+        # print("Intersections between GT and post nms bboxes: ")
+        # for i in range(post_nms_predictions.shape[0]):
+        #     for j in range(gt_bbox.shape[0]):
+        #         print(get_IoU(post_nms_predictions[i], gt_bbox[j]))

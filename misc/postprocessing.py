@@ -67,8 +67,8 @@ def nms(boxes, overlap_threshold=0.6):
         # suppression list
         idxs = np.delete(idxs, suppress)
 
-    # return only the bounding boxes that were picked
-    return boxes[pick]
+    # return only the bounding boxes indeces that were picked
+    return pick
 
 #  postprocess
 
