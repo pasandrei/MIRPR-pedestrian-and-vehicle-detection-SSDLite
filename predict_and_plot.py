@@ -21,16 +21,16 @@ def model_output_pipeline(params_path):
         model = SSDNet.SSD_Head(params.n_classes)
     model.to(device)
 
-    # checkpoint = torch.load('misc/experiments/{}/model_checkpoint'.format(params.model_id))
-    # model.load_state_dict(checkpoint['model_state_dict'])
-    # print('Model loaded successfully')
+    checkpoint = torch.load('misc/experiments/{}/model_checkpoint'.format(params.model_id))
+    model.load_state_dict(checkpoint['model_state_dict'])
+    print('Model loaded successfully')
 
     _, valid_loader = dataloaders.get_dataloaders(params)
 
     anchors, grid_sizes = create_anchors()
     anchors, grid_sizes = anchors.to(device), grid_sizes.to(device)
 
-    model.eval()
+    model.train()
     with torch.no_grad():
         for (batch_images, batch_targets) in valid_loader:
             batch_images = batch_images.to(device)
@@ -39,7 +39,8 @@ def model_output_pipeline(params_path):
             predictions = model(batch_images)
 
             for idx in range(len(batch_images)):
-                gt_bbox, gt_class = batch_targets[0][idx].to(device), batch_targets[1][idx].to(device)
+                gt_bbox, gt_class = batch_targets[0][idx].to(
+                    device), batch_targets[1][idx].to(device)
 
                 # make network outputs same as gt bbox format
                 pred_bbox = activations_to_bboxes(predictions[0][idx], anchors, grid_sizes)
@@ -53,7 +54,7 @@ def model_output_pipeline(params_path):
 
                 # thorough prints for debugging, or just model outputs
                 test_anchor_mapping.test(batch_images[idx], corner_anchors, gt_bbox_for_matched_anchors,
-                                                    pred_bbox, predictions[1][idx], gt_bbox, pos_idx, just_outputs=0)
+                                         pred_bbox, predictions[1][idx], gt_bbox, pos_idx, just_outputs=0)
             return
 
 # model_output_pipeline('misc/experiments/ssdnet/params.json')

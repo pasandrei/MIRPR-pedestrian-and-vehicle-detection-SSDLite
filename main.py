@@ -23,9 +23,6 @@ def run(path=config["PARAMS"]["ssdnet"], resume=False, visualize=False):
         model = SSDNet.SSD_Head(n_classes=params.n_classes)
     model.to(device)
 
-    # for param_group in model.parameters():
-    #     param_group.requires_grad = False
-
     if params.optimizer == 'adam':
         optimizer = optim.Adam(model.parameters(), lr=params.learning_rate,
                                weight_decay=params.weight_decay)
@@ -49,10 +46,5 @@ def run(path=config["PARAMS"]["ssdnet"], resume=False, visualize=False):
 
     train_loader, valid_loader = dataloaders.get_dataloaders(params)
 
-    if visualize:
-        visualize_data(valid_loader, model)
-    else:
-        train.train(model, optimizer, train_loader, valid_loader, device, params, start_epoch)
-
-
+    train.train(model, optimizer, train_loader, valid_loader, device, params, start_epoch)
 # run()
