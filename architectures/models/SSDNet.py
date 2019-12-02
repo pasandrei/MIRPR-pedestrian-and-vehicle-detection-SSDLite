@@ -15,7 +15,7 @@ class OutConv(nn.Module):
         self.k = k
         '''
         idea: adding a DWSC is cheap anyway, so might as well try to use it to 'specialize' features onto this particular output from the main stream
-        # '''
+        '''
         self.prepare_bbox = ConvBNReLU(in_channels, in_channels, groups=in_channels)
         self.prepare_class = ConvBNReLU(in_channels, in_channels, groups=in_channels)
         # Bx(4*k)xHxW
@@ -36,12 +36,8 @@ class OutConv(nn.Module):
 
 
 class SSD_Head(nn.Module):
-    def __init__(self, n_classes, k=6, width_mult=0.5):
+    def __init__(self, n_classes, k_10=12, k_5=20, width_mult=1):
         super().__init__()
-        '''
-        k_10 - number of anchors per feature map cell for the 10x10 grid
-        k_5 - similar for grids smaller or equal to 5x5
-        '''
 
         # intermediate lay 15 with os = 16, will be a 20x20 grid for 320x320 input, 576 is the expansion size of layer 15 in MobileNetV2
         # self.out0 = OutConv(int(576 * width_mult), n_classes, k)
@@ -57,9 +53,9 @@ class SSD_Head(nn.Module):
         self.inv3 = InvertedResidual(inp=512, oup=256, stride=2, expand_ratio=0.25)
         self.out3 = OutConv(256, n_classes, k_5)
 
-        # # fourth grid 2x2
+        # fourth grid 2x2
         self.inv4 = InvertedResidual(inp=256, oup=256, stride=2, expand_ratio=0.25)
-        self.out4 = OutConv(256, n_classes, k)
+        self.out4 = OutConv(256, n_classes, k_5)
 
         # last grid 1x1
         self.inv5 = InvertedResidual(inp=256, oup=64, stride=2, expand_ratio=0.5)

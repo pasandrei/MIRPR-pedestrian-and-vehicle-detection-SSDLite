@@ -67,16 +67,13 @@ def nms(boxes, overlap_threshold=0.6):
         # suppression list
         idxs = np.delete(idxs, suppress)
 
-    # return only the bounding boxes that were picked
-    return boxes[pick]
+    # return only the bounding boxes indeces that were picked
+    return pick
 
 #  postprocess
 
 
-def plot_bounding_boxes(image, bounding_boxes, message='MUE', ok=0):
-    """
-
-    """
+def plot_bounding_boxes(image, bounding_boxes, message='no_message', ok=0):
     # loop over the bounding boxes for each image and draw them
     image = image.transpose(1, 2, 0)
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)

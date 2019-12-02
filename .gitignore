@@ -1,4 +1,6 @@
-
 *.pyc
 *.ipynb
 *.ipynb
+runs/
+misc/experiments/ssdnet/model_checkpoint
+misc/experiments/ssdnet/model_checkpoint-Copy1

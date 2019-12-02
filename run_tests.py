@@ -1,6 +1,5 @@
-from my_tests import speed_test, test_nms, test_tensor_unfolding
+from my_tests import speed_test, test_nms, test_metrics
 
-print('brtgrg')
 
 def run():
     # def run_speed_test():
@@ -9,4 +8,8 @@ def run():
     # def run_nms_test():
     #     test_nms.test()
     # test_tensor_unfolding.test()
+
+    test_metrics.run()
+
+
 run()

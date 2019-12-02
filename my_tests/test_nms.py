@@ -42,8 +42,9 @@ def test():
         plot_bounding_boxes(orig, boundingBoxes)
 
         # perform non-maximum suppression on the bounding boxes
-        pick = nms(boundingBoxes, 0.3)
-        print("After applying non-maximum suppression " + str(len(pick)))
+        kept_after_nms = nms(boundingBoxes, 0.3)
+        print("After applying non-maximum suppression " +
+              str(len(boundingBoxes[kept_after_nms])))
 
         # loop over the picked bounding boxes and draw them
-        plot_bounding_boxes(image, pick, 1)
+        plot_bounding_boxes(image, boundingBoxes[kept_after_nms], 1)
