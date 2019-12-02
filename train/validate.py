@@ -3,12 +3,17 @@ import datetime
 
 from train.loss_fn import ssd_loss
 
+def update_tensorboard_graphs(writer, loc_loss_train, class_loss_train, loc_loss_val, class_loss_val, epoch):
+    writer.add_scalar('Localization Loss/train', loc_loss_train, epoch)
+    writer.add_scalar('Classification Loss/train', class_loss_train, epoch)
+    writer.add_scalar('Localization Loss/val', loc_loss_val, epoch)
+    writer.add_scalar('Classification Loss/val', class_loss_val, epoch)
 
-def evaluate(model, optimizer, anchors, grid_sizes, train_loader, valid_loader, losses, epoch, device, params):
+def evaluate(model, optimizer, anchors, grid_sizes, train_loader, valid_loader, losses, epoch, device, writer, params):
     '''
     evaluates model performance of the validation set, saves current set if it is better that the best so far
     '''
-
+    loc_loss_train, class_loss_train = losses[2] / len(train_loader.dataset), losses[3] / len(train_loader.dataset)
     print('Average loss this epoch: Localization: {}; Classification: {}'.format(
         losses[2] / len(train_loader.dataset), losses[3] / len(train_loader.dataset)))
     print('Validation start...')
@@ -39,4 +44,9 @@ def evaluate(model, optimizer, anchors, grid_sizes, train_loader, valid_loader, 
             params.loss = val_loss
             params.save('misc/experiments/ssdnet/params.json')
             print('Model saved succesfully')
+
+
+        # tensorboard
+        update_tensorboard_graphs(writer, loc_loss_train, class_loss_train, loc_loss_val, class_loss_val, epoch)
+
     print('Validation finished')

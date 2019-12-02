@@ -36,7 +36,7 @@ class OutConv(nn.Module):
 
 
 class SSD_Head(nn.Module):
-    def __init__(self, n_classes, k=6, width_mult=0.5):
+    def __init__(self, n_classes, k=6, width_mult=1):
         super().__init__()
 
         # intermediate lay 15 with os = 16, will be a 20x20 grid for 320x320 input, 576 is the expansion size of layer 15 in MobileNetV2
@@ -56,7 +56,7 @@ class SSD_Head(nn.Module):
         # fourth grid 2x2
         self.inv4 = InvertedResidual(inp=256, oup=256, stride=2, expand_ratio=0.25)
         self.out4 = OutConv(256, n_classes, k)
-        
+
         # last grid 1x1
         self.inv5 = InvertedResidual(inp=256, oup=64, stride=2, expand_ratio=0.5)
         self.out5 = OutConv(64, n_classes, k)
@@ -98,6 +98,6 @@ class SSD_Head(nn.Module):
         _1bbox, _1class = self.out5(x)
 
         # bboxes prediction:  B x (20*20) * 6 x 4 ...
-        # class prediction:  B x (20*20) * 6 x 3 ...
+        # class prediction:  B x (20*20) * 6 x n_classes ...
         return [torch.cat([_10bbox, _5bbox, _3bbox, _2bbox, _1bbox], dim=1),
                 torch.cat([_10class, _5class, _3class, _2class, _1class], dim=1)]
