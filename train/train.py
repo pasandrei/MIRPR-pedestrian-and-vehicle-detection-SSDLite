@@ -8,19 +8,6 @@ from torch.utils.tensorboard import SummaryWriter
 
 import datetime
 
-def train_step(model, input_, label, anchors, grid_sizes, optimizer, losses, device, params):
-    print(datetime.datetime.now())
-    input_ = input_.to(device)
-
-    optimizer.zero_grad()
-    output = model(input_)
-    l_loss, c_loss = ssd_loss(output, label, anchors, grid_sizes, device, params)
-    loss = l_loss + c_loss
-
-    update_losses(losses, l_loss.item(), c_loss.item())
-    loss.backward()
-    optimizer.step()
-
 
 def train_step(model, input_, label, anchors, grid_sizes, optimizer, losses, device, params):
     print(datetime.datetime.now())
@@ -67,25 +54,25 @@ def train(model, optimizer, train_loader, valid_loader,
                 print_batch_stats(model, epoch, batch_idx, train_loader,
                                   losses, params)
                 losses[0], losses[1] = 0, 0
-                ap_counter = 0
+            break
 
         if (epoch + 1) % params.eval_step == 0:
-            evaluate(model, optimizer, anchors, grid_sizes, train_loader,
-                     valid_loader, losses, epoch, device, writer, params)
-            # SAVE_PATH = 'misc/experiments/{}/model_checkpoint'.format(params.model_id)
-            # print("AVERAGES PER EPOCH: ", losses[2] /
-            #       (params.batch_size * len(train_loader)), losses[3]/(params.batch_size * len(train_loader)))
-            # if params.loss > losses[2] + losses[3]:
-            #     torch.save({
-            #         'epoch': epoch,
-            #         'model_state_dict': model.state_dict(),
-            #         'optimizer_state_dict': optimizer.state_dict(),
-            #         'loss': losses[2] + losses[3],
-            #     }, SAVE_PATH)
-            #     params.loss = losses[2] + losses[3]
-            #     params.save('misc/experiments/ssdnet/params.json')
-            #     print('Model saved succesfully')
-            # losses[2], losses[3] = 0, 0
+            # evaluate(model, optimizer, anchors, grid_sizes, train_loader,
+            #          valid_loader, losses, epoch, device, writer, params)
+            SAVE_PATH = 'misc/experiments/{}/model_checkpoint'.format(params.model_id)
+            print("AVERAGES PER EPOCH: ", losses[2] /
+                  (len(train_loader.dataset)), losses[3]/(len(train_loader.dataset)))
+            if params.loss > losses[2] + losses[3]:
+                torch.save({
+                    'epoch': epoch,
+                    'model_state_dict': model.state_dict(),
+                    'optimizer_state_dict': optimizer.state_dict(),
+                    'loss': losses[2] + losses[3],
+                }, SAVE_PATH)
+                params.loss = losses[2] + losses[3]
+                params.save('misc/experiments/ssdnet/params.json')
+                print('Model saved succesfully')
+            losses[2], losses[3] = 0, 0
 
         # decay lr after epoch
         constant_decay.lr_decay(optimizer)

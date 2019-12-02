@@ -47,7 +47,7 @@ def get_IoU(bbox1, bbox2):
     return intersection_area/union_area
 
 
-def help_calculate_AP(gt_bboxes, gt_classes, prediction_bboxes, prediction_confidences, IoU):
+def help_calculate_AP(gt_bboxes, gt_classes, prediction_bboxes, prediction_confidences, required_IoU):
     """
     IN:
         gt_bboxes: [[x1, y1, x2, y2] ...] #obj x 4
@@ -80,7 +80,7 @@ def help_calculate_AP(gt_bboxes, gt_classes, prediction_bboxes, prediction_confi
 
             current_IoU = get_IoU(prediction_bbox, gt_bbox)
 
-            if current_IoU >= IoU:
+            if current_IoU >= required_IoU:
                 ok = 1
 
         true_positives += ok
@@ -89,5 +89,18 @@ def help_calculate_AP(gt_bboxes, gt_classes, prediction_bboxes, prediction_confi
     return true_positives/(true_positives+false_positives)
 
 
-def calculate_AP(model_output, label):
-    pass
+def calculate_AP(model_output, label, required_IoU=0.5):
+    batch_size = model_output[0].shape[0]
+
+    ap = 0
+    for i in range(batch_size):
+        prediction_bboxes = (model_output[0][i].cpu().numpy() * 320).astype(int)
+        prediction_confidences = model_output[1][i].cpu().numpy()
+
+        gt_bboxes = (label[0][i].cpu().numpy() * 320).astype(int)
+        gt_classes = label[1][i].cpu().numpy()
+
+        ap += help_calculate_AP(gt_bboxes, gt_classes, prediction_bboxes,
+                                prediction_confidences, required_IoU)
+
+    return ap

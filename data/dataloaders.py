@@ -33,6 +33,6 @@ def get_dataloaders(params):
 
     valid_dataloader = DataLoader(validation_dataset, batch_size=None,
                                   shuffle=False, num_workers=4,
-                                  sampler=BatchSampler(SequentialSampler([i for i in range(nr_images_in_val)]), batch_size=params.batch_size, drop_last=False))
+                                  sampler=BatchSampler(SequentialSampler([i for i in range(256)]), batch_size=params.batch_size, drop_last=False))
 
     return valid_dataloader, valid_dataloader  # de schimbat
