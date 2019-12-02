@@ -3,24 +3,18 @@ from configparser import ConfigParser
 
 config = ConfigParser()
 config.read("config.ini")
+LIVE_WEBCAM = 0
 
-// if using live webcam
-// video_capture = cv2.VideoCapture(0)
-video_path = config["DATASET"]["video"]:
+if LIVE_WEBCAM:
+    video = cv2.VideoCapture(0)
+else:
+    video = config["DATASET"]["video"]:
 
 while True:
     # Capture frame-by-frame
     ret, frame = video_capture.read()
 
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-
-    faces = faceCascade.detectMultiScale(
-        gray,
-        scaleFactor=1.1,
-        minNeighbors=5,
-        minSize=(30, 30),
-        flags=cv2.cv.CV_HAAR_SCALE_IMAGE
-    )
 
     # Draw a rectangle around the faces
     for (x, y, w, h) in faces:
