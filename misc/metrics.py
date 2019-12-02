@@ -2,7 +2,7 @@ import numpy as np
 
 
 def get_predicted_class(prediction_confidences):
-    predicted_classes = np.argmax(prediction_confidences, axis=1) + 1
+    predicted_classes = np.argmax(prediction_confidences, axis=1)
     highest_confidence_for_predictions = np.amax(
         prediction_confidences, axis=1)
 
