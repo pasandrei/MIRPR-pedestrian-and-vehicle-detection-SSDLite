@@ -22,7 +22,7 @@ def evaluate(model, optimizer, anchors, grid_sizes, train_loader, valid_loader, 
         losses[2] / len(train_loader.dataset), losses[3] / len(train_loader.dataset)))
     print('Validation start...')
 
-    model.train()
+    model.eval()
     with torch.no_grad():
         loc_loss_val, class_loss_val, sum_ap = 0, 0, 0
 
@@ -36,6 +36,10 @@ def evaluate(model, optimizer, anchors, grid_sizes, train_loader, valid_loader, 
             loc_loss, class_loss = ssd_loss(output, label, anchors, grid_sizes, device, params)
             loc_loss_val += loc_loss.item()
             class_loss_val += class_loss.item()
+
+            if batch_idx % 50 == 0 and batch_idx > 0:
+                print("Average precision: ", sum_ap / batch_idx, " until batch: ", batch_idx)
+
 
         SAVE_PATH = 'misc/experiments/{}/model_checkpoint'.format(params.model_id)
         average_precision = sum_ap / len(valid_loader.dataset)
