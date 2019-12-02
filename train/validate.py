@@ -5,11 +5,12 @@ from train.loss_fn import ssd_loss
 from misc.metrics import calculate_AP
 
 
-def update_tensorboard_graphs(writer, loc_loss_train, class_loss_train, loc_loss_val, class_loss_val, epoch):
+def update_tensorboard_graphs(writer, loc_loss_train, class_loss_train, loc_loss_val, class_loss_val, average_precision, epoch):
     writer.add_scalar('Localization Loss/train', loc_loss_train, epoch)
     writer.add_scalar('Classification Loss/train', class_loss_train, epoch)
     writer.add_scalar('Localization Loss/val', loc_loss_val, epoch)
     writer.add_scalar('Classification Loss/val', class_loss_val, epoch)
+    writer.add_scalar('Precision', average_precision, epoch)
 
 
 def evaluate(model, optimizer, anchors, grid_sizes, train_loader, valid_loader, losses, epoch, device, writer, params):
@@ -22,7 +23,7 @@ def evaluate(model, optimizer, anchors, grid_sizes, train_loader, valid_loader, 
         losses[2] / len(train_loader.dataset), losses[3] / len(train_loader.dataset)))
     print('Validation start...')
 
-    model.train()
+    model.eval()
     with torch.no_grad():
         loc_loss_val, class_loss_val, sum_ap = 0, 0, 0
 
@@ -55,6 +56,6 @@ def evaluate(model, optimizer, anchors, grid_sizes, train_loader, valid_loader, 
 
         # tensorboard
         update_tensorboard_graphs(writer, loc_loss_train, class_loss_train,
-                                  loc_loss_val, class_loss_val, epoch)
+                                  loc_loss_val, class_loss_val, average_precision, epoch)
 
     print('Validation finished')
