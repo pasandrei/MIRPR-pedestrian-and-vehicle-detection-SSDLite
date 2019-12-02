@@ -91,29 +91,44 @@ def create_anchors():
     .
     after the first grid is finished comes the next and so on
     '''
-    anc_grids = [10, 5, 3, 2, 1]
-    anc_zooms = [1., 1.2]
-    anc_ratios = [(1., 1.), (1., 0.7), (0.57, 1)]
+    def create(anc_grids, anc_zooms, anc_ratios):
+        anchor_scales = [(anz*i, anz*j) for anz in anc_zooms for (i, j) in anc_ratios]
+        anc_offsets = [1/(o*2) for o in anc_grids]
+        k = len(anchor_scales)
 
-    anchor_scales = [(anz*i, anz*j) for anz in anc_zooms for (i, j) in anc_ratios]
-    anc_offsets = [1/(o*2) for o in anc_grids]
-    k = len(anchor_scales)
+        anc_x = np.concatenate([np.repeat(np.linspace(ao, 1-ao, ag), ag)
+                                for ao, ag in zip(anc_offsets, anc_grids)])
+        anc_y = np.concatenate([np.tile(np.linspace(ao, 1-ao, ag), ag)
+                                for ao, ag in zip(anc_offsets, anc_grids)])
+        anc_ctrs = np.repeat(np.stack([anc_x, anc_y], axis=1), k, axis=0)
 
-    anc_x = np.concatenate([np.repeat(np.linspace(ao, 1-ao, ag), ag)
-                            for ao, ag in zip(anc_offsets, anc_grids)])
-    anc_y = np.concatenate([np.tile(np.linspace(ao, 1-ao, ag), ag)
-                            for ao, ag in zip(anc_offsets, anc_grids)])
-    anc_ctrs = np.repeat(np.stack([anc_x, anc_y], axis=1), k, axis=0)
+        anc_sizes = np.concatenate([np.array([[o/ag, p/ag] for i in range(ag*ag) for o, p in anchor_scales])
+                                    for ag in anc_grids])
 
-    anc_sizes = np.concatenate([np.array([[o/ag, p/ag] for i in range(ag*ag) for o, p in anchor_scales])
-                                for ag in anc_grids])
+        grid_sizes = torch.from_numpy(np.concatenate([np.array([1/ag for i in range(ag*ag) for o, p in anchor_scales])
+                                                      for ag in anc_grids])).unsqueeze(1)
 
-    grid_sizes = torch.from_numpy(np.concatenate([np.array([1/ag for i in range(ag*ag) for o, p in anchor_scales])
-                                                  for ag in anc_grids])).unsqueeze(1)
+        anchors = torch.from_numpy(np.concatenate([anc_ctrs, anc_sizes], axis=1)).float()
 
-    anchors = torch.from_numpy(np.concatenate([anc_ctrs, anc_sizes], axis=1)).float()
+        return anchors, grid_sizes
+
+    anc_grids10 = [10]
+    anc_zooms10 = [1., 1.2, 1.5, 1.8]
+    anc_ratios10 = [(1., 1.), (1., 0.7), (0.57, 1)]
+
+    anchors10, grid_sizes10 = create(anc_grids10, anc_zooms10, anc_ratios10)
+
+    anc_grids5 = [5, 3, 2, 1]
+    anc_zooms5 = [0.8, 1., 1.2, 1.5]
+    anc_ratios5 = [(1., 1.), (1., 0.6), (1., 0.75), (0.45, 1), (0.6, 1)]
+
+    anchors5, grid_sizes5 = create(anc_grids5, anc_zooms5, anc_ratios5)
+
+    anchors = torch.cat([anchors10, anchors5])
+    grid_sizes = torch.cat([grid_sizes10, grid_sizes5])
 
     return anchors, grid_sizes
+
 
 def prepare_gt(input_img, gt_target):
     '''
