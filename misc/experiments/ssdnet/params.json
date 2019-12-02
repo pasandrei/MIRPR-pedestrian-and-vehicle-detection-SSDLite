@@ -8,6 +8,6 @@
     "n_epochs": 120,
     "train_stats_step": 10,
     "eval_step": 1,
-    "average_precision": 0,
+    "average_precision": 0.06734053677239456,
     "loss": 81.53463829223469
 }

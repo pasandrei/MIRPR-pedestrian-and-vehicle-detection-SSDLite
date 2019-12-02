@@ -8,8 +8,10 @@ def test_get_predicted_class():
 
     predicted_classes_1, highest_confidence_for_each_prediction_1 = get_predicted_class(test1)
 
-    correct_predicted_classes_1 = np.array([2, 2, 1])
+    correct_predicted_classes_1 = np.array([1, 1, 0])
     correct_highest_confidence_for_each_prediction_1 = np.array([0.6, 0.7, 0.8])
+
+    print(predicted_classes_1)
 
     assert np.array_equal(predicted_classes_1, correct_predicted_classes_1) is True
     assert np.allclose(highest_confidence_for_each_prediction_1,
@@ -21,7 +23,7 @@ def test_get_predicted_class():
 
     predicted_classes_2, highest_confidence_for_each_prediction_2 = get_predicted_class(test2)
 
-    correct_predicted_classes_2 = np.array([2, 2, 1, 2])
+    correct_predicted_classes_2 = np.array([1, 1, 0, 1])
     correct_highest_confidence_for_each_prediction_2 = np.array([0.6, 0.7, 0.8, 0.012345])
 
     assert np.array_equal(predicted_classes_2, correct_predicted_classes_2) is True
@@ -35,20 +37,20 @@ def test_sort_predictions_by_confidence():
     # TEST 1
 
     test_bboxes_1 = np.array([[1, 1], [2, 2]])
-    test_predicted_classes_1 = np.array([1, 1])
+    test_predicted_classes_1 = np.array([0, 0])
     test_highest_confidence_for_prediction_1 = np.array([0.5, 0.4])
 
     test_bboxes_1, test_predicted_classes_1, test_highest_confidence_for_prediction_1 = sort_predictions_by_confidence(
         test_bboxes_1, test_predicted_classes_1, test_highest_confidence_for_prediction_1)
 
     assert np.array_equal(test_bboxes_1, np.array([[1, 1], [2, 2]])) is True
-    assert np.array_equal(test_predicted_classes_1, np.array([1, 1])) is True
+    assert np.array_equal(test_predicted_classes_1, np.array([0, 0])) is True
     assert np.allclose(test_highest_confidence_for_prediction_1, np.array([0.5, 0.4])) is True
 
     # TEST 2
 
     test_bboxes_2 = np.array([[1, 1], [2, 2], [3, 3], [4, 4], [5, 5], [6, 6]])
-    test_predicted_classes_2 = np.array([1, 1, 2, 1, 2, 2])
+    test_predicted_classes_2 = np.array([0, 0, 1, 0, 1, 1])
     test_highest_confidence_for_prediction_2 = np.array(
         [0.5, 0.4, 0.000436, 0.960541, 0.124563, 0.77777])
 
@@ -57,7 +59,7 @@ def test_sort_predictions_by_confidence():
 
     assert np.array_equal(test_bboxes_2, np.array(
         [[4, 4], [6, 6], [1, 1], [2, 2], [5, 5], [3, 3]])) is True
-    assert np.array_equal(test_predicted_classes_2, np.array([1, 2, 1, 1, 2, 2])) is True
+    assert np.array_equal(test_predicted_classes_2, np.array([0, 1, 0, 0, 1, 1])) is True
     assert np.allclose(test_highest_confidence_for_prediction_2, np.array(
         [0.960541, 0.77777, 0.5, 0.4, 0.124563, 0.000436])) is True
 
@@ -99,7 +101,7 @@ def test_help_calculate_AP():
     # TEST 1
 
     gt_bboxes = np.array([[25, 25, 100, 100], [15, 15, 20, 20]])
-    gt_classes = np.array([1, 2])
+    gt_classes = np.array([0, 1])
 
     prediction_bboxes = np.array([[25, 25, 100, 100], [15, 15, 20, 20]])
     prediction_confidences = np.array([[0.6, 0.2], [0.2, 0.8]])
@@ -112,7 +114,7 @@ def test_help_calculate_AP():
     # TEST 2
 
     gt_bboxes = np.array([[25, 25, 100, 100], [15, 15, 20, 20]])
-    gt_classes = np.array([1, 2])
+    gt_classes = np.array([0, 1])
 
     prediction_bboxes = np.array([[25, 25, 100, 100], [18, 18, 20, 20]])
     prediction_confidences = np.array([[0.6, 0.2], [0.2, 0.8]])
@@ -125,7 +127,7 @@ def test_help_calculate_AP():
     # TEST 3
 
     gt_bboxes = np.array([[25, 25, 100, 100]])
-    gt_classes = np.array([1])
+    gt_classes = np.array([0])
 
     prediction_bboxes = np.array([[25, 25, 100, 100]])
     prediction_confidences = np.array([[0.6, 0.2]])
@@ -138,7 +140,7 @@ def test_help_calculate_AP():
     # TEST 4
 
     gt_bboxes = np.array([[25, 25, 100, 100]])
-    gt_classes = np.array([1])
+    gt_classes = np.array([0])
 
     prediction_bboxes = np.array([[25, 25, 100, 100]])
     prediction_confidences = np.array([[0.2, 0.6]])
@@ -151,7 +153,7 @@ def test_help_calculate_AP():
     # TEST 5
 
     gt_bboxes = np.array([[25, 25, 100, 100], [15, 15, 20, 20]])
-    gt_classes = np.array([1, 1])
+    gt_classes = np.array([0, 0])
 
     prediction_bboxes = np.array([[25, 25, 100, 100], [18, 18, 20, 20]])
     prediction_confidences = np.array([[0.6, 0.2], [0.3, 0.8]])

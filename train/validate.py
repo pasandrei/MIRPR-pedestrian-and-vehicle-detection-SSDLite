@@ -31,9 +31,7 @@ def evaluate(model, optimizer, anchors, grid_sizes, train_loader, valid_loader, 
             input_ = input_.to(device)
             output = model(input_)
 
-            sum_ap += calculate_AP(output, label)
-
-            print(sum_ap/params.batch_size)
+            sum_ap += calculate_AP(output, label, anchors, grid_sizes)
 
             loc_loss, class_loss = ssd_loss(output, label, anchors, grid_sizes, device, params)
             loc_loss_val += loc_loss.item()
@@ -41,6 +39,8 @@ def evaluate(model, optimizer, anchors, grid_sizes, train_loader, valid_loader, 
 
         SAVE_PATH = 'misc/experiments/{}/model_checkpoint'.format(params.model_id)
         average_precision = sum_ap / len(valid_loader.dataset)
+
+        print("Validation average precision: ", average_precision)
 
         if params.average_precision < average_precision:
             torch.save({

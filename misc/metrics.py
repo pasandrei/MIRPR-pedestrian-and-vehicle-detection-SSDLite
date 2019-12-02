@@ -1,4 +1,6 @@
 import numpy as np
+from misc.postprocessing import *
+from train.helpers import *
 
 
 def get_predicted_class(prediction_confidences):
@@ -12,9 +14,9 @@ def get_predicted_class(prediction_confidences):
 def sort_predictions_by_confidence(prediction_bboxes, predicted_classes, highest_confidence_for_prediction):
     permutation = (-highest_confidence_for_prediction).argsort()
 
+    highest_confidence_for_prediction = highest_confidence_for_prediction[permutation]
     prediction_bboxes = prediction_bboxes[permutation]
     predicted_classes = predicted_classes[permutation]
-    highest_confidence_for_prediction = highest_confidence_for_prediction[permutation]
 
     return prediction_bboxes, predicted_classes, highest_confidence_for_prediction
 
@@ -32,6 +34,9 @@ def get_bbox_area(bbox):
     width = bbox[2] - bbox[0]
     height = bbox[3] - bbox[1]
 
+    if width < 0 or height < 0:
+        return 0
+
     return width*height
 
 
@@ -43,6 +48,9 @@ def get_IoU(bbox1, bbox2):
     intersection_area = get_bbox_area(intersection)
 
     union_area = get_bbox_area(bbox1) + get_bbox_area(bbox2) - intersection_area
+
+    if union_area == 0:
+        return -1
 
     return intersection_area/union_area
 
@@ -58,9 +66,12 @@ def help_calculate_AP(gt_bboxes, gt_classes, prediction_bboxes, prediction_confi
         prediction_confidences is asssumed to have 2 columns (one for each class)
     """
 
+    if prediction_bboxes.shape[0] == 0:
+        return 0
+
     predicted_classes, prediction_confidences = get_predicted_class(prediction_confidences)
 
-    prediction_bboxes, predicted_classes, highest_confidence_for_prediction = sort_predictions_by_confidence(
+    prediction_bboxes, predicted_classes, prediction_confidences = sort_predictions_by_confidence(
         prediction_bboxes, predicted_classes, prediction_confidences)
 
     true_positives = 0
@@ -75,6 +86,11 @@ def help_calculate_AP(gt_bboxes, gt_classes, prediction_bboxes, prediction_confi
             gt_bbox = gt_bboxes[index_gt]
             gt_class = gt_classes[index_gt]
 
+            if gt_class == 1:
+                gt_class = 0
+            else:
+                gt_class = 1
+
             if predicted_class != gt_class:
                 continue
 
@@ -86,21 +102,54 @@ def help_calculate_AP(gt_bboxes, gt_classes, prediction_bboxes, prediction_confi
         true_positives += ok
         false_positives += 1-ok
 
+    print("TP: ", true_positives, "FP:", false_positives)
     return true_positives/(true_positives+false_positives)
 
 
-def calculate_AP(model_output, label, required_IoU=0.5):
+def help_keep_conf(prediction_bboxes, prediction_confidences):
+    keep_indices = []
+    for index, one_hot_pred in enumerate(prediction_confidences):
+        max_conf = np.amax(one_hot_pred)
+        if max_conf > 0.5:
+            keep_indices.append(index)
+
+    if len(keep_indices):
+        keep_indices = np.array(keep_indices)
+        high_confidence_model_predictions = prediction_bboxes[keep_indices]
+        kept_prediction_confidences = prediction_confidences[keep_indices]
+
+        kept_after_nms = nms(high_confidence_model_predictions)
+
+        post_nms_bboxes = high_confidence_model_predictions[kept_after_nms]
+        post_nms_confidences = kept_prediction_confidences[kept_after_nms]
+    else:
+        post_nms_bboxes = np.array([])
+        post_nms_confidences = np.array([])
+
+    return post_nms_bboxes, post_nms_confidences
+
+
+def calculate_AP(model_output, label, anchors, grid_sizes, required_IoU=0.5):
     batch_size = model_output[0].shape[0]
 
+    curr_ap = 0
     ap = 0
     for i in range(batch_size):
-        prediction_bboxes = (model_output[0][i].cpu().numpy() * 320).astype(int)
+        prediction_bboxes = activations_to_bboxes(model_output[0][i], anchors, grid_sizes)
+        prediction_bboxes = (prediction_bboxes.cpu().numpy() * 320).astype(int)
         prediction_confidences = model_output[1][i].cpu().numpy()
 
         gt_bboxes = (label[0][i].cpu().numpy() * 320).astype(int)
         gt_classes = label[1][i].cpu().numpy()
 
-        ap += help_calculate_AP(gt_bboxes, gt_classes, prediction_bboxes,
-                                prediction_confidences, required_IoU)
+        prediction_bboxes, prediction_confidences = help_keep_conf(
+            prediction_bboxes, prediction_confidences)
+
+        curr_ap = help_calculate_AP(gt_bboxes, gt_classes, prediction_bboxes,
+                                    prediction_confidences, required_IoU)
+
+        print(curr_ap)
+
+        ap += curr_ap
 
     return ap
