@@ -58,24 +58,9 @@ def train(model, optimizer, train_loader, valid_loader,
                 for pg in optimizer.param_groups:
                     print('Current learning_rate:', pg['lr'])
 
-
         if (epoch + 1) % params.eval_step == 0:
-            # evaluate(model, optimizer, anchors, grid_sizes, train_loader,
-            #          valid_loader, losses, epoch, device, writer, params)
-            SAVE_PATH = 'misc/experiments/{}/model_checkpoint'.format(params.model_id)
-            print("AVERAGES PER EPOCH: ", losses[2] /
-                  (len(train_loader.dataset)), losses[3]/(len(train_loader.dataset)))
-            if params.loss > losses[2] + losses[3]:
-                torch.save({
-                    'epoch': epoch,
-                    'model_state_dict': model.state_dict(),
-                    'optimizer_state_dict': optimizer.state_dict(),
-                    'loss': losses[2] + losses[3],
-                }, SAVE_PATH)
-                params.loss = losses[2] + losses[3]
-                params.save('misc/experiments/ssdnet/params.json')
-                print('Model saved succesfully')
-            losses[2], losses[3] = 0, 0
+            evaluate(model, optimizer, anchors, grid_sizes, train_loader,
+                     valid_loader, losses, epoch, device, writer, params)
 
 def update_losses(losses, l_loss, c_loss):
     '''

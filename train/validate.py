@@ -38,6 +38,10 @@ def evaluate(model, optimizer, anchors, grid_sizes, train_loader, valid_loader, 
             loc_loss_val += loc_loss.item()
             class_loss_val += class_loss.item()
 
+            if batch_idx % 50 == 0 and batch_idx > 0:
+                print("Average precision: ", sum_ap / batch_idx, " until batch: ", batch_idx)
+
+
         SAVE_PATH = 'misc/experiments/{}/model_checkpoint'.format(params.model_id)
         average_precision = sum_ap / len(valid_loader.dataset)
 
