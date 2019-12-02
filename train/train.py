@@ -1,7 +1,7 @@
 from train.loss_fn import ssd_loss
 from train.helpers import *
 from train.validate import evaluate
-from train.lr_policies import constant_decay
+from train.lr_policies import constant_decay, retina_decay
 from misc.print_stats import *
 
 from torch.utils.tensorboard import SummaryWriter
@@ -37,6 +37,8 @@ def train(model, optimizer, train_loader, valid_loader,
     anchors, grid_sizes = create_anchors()
     anchors, grid_sizes = anchors.to(device), grid_sizes.to(device)
 
+    lr_decay_policy = retina_decay.Lr_decay(params.learning_rate)
+
     print(datetime.datetime.now())
     for epoch in range(start_epoch, params.n_epochs):
         model.train()
@@ -45,16 +47,17 @@ def train(model, optimizer, train_loader, valid_loader,
         for batch_idx, (input_, label) in enumerate(train_loader):
             train_step(model, input_, label, anchors, grid_sizes,
                        optimizer, losses, device, params)
-            '''
-                Calculate AP for this batch
-                add curent batch ap to counter
-            '''
+
+            # lr decay step
+            lr_decay_policy.step(optimizer)
 
             if (batch_idx + 1) % params.train_stats_step == 0:
                 print_batch_stats(model, epoch, batch_idx, train_loader,
                                   losses, params)
                 losses[0], losses[1] = 0, 0
-            break
+                for pg in optimizer.param_groups:
+                    print('Current learning_rate:', pg['lr'])
+
 
         if (epoch + 1) % params.eval_step == 0:
             # evaluate(model, optimizer, anchors, grid_sizes, train_loader,
@@ -73,13 +76,6 @@ def train(model, optimizer, train_loader, valid_loader,
                 params.save('misc/experiments/ssdnet/params.json')
                 print('Model saved succesfully')
             losses[2], losses[3] = 0, 0
-
-        # decay lr after epoch
-        constant_decay.lr_decay(optimizer)
-
-        for pg in optimizer.param_groups:
-            print('Current learning_rate:', pg['lr'])
-
 
 def update_losses(losses, l_loss, c_loss):
     '''
