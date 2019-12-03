@@ -2,12 +2,17 @@ import torch
 import torch.optim as optim
 
 from train.config import Params
+from train.validate import evaluate
+from train.helpers import *
 from data import dataloaders
 from train import train
 from architectures.models import SSDNet
 
 
-def run(path='misc/experiments/ssdnet/params.json', resume=False):
+from torch.utils.tensorboard import SummaryWriter
+
+
+def run(path='misc/experiments/ssdnet/params.json', resume=False, eval_only=False):
     '''
     args: path - string path to the json config file
     trains model refered by that file, saves model and optimizer dict at the same location
@@ -25,7 +30,7 @@ def run(path='misc/experiments/ssdnet/params.json', resume=False):
                                weight_decay=params.weight_decay)
     elif params.optimizer == 'sgd':
         optimizer = optim.SGD(model.parameters(), lr=params.learning_rate,
-                               weight_decay=params.weight_decay, momentum=0.9)
+                              weight_decay=params.weight_decay, momentum=0.9)
 
     print('Number of epochs:', params.n_epochs)
     print('Total number of parameters of model: ',
@@ -38,14 +43,37 @@ def run(path='misc/experiments/ssdnet/params.json', resume=False):
     print(opt_params)
 
     start_epoch = 0
-    if resume:
+    if resume or eval_only:
         checkpoint = torch.load('misc/experiments/{}/model_checkpoint'.format(params.model_id))
         model.load_state_dict(checkpoint['model_state_dict'])
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         start_epoch = checkpoint['epoch']
         print('Model loaded successfully')
 
+        for pg in optimizer.param_groups:
+            pg['lr'] = 0.05
+
     train_loader, valid_loader = dataloaders.get_dataloaders(params)
 
-    train.train(model, optimizer, train_loader, valid_loader, device, params, start_epoch)
+    print('Train size: ', len(train_loader), len(
+        train_loader.dataset), len(train_loader.sampler.sampler))
+    print('Val size: ', len(valid_loader), len(
+        valid_loader.dataset), len(valid_loader.sampler.sampler))
+
+    writer = SummaryWriter(filename_suffix=params.model_id)
+    anchors, grid_sizes = create_anchors()
+    anchors, grid_sizes = anchors.to(device), grid_sizes.to(device)
+
+    if eval_only:
+        print('Only eval')
+        for name, param in model.named_parameters():
+            if param.requires_grad:
+                print(name, param.data)
+        losses = [0, 0, 0, 0]
+        epoch, total_ap = 0, 0
+        evaluate(model, optimizer, anchors, grid_sizes, train_loader,
+                 valid_loader, losses, total_ap, epoch, device, writer, params)
+    else:
+        train.train(model, optimizer, train_loader, valid_loader,
+                    anchors, grid_sizes, writer, device, params, start_epoch)
 # run()

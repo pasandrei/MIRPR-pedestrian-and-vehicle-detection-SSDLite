@@ -102,7 +102,6 @@ def help_calculate_AP(gt_bboxes, gt_classes, prediction_bboxes, prediction_confi
         true_positives += ok
         false_positives += 1-ok
 
-    print("TP: ", true_positives, "FP:", false_positives)
     return true_positives/(true_positives+false_positives)
 
 
@@ -134,22 +133,21 @@ def calculate_AP(model_output, label, anchors, grid_sizes, required_IoU=0.5):
 
     curr_ap = 0
     ap = 0
-    for i in range(batch_size):
-        prediction_bboxes = activations_to_bboxes(model_output[0][i], anchors, grid_sizes)
-        prediction_bboxes = (prediction_bboxes.cpu().numpy() * 320).astype(int)
-        prediction_confidences = model_output[1][i].cpu().numpy()
+    with torch.no_grad():
+        for i in range(batch_size):
+            prediction_bboxes = activations_to_bboxes(model_output[0][i], anchors, grid_sizes)
+            prediction_bboxes = (prediction_bboxes.cpu().numpy() * 320).astype(int)
+            prediction_confidences = model_output[1][i].cpu().numpy()
 
-        gt_bboxes = (label[0][i].cpu().numpy() * 320).astype(int)
-        gt_classes = label[1][i].cpu().numpy()
+            gt_bboxes = (label[0][i].cpu().numpy() * 320).astype(int)
+            gt_classes = label[1][i].cpu().numpy()
 
-        prediction_bboxes, prediction_confidences = help_keep_conf(
-            prediction_bboxes, prediction_confidences)
+            prediction_bboxes, prediction_confidences = help_keep_conf(
+                prediction_bboxes, prediction_confidences)
 
-        curr_ap = help_calculate_AP(gt_bboxes, gt_classes, prediction_bboxes,
-                                    prediction_confidences, required_IoU)
+            curr_ap = help_calculate_AP(gt_bboxes, gt_classes, prediction_bboxes,
+                                        prediction_confidences, required_IoU)
 
-        print(curr_ap)
-
-        ap += curr_ap
+            ap += curr_ap
 
     return ap
