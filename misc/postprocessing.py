@@ -73,7 +73,7 @@ def nms(boxes, overlap_threshold=0.6):
 #  postprocess
 
 
-def plot_bounding_boxes(image, bounding_boxes, message='no_message', ok=0):
+def plot_bounding_boxes(image, bounding_boxes, message='no_message', ok=0, video=False):
     # loop over the bounding boxes for each image and draw them
     image = image.transpose(1, 2, 0)
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
@@ -88,4 +88,5 @@ def plot_bounding_boxes(image, bounding_boxes, message='no_message', ok=0):
 
     # display the image
     cv2.imshow(message, image)
-    cv2.waitKey(0)
+    if not video:
+        cv2.waitKey(0)
