@@ -32,7 +32,7 @@ class BCE_Loss(nn.Module):
         t = torch.FloatTensor(t).to(self.device)
         weight = self.get_weight(pred, t)
         return torch.nn.functional.binary_cross_entropy_with_logits(pred, t, weight=weight,
-                                size_average=None, reduce=None, reduction='sum') / self.norm_factor
+                                                                    size_average=None, reduce=None, reduction='sum') / self.norm_factor
 
     def get_weight(self, x, t):
         # focal loss decreases loss for correctly classified (P>0.5) examples, relative to the missclassified ones

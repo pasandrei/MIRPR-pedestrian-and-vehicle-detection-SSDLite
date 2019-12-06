@@ -1,13 +1,13 @@
 {
     "model_id": "ssdnet",
-    "optimizer": "sgd",
+    "optimizer": "adam",
     "n_classes": 2,
     "learning_rate": 0.01,
     "batch_size": 16,
     "weight_decay": 0.0001,
-    "n_epochs": 32,
+    "n_epochs": 45,
     "train_stats_step": 10,
-    "eval_step": 3,
-    "average_precision": 0.06734053677239456,
-    "loss": 20318.891829382883
+    "eval_step": 1,
+    "average_precision": 0,
+    "loss": 0
 }

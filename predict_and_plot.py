@@ -30,7 +30,8 @@ def model_output_pipeline(params_path):
     anchors, grid_sizes = create_anchors()
     anchors, grid_sizes = anchors.to(device), grid_sizes.to(device)
 
-    model.train()
+    print('EVALUATION')
+    model.eval()
     with torch.no_grad():
         for (batch_images, batch_targets) in valid_loader:
             batch_images = batch_images.to(device)

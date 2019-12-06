@@ -11,7 +11,8 @@ def print_batch_stats(model, epoch, batch_idx, train_loader, losses, params):
     print('Batch: {} of {}'.format(batch_idx, len(train_loader)))
 
     # want to see per image stats
-    avg_factor = params.train_stats_step * params.batch_size
+    one_tenth_of_loader = len(train_loader) // 10
+    avg_factor = one_tenth_of_loader * params.batch_size
     print('Loss past {} batches: Localization {} Classification {}'.format(
         params.train_stats_step, losses[0] / avg_factor, losses[1] / avg_factor))
 
@@ -43,6 +44,8 @@ def gradient_weight_check(model):
     return torch.mean(avg_grads), torch.mean(max_grads), torch.mean(avg_weigths), torch.mean(max_weigths)
 
 # print stats
+
+
 def plot_grad_flow(model):
     # taken from Roshan Rane answer on pytorch forums
     '''Plots the gradients flowing through different layers in the net during training.
