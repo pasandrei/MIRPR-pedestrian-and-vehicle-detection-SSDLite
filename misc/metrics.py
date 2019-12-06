@@ -109,7 +109,7 @@ def help_keep_conf(prediction_bboxes, prediction_confidences):
     keep_indices = []
     for index, one_hot_pred in enumerate(prediction_confidences):
         max_conf = np.amax(one_hot_pred)
-        if max_conf > 0.5:
+        if max_conf > 0.25:
             keep_indices.append(index)
 
     if len(keep_indices):
@@ -137,7 +137,7 @@ def calculate_AP(model_output, label, anchors, grid_sizes, required_IoU=0.5):
         for i in range(batch_size):
             prediction_bboxes = activations_to_bboxes(model_output[0][i], anchors, grid_sizes)
             prediction_bboxes = (prediction_bboxes.cpu().numpy() * 320).astype(int)
-            prediction_confidences = model_output[1][i].cpu().numpy()
+            prediction_confidences = model_output[1][i].sigmoid().cpu().numpy()
 
             gt_bboxes = (label[0][i].cpu().numpy() * 320).astype(int)
             gt_classes = label[1][i].cpu().numpy()
