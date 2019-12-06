@@ -1,1 +1,1 @@
-# drl_zice_ca_se_poate_schimba
+# MIRPR-pedestrian-and-vehicle-detection-SSDLite
