@@ -16,9 +16,9 @@ def convert_confidences_to_workable_data(prediction_confidences):
     return prediction_confidences.sigmoid().cpu().numpy()
 
 
-def convert_output_to_workable_data(model_output, anchors, grid_sizes):
-    prediction_bboxes = convert_bboxes_to_workable_data(model_output[0], anchors, grid_sizes)
-    prediction_confidences = convert_confidences_to_workable_data(model_output[1])
+def convert_output_to_workable_data(model_output_bboxes, model_output_confidences, anchors, grid_sizes):
+    prediction_bboxes = convert_bboxes_to_workable_data(model_output_bboxes, anchors, grid_sizes)
+    prediction_confidences = convert_confidences_to_workable_data(model_output_confidences)
 
     return prediction_bboxes, prediction_confidences
 

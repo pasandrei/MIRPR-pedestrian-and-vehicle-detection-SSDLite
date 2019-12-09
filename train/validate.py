@@ -1,6 +1,5 @@
 import torch
 import datetime
-import pycocotools.COCO
 
 from train.loss_fn import ssd_loss
 from misc.metrics import calculate_AP
@@ -38,20 +37,22 @@ def evaluate(model, optimizer, anchors, grid_sizes, train_loader, valid_loader, 
         val_set_size = len(valid_loader.sampler.sampler)
         one_tenth_of_loader = len(valid_loader) // 10
 
-        for batch_idx, (input_, label) in enumerate(valid_loader):
+        for batch_idx, (input_, label, PLACEHOLDER) in enumerate(valid_loader):
             # print(datetime.datetime.now())
             input_ = input_.to(device)
             output = model(input_)
 
-            prediction_bboxes, predicted_confidences = convert_output_to_workable_data(
-                output, anchors, grid_sizes)
+            batch_size = output[0].shape[0]
+            # for i in range(batch_size):
+            #     prediction_bboxes, predicted_confidences = convert_output_to_workable_data(
+            #         output[0][i], output[1][i], anchors, grid_sizes)
 
             loc_loss, class_loss = ssd_loss(output, label, anchors, grid_sizes, device, params)
             loc_loss_val += loc_loss.item()
             class_loss_val += class_loss.item()
 
             if batch_idx % one_tenth_of_loader == 0 and batch_idx > 0:
-                nr_images = (batch_idx + 1) * params.batch_size
+                nr_images = (batch_idx + 1) * batch_size
 
                 print("Average Loc Loss: ", loc_loss_val /
                       nr_images)
