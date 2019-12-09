@@ -7,6 +7,7 @@ from train.helpers import *
 from data import dataloaders
 from train import train
 from architectures.models import SSDNet
+from train.loss_fn import Detection_Loss
 
 
 from torch.utils.tensorboard import SummaryWriter
@@ -64,6 +65,8 @@ def run(path='misc/experiments/ssdnet/params.json', resume=False, eval_only=Fals
     anchors, grid_sizes = create_anchors()
     anchors, grid_sizes = anchors.to(device), grid_sizes.to(device)
 
+    detection_loss = Detection_Loss(anchors, grid_sizes, device, params)
+
     if eval_only:
         print('Only eval')
         for name, param in model.named_parameters():
@@ -71,9 +74,9 @@ def run(path='misc/experiments/ssdnet/params.json', resume=False, eval_only=Fals
                 print(name, param.data)
         losses = [0, 0, 0, 0]
         epoch, total_ap = 0, 0
-        evaluate(model, optimizer, anchors, grid_sizes, train_loader,
-                 valid_loader, losses, total_ap, epoch, device, writer, params)
+        evaluate(model, optimizer, train_loader,
+                 valid_loader, losses, total_ap, epoch, detection_loss, writer, params)
     else:
         train.train(model, optimizer, train_loader, valid_loader,
-                    anchors, grid_sizes, writer, device, params, start_epoch)
+                    writer, detection_loss, params, start_epoch)
 # run()

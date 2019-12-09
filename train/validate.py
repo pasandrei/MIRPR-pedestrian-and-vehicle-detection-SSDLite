@@ -1,7 +1,6 @@
 import torch
 import datetime
 
-from train.loss_fn import ssd_loss
 from misc.metrics import calculate_AP
 
 
@@ -13,7 +12,7 @@ def update_tensorboard_graphs(writer, loc_loss_train, class_loss_train, loc_loss
     writer.add_scalar('Precision', average_precision, epoch)
 
 
-def evaluate(model, optimizer, anchors, grid_sizes, train_loader, valid_loader, losses, total_ap, epoch, device, writer, params):
+def evaluate(model, optimizer, train_loader, valid_loader, losses, total_ap, epoch, detection_loss, writer, params):
     '''
     evaluates model performance of the validation set, saves current set if it is better that the best so far
     '''
@@ -37,12 +36,12 @@ def evaluate(model, optimizer, anchors, grid_sizes, train_loader, valid_loader, 
 
         for batch_idx, (input_, label) in enumerate(valid_loader):
             # print(datetime.datetime.now())
-            input_ = input_.to(device)
+            input_ = input_.to(detection_loss.device)
             output = model(input_)
 
-            sum_ap += calculate_AP(output, label, anchors, grid_sizes)
+            sum_ap += calculate_AP(output, label, detection_loss.anchors, detection_loss.grid_sizes)
 
-            loc_loss, class_loss = ssd_loss(output, label, anchors, grid_sizes, device, params)
+            loc_loss, class_loss = detection_loss.ssd_loss(output, label)
             loc_loss_val += loc_loss.item()
             class_loss_val += class_loss.item()
 

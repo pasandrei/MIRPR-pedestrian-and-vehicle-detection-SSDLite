@@ -1,4 +1,3 @@
-from train.loss_fn import ssd_loss
 from train.helpers import *
 from train.validate import evaluate
 from train.lr_policies import constant_decay, retina_decay
@@ -9,13 +8,13 @@ from misc.metrics import calculate_AP
 import datetime
 
 
-def train_step(model, input_, label, anchors, grid_sizes, optimizer, losses, device, params):
+def train_step(model, input_, label, optimizer, losses, detection_loss, params):
     # print(datetime.datetime.now())
-    input_ = input_.to(device)
+    input_ = input_.to(detection_loss.device)
 
     optimizer.zero_grad()
     output = model(input_)
-    l_loss, c_loss = ssd_loss(output, label, anchors, grid_sizes, device, params)
+    l_loss, c_loss = detection_loss.ssd_loss(output, label)
     loss = l_loss + c_loss
 
     update_losses(losses, l_loss.item(), c_loss.item())
@@ -23,17 +22,18 @@ def train_step(model, input_, label, anchors, grid_sizes, optimizer, losses, dev
     optimizer.step()
 
     # ap for batch
-    return calculate_AP(output, label, anchors, grid_sizes)
+    return calculate_AP(output, label, detection_loss.anchors, detection_loss.grid_sizes)
 
 
 def train(model, optimizer, train_loader, valid_loader,
-          anchors, grid_sizes, writer, device, params, start_epoch=0):
+          writer, detection_loss, params, start_epoch=0):
     '''
     args: model - nn.Module CNN to train
           optimizer - torch.optim
           params - json config
     trains model, saves best model by validation
     '''
+
     lr_decay_policy = retina_decay.Lr_decay(params.learning_rate)
     losses = [0] * 4
     total_ap = 0
@@ -44,8 +44,8 @@ def train(model, optimizer, train_loader, valid_loader,
         model.train()
 
         for batch_idx, (input_, label) in enumerate(train_loader):
-            cur_batch_ap = train_step(model, input_, label, anchors, grid_sizes,
-                                      optimizer, losses, device, params)
+            cur_batch_ap = train_step(model, input_, label, optimizer,
+                                      losses, detection_loss, params)
             total_ap += cur_batch_ap
 
             if batch_idx % one_tenth_of_loader == 0 and batch_idx > 0:
@@ -58,8 +58,8 @@ def train(model, optimizer, train_loader, valid_loader,
                     print('Current learning_rate:', pg['lr'])
 
         if (epoch + 1) % params.eval_step == 0:
-            evaluate(model, optimizer, anchors, grid_sizes, train_loader,
-                     valid_loader, losses, total_ap, epoch, device, writer, params)
+            evaluate(model, optimizer, train_loader, valid_loader, losses,
+                     total_ap, epoch, detection_loss, writer, params)
             losses[2], losses[3], total_ap = 0, 0, 0
 
         # lr decay step
