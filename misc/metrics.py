@@ -135,9 +135,8 @@ def calculate_AP(model_output, label, anchors, grid_sizes, required_IoU=0.5):
     ap = 0
     with torch.no_grad():
         for i in range(batch_size):
-            prediction_bboxes = activations_to_bboxes(model_output[0][i], anchors, grid_sizes)
-            prediction_bboxes = (prediction_bboxes.cpu().numpy() * 320).astype(int)
-            prediction_confidences = model_output[1][i].sigmoid().cpu().numpy()
+            prediction_bboxes, prediction_confidences = convert_output_to_workable_data(
+                model_output[0][i], model_output[1][i], anchors, grid_sizes)
 
             gt_bboxes = (label[0][i].cpu().numpy() * 320).astype(int)
             gt_classes = label[1][i].cpu().numpy()

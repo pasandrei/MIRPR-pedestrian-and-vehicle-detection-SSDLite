@@ -69,9 +69,7 @@ def run(path='misc/experiments/ssdnet/params.json', resume=False, eval_only=Fals
 
     if eval_only:
         print('Only eval')
-        for name, param in model.named_parameters():
-            if param.requires_grad:
-                print(name, param.data)
+
         losses = [0, 0, 0, 0]
         epoch, total_ap = 0, 0
         evaluate(model, optimizer, train_loader,
