@@ -1,7 +1,26 @@
 import numpy as np
 import cv2
+from train.helpers import activations_to_bboxes
 
 # postprocess
+
+
+def convert_bboxes_to_workable_data(prediction_bboxes, anchors, grid_sizes):
+    prediction_bboxes = activations_to_bboxes(prediction_bboxes, anchors, grid_sizes)
+    prediction_bboxes = (prediction_bboxes.cpu().numpy() * 320).astype(int)
+
+    return prediction_bboxes
+
+
+def convert_confidences_to_workable_data(prediction_confidences):
+    return prediction_confidences.sigmoid().cpu().numpy()
+
+
+def convert_output_to_workable_data(model_output, anchors, grid_sizes):
+    prediction_bboxes = convert_bboxes_to_workable_data(model_output[0], anchors, grid_sizes)
+    prediction_confidences = convert_confidences_to_workable_data(model_output[1])
+
+    return prediction_bboxes, prediction_confidences
 
 
 def nms(boxes, overlap_threshold=0.6):

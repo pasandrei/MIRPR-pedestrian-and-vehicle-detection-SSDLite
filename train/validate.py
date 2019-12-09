@@ -1,8 +1,11 @@
 import torch
 import datetime
+import pycocotools.COCO
 
 from train.loss_fn import ssd_loss
 from misc.metrics import calculate_AP
+from misc.postprocessing import convert_output_to_workable_data
+from pycocotools.cocoeval import COCOeval
 
 
 def update_tensorboard_graphs(writer, loc_loss_train, class_loss_train, loc_loss_val, class_loss_val, average_precision, epoch):
@@ -31,7 +34,7 @@ def evaluate(model, optimizer, anchors, grid_sizes, train_loader, valid_loader, 
 
     model.eval()
     with torch.no_grad():
-        loc_loss_val, class_loss_val, sum_ap = 0, 0, 0
+        loc_loss_val, class_loss_val = 0, 0
         val_set_size = len(valid_loader.sampler.sampler)
         one_tenth_of_loader = len(valid_loader) // 10
 
@@ -40,7 +43,8 @@ def evaluate(model, optimizer, anchors, grid_sizes, train_loader, valid_loader, 
             input_ = input_.to(device)
             output = model(input_)
 
-            sum_ap += calculate_AP(output, label, anchors, grid_sizes)
+            prediction_bboxes, predicted_confidences = convert_output_to_workable_data(
+                output, anchors, grid_sizes)
 
             loc_loss, class_loss = ssd_loss(output, label, anchors, grid_sizes, device, params)
             loc_loss_val += loc_loss.item()
@@ -48,16 +52,13 @@ def evaluate(model, optimizer, anchors, grid_sizes, train_loader, valid_loader, 
 
             if batch_idx % one_tenth_of_loader == 0 and batch_idx > 0:
                 nr_images = (batch_idx + 1) * params.batch_size
-                print("Average precision: ", sum_ap / nr_images)
+
                 print("Average Loc Loss: ", loc_loss_val /
                       nr_images)
                 print("Average Class Loss: ", class_loss_val /
                       nr_images, " until batch: ", batch_idx)
 
         SAVE_PATH = 'misc/experiments/{}/model_checkpoint'.format(params.model_id)
-        average_precision = sum_ap / val_set_size
-
-        print("Validation average precision: ", average_precision)
 
         val_loss = (loc_loss_train + loc_loss_val) / val_set_size
         if params.loss > val_loss:
@@ -65,14 +66,13 @@ def evaluate(model, optimizer, anchors, grid_sizes, train_loader, valid_loader, 
                 'epoch': epoch,
                 'model_state_dict': model.state_dict(),
                 'optimizer_state_dict': optimizer.state_dict(),
-                'average_precision': average_precision,
             }, SAVE_PATH)
-            params.average_precision = average_precision
             params.loss = val_loss
             params.save('misc/experiments/ssdnet/params.json')
             print('Model saved succesfully')
 
         # tensorboard
+        average_precision = 0
         update_tensorboard_graphs(writer, loc_loss_train, class_loss_train,
                                   loc_loss_val, class_loss_val, average_precision, epoch)
 
