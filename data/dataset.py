@@ -33,7 +33,7 @@ class CocoDetection(VisionDataset):
         return B x C x H x W image tensor and [B x img_bboxes, B x img_classes]
         """
 
-        imgs, targets_bboxes, targets_classes, targets_image_ids = [], [], [], []
+        imgs, targets_bboxes, targets_classes, image_info = [], [], [], []
         for index in batched_indices:
             coco = self.coco
             img_id = self.ids[index]
@@ -46,6 +46,8 @@ class CocoDetection(VisionDataset):
             # target[1] = tensor of class ids in image
             target = prepare_gt(img, target)
 
+            width, height = img.size
+
             img = F.resize(img, size=(320, 320), interpolation=2)
 
             # C x H x W
@@ -56,7 +58,7 @@ class CocoDetection(VisionDataset):
             imgs.append(img)
             targets_bboxes.append(target[0])
             targets_classes.append(target[1])
-            targets_image_ids.append(img_id)
+            image_info.append((img_id, (height, width)))
 
         # B x C x H x W
         batch_images = torch.stack(imgs)
@@ -65,7 +67,7 @@ class CocoDetection(VisionDataset):
         # target[1] = list of class id tensors for each image
         batch_targets = [targets_bboxes, targets_classes]
 
-        return batch_images, batch_targets, targets_image_ids
+        return batch_images, batch_targets, image_info
 
     def __len__(self):
         return len(self.ids)

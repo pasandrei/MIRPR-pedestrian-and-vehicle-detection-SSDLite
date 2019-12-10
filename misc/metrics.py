@@ -21,40 +21,6 @@ def sort_predictions_by_confidence(prediction_bboxes, predicted_classes, highest
     return prediction_bboxes, predicted_classes, highest_confidence_for_prediction
 
 
-def get_intersection(bbox1, bbox2):
-    x1 = max(bbox1[0], bbox2[0])
-    y1 = max(bbox1[1], bbox2[1])
-    x2 = min(bbox1[2], bbox2[2])
-    y2 = min(bbox1[3], bbox2[3])
-
-    return np.array([x1, y1, x2, y2])
-
-
-def get_bbox_area(bbox):
-    width = bbox[2] - bbox[0]
-    height = bbox[3] - bbox[1]
-
-    if width < 0 or height < 0:
-        return 0
-
-    return width*height
-
-
-def get_IoU(bbox1, bbox2):
-    bbox1_x1, bbox1_y1, bbox1_x2, bbox1_y2 = bbox1
-    bbox2_x1, bbox2_y1, bbox2_x2, bbox2_y2 = bbox2
-
-    intersection = get_intersection(bbox1, bbox2)
-    intersection_area = get_bbox_area(intersection)
-
-    union_area = get_bbox_area(bbox1) + get_bbox_area(bbox2) - intersection_area
-
-    if union_area == 0:
-        return -1
-
-    return intersection_area/union_area
-
-
 def help_calculate_AP(gt_bboxes, gt_classes, prediction_bboxes, prediction_confidences, required_IoU):
     """
     IN:
@@ -136,7 +102,7 @@ def calculate_AP(model_output, label, anchors, grid_sizes, required_IoU=0.5):
     with torch.no_grad():
         for i in range(batch_size):
             prediction_bboxes, prediction_confidences = convert_output_to_workable_data(
-                model_output[0][i], model_output[1][i], anchors, grid_sizes)
+                model_output[0][i], model_output[1][i], anchors, grid_sizes, (320, 320))
 
             gt_bboxes = (label[0][i].cpu().numpy() * 320).astype(int)
             gt_classes = label[1][i].cpu().numpy()

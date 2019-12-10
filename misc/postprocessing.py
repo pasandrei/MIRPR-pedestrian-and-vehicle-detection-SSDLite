@@ -5,9 +5,14 @@ from train.helpers import activations_to_bboxes
 # postprocess
 
 
-def convert_bboxes_to_workable_data(prediction_bboxes, anchors, grid_sizes):
+def convert_bboxes_to_workable_data(prediction_bboxes, anchors, grid_sizes, size):
+    height, width = size
     prediction_bboxes = activations_to_bboxes(prediction_bboxes, anchors, grid_sizes)
-    prediction_bboxes = (prediction_bboxes.cpu().numpy() * 320).astype(int)
+    prediction_bboxes[:, 0] *= height
+    prediction_bboxes[:, 2] *= height
+    prediction_bboxes[:, 1] *= width
+    prediction_bboxes[:, 3] *= width
+    prediction_bboxes = (prediction_bboxes.cpu().numpy()).astype(int)
 
     return prediction_bboxes
 
@@ -16,78 +21,87 @@ def convert_confidences_to_workable_data(prediction_confidences):
     return prediction_confidences.sigmoid().cpu().numpy()
 
 
-def convert_output_to_workable_data(model_output_bboxes, model_output_confidences, anchors, grid_sizes):
-    prediction_bboxes = convert_bboxes_to_workable_data(model_output_bboxes, anchors, grid_sizes)
+def convert_output_to_workable_data(model_output_bboxes, model_output_confidences, anchors, grid_sizes, size):
+    prediction_bboxes = convert_bboxes_to_workable_data(
+        model_output_bboxes, anchors, grid_sizes, size)
     prediction_confidences = convert_confidences_to_workable_data(model_output_confidences)
 
     return prediction_bboxes, prediction_confidences
 
 
-def nms(boxes, overlap_threshold=0.6):
+def nms(bounding_boxes, threshold=0.5):
     """
-    boxes: bounding boxes coordinates, ie, tuple of 4 integers
-    overlap threshold: the threshold for which the overlapping images will be suppressed
-    return the coordinates of the correct bounding boxes
+    args:
+        bounding_boxes: nr_bboxes x 4 sorted by confidence
+        threshold: bboxes with IoU above threshold will be removed
+
+    returns:
+        final_model_predictions: nr_bboxes x 4
+
+    bounding_boxes MUST be sorted
     """
 
-    # if there are no boxes, return an empty list
-    if len(boxes) == 0:
-        return []
+    indices = np.array(range(bounding_boxes.shape[0]))
+    final_model_predictions = []
+    while indices.shape[0] != 0:
+        prediction = bounding_boxes[indices[0]]
+        final_model_predictions.append(indices[0])
 
-    pick = []
+        to_keep = []
+        for index in range(indices.shape[0]):
+            IoU = get_IoU(prediction, bounding_boxes[indices[index]])
 
-    # grab the coordinates of the bounding boxes
-    x1 = boxes[:, 0]
-    y1 = boxes[:, 1]
-    x2 = boxes[:, 2]
-    y2 = boxes[:, 3]
+            if IoU < threshold:
+                to_keep.append(index)
 
-    # compute the area of the bounding boxes and sort the bounding
-    # boxes by the bottom-right y-coordinate of the bounding box
-    area = (x2 - x1 + 1) * (y2 - y1 + 1)
-    idxs = np.argsort(y2)
+        indices = indices[to_keep]
 
-    while len(idxs) > 0:
-        # grab the last index in the indexes list, add the index
-        # value to the list of picked indexes, then initialize
-        # the suppression list (i.e. indexes that will be deleted)
-        # using the last index
-        last = len(idxs) - 1
-        i = idxs[last]
-        pick.append(i)
-        suppress = [last]
+    return final_model_predictions
 
-        for pos in range(0, last):
-            # grab the current index
-            j = idxs[pos]
 
-            # find the largest (x, y) coordinates for the start of
-            # the bounding box and the smallest (x, y) coordinates
-            # for the end of the bounding box
-            xx1 = max(x1[i], x1[j])
-            yy1 = max(y1[i], y1[j])
-            xx2 = min(x2[i], x2[j])
-            yy2 = min(y2[i], y2[j])
+def corners_to_wh(prediction_bboxes):
+    for index in range(prediction_bboxes.shape[0]):
+        prediction_bboxes[index][0], prediction_bboxes[index][1] = prediction_bboxes[index][1], prediction_bboxes[index][0]
+        prediction_bboxes[index][2], prediction_bboxes[index][3] = prediction_bboxes[index][3], prediction_bboxes[index][2]
 
-            # compute the width and height of the bounding box
-            w = max(0, xx2 - xx1 + 1)
-            h = max(0, yy2 - yy1 + 1)
+        width = prediction_bboxes[index][2] - prediction_bboxes[index][0]
+        height = prediction_bboxes[index][3] - prediction_bboxes[index][1]
 
-            # compute the ratio of overlap between the computed
-            # bounding box and the bounding box in the area list
-            overlap = float(w * h) / area[j]
+        prediction_bboxes[index][2] = width
+        prediction_bboxes[index][3] = height
 
-            # if there is sufficient overlap, suppress the
-            # current bounding box
-            if overlap > overlap_threshold:
-                suppress.append(pos)
+    return prediction_bboxes
 
-        # delete all indexes from the index list that are in the
-        # suppression list
-        idxs = np.delete(idxs, suppress)
 
-    # return only the bounding boxes indeces that were picked
-    return pick
+def get_predicted_class(prediction_confidences):
+    predicted_classes = np.argmax(prediction_confidences, axis=1)
+    highest_confidence_for_predictions = np.amax(
+        prediction_confidences, axis=1)
+
+    return predicted_classes, highest_confidence_for_predictions
+
+
+def predictions_over_threshold(prediction_bboxes, predicted_confidences, threshold=0.25):
+    keep_indices = []
+
+    for index, one_hot_pred in enumerate(predicted_confidences):
+        max_conf = np.amax(one_hot_pred)
+        if max_conf > threshold:
+            keep_indices.append(index)
+
+    prediction_bboxes = prediction_bboxes[keep_indices]
+    predicted_confidences = predicted_confidences[keep_indices]
+
+    return prediction_bboxes, predicted_confidences
+
+
+def after_nms(prediction_bboxes, predicted_confidences):
+    kept_after_nms = nms(prediction_bboxes)
+
+    post_nms_bboxes = prediction_bboxes[kept_after_nms]
+    post_nms_confidences = predicted_confidences[kept_after_nms]
+
+    return post_nms_bboxes, post_nms_confidences
 
 #  postprocess
 
@@ -108,3 +122,37 @@ def plot_bounding_boxes(image, bounding_boxes, message='no_message', ok=0):
     # display the image
     cv2.imshow(message, image)
     cv2.waitKey(0)
+
+
+def get_intersection(bbox1, bbox2):
+    x1 = max(bbox1[0], bbox2[0])
+    y1 = max(bbox1[1], bbox2[1])
+    x2 = min(bbox1[2], bbox2[2])
+    y2 = min(bbox1[3], bbox2[3])
+
+    return np.array([x1, y1, x2, y2])
+
+
+def get_bbox_area(bbox):
+    width = bbox[2] - bbox[0]
+    height = bbox[3] - bbox[1]
+
+    if width < 0 or height < 0:
+        return 0
+
+    return width*height
+
+
+def get_IoU(bbox1, bbox2):
+    bbox1_x1, bbox1_y1, bbox1_x2, bbox1_y2 = bbox1
+    bbox2_x1, bbox2_y1, bbox2_x2, bbox2_y2 = bbox2
+
+    intersection = get_intersection(bbox1, bbox2)
+    intersection_area = get_bbox_area(intersection)
+
+    union_area = get_bbox_area(bbox1) + get_bbox_area(bbox2) - intersection_area
+
+    if union_area == 0:
+        return -1
+
+    return intersection_area/union_area
