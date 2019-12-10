@@ -51,8 +51,8 @@ def run(path='misc/experiments/ssdnet/params.json', resume=False, eval_only=Fals
         start_epoch = checkpoint['epoch']
         print('Model loaded successfully')
 
-        for pg in optimizer.param_groups:
-            pg['lr'] = 0.05
+        # for pg in optimizer.param_groups:
+        #     pg['lr'] = 0.05
 
     train_loader, valid_loader = dataloaders.get_dataloaders(params)
 

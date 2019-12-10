@@ -43,9 +43,9 @@ def train(model, optimizer, train_loader, valid_loader,
     for epoch in range(start_epoch, params.n_epochs):
         model.train()
 
-        for batch_idx, (input_, label) in enumerate(train_loader):
-            cur_batch_ap = train_step(model, input_, label, optimizer,
-                                      losses, detection_loss, params)
+        for batch_idx, (input_, label, _) in enumerate(train_loader):
+            cur_batch_ap = train_step(model, input_, label, anchors, grid_sizes,
+                                      optimizer, losses, device, params)
             total_ap += cur_batch_ap
 
             if batch_idx % one_tenth_of_loader == 0 and batch_idx > 0:
