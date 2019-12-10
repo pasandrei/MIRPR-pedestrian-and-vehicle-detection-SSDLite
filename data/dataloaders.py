@@ -18,7 +18,7 @@ def get_dataloaders(params):
     val_annotations_path = '..\\..\\COCO\\annotations\\instances_val2017.json'
     validation_dataset = CocoDetection(root='..\\..\\COCO\\val2017',
                                        annFile=val_annotations_path)
-    #
+
     with open(train_annotations_path) as json_file:
         data = json.load(json_file)
         nr_images_in_train = len(data['images'])

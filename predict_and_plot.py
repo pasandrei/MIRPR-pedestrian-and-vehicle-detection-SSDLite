@@ -33,7 +33,7 @@ def model_output_pipeline(params_path):
     print('EVALUATION')
     model.eval()
     with torch.no_grad():
-        for (batch_images, batch_targets) in valid_loader:
+        for (batch_images, batch_targets, images_info) in valid_loader:
             batch_images = batch_images.to(device)
             # predictions[0] = B x #anchors x 4
             # predictions[1] = B x #anchors x 2 -> [0.2, 0.9], [0.01, 0.01]
