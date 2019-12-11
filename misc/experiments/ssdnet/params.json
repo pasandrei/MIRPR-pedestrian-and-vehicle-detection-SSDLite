@@ -11,5 +11,6 @@
     "train_stats_step": 10,
     "eval_step": 1,
     "average_precision": 0,
-    "loss": 0
+    "loss": 0,
+    "mAP": 0
 }

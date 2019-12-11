@@ -1,9 +1,11 @@
-from misc.model_output_handler import *
-from train import validate
 import torch
 
+from misc.model_output_handler import *
+from train.validate import Model_evaluator
+from train import validate
 
-def cross_validate(model, valid_loader, device, params):
+
+def cross_validate(model, detection_loss, valid_loader, params):
     """
     Goal: find the best pair of confidence threshold and NMS suppression threshold
     Args:
@@ -25,13 +27,12 @@ def cross_validate(model, valid_loader, device, params):
             print("Confidence: ", best_conf_threshold, "Suppress: ", best_suppress_threshold)
 
             cur_conf_threshold, cur_suppress_threshold = conf_range[i], suppress_range[j]
-            output_handler = Model_output_handler(
-                device, cur_conf_threshold, cur_suppress_threshold)
+            cur_conf_threshold = torch.tensor(cur_conf_threshold).to(detection_loss.device)
+            cur_suppress_threshold = torch.tensor(cur_suppress_threshold).to(detection_loss.device)
 
-            cur_conf_threshold = torch.tensor(cur_conf_threshold).to(device)
-            cur_suppress_threshold = torch.tensor(cur_suppress_threshold).to(device)
-            cur_mAP = validate.evaluate(model, valid_loader, device, optimizer=None, conf_threshold=cur_conf_threshold,
-                                        suppress_threshold=cur_suppress_threshold, cross_validate=True, params=params)
+            cur_model_evaluator = Model_evaluator(
+                valid_loader, detection_loss, conf_thresh=cur_conf_threshold, suppress_thresh=cur_suppress_threshold, params=params)
+            cur_mAP = cur_model_evaluator.only_mAP(model)
 
             if cur_mAP > best_mAP:
                 print("New best values found")

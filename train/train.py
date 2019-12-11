@@ -1,5 +1,4 @@
 from train.helpers import *
-from train.validate import evaluate
 from train.lr_policies import constant_decay, retina_decay
 from misc.print_stats import *
 
@@ -20,8 +19,7 @@ def train_step(model, input_, label, optimizer, losses, detection_loss, params):
     optimizer.step()
 
 
-def train(model, optimizer, train_loader, valid_loader,
-          writer, detection_loss, params, start_epoch=0):
+def train(model, optimizer, train_loader, model_evaluator, detection_loss, params, start_epoch=0):
     '''
     args: model - nn.Module CNN to train
           optimizer - torch.optim
@@ -48,8 +46,7 @@ def train(model, optimizer, train_loader, valid_loader,
                     print('Current learning_rate:', pg['lr'])
 
         if (epoch + 1) % params.eval_step == 0:
-            evaluate(model, optimizer, train_loader, valid_loader, losses,
-                     epoch, detection_loss, writer, params)
+            model_evaluator.complete_evaluate(model, optimizer, train_loader, losses, epoch)
             losses[2], losses[3] = 0, 0
 
         # lr decay step
