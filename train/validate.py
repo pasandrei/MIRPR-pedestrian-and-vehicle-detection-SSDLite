@@ -8,27 +8,25 @@ from misc.model_output_handler import *
 from misc.utils import *
 
 
-def evaluate(model, optimizer, train_loader, valid_loader, losses, total_ap, epoch, detection_loss, writer, params):
+def evaluate(model, optimizer, train_loader, valid_loader, losses, epoch, detection_loss, writer, params):
     '''
     evaluates model performance of the validation set, saves current set if it is better that the best so far
     '''
-    output_handler = Model_output_handler(device, conf_threshold, suppress_threshold)
-    anchors, grid_sizes = output_handler.anchors_hw, output_handler.grid_sizes
+    output_handler = Model_output_handler(detection_loss.device)
 
-    if not cross_validate:
-        eval_step_avg_factor = params.eval_step * len(train_loader.sampler.sampler)
-        loc_loss_train, class_loss_train = losses[2] / \
-            eval_step_avg_factor, losses[3] / eval_step_avg_factor
+    eval_step_avg_factor = params.eval_step * len(train_loader.sampler.sampler)
+    loc_loss_train, class_loss_train = losses[2] / \
+        eval_step_avg_factor, losses[3] / eval_step_avg_factor
 
-        print('Average train loss at eval start: Localization: {}; Classification: {}'.format(
-            loc_loss_train, class_loss_train))
+    print('Average train loss at eval start: Localization: {}; Classification: {}'.format(
+        loc_loss_train, class_loss_train))
 
     print('Validation start...')
     model.eval()
     with torch.no_grad():
         loc_loss_val, class_loss_val = 0, 0
         val_set_size = len(valid_loader.sampler.sampler)
-        one_tenth_of_loader = len(valid_loader) // 10
+        one_tenth_of_loader = len(valid_loader) // 1000
 
         prediction_annotations = []
         prediction_id = 0
@@ -59,22 +57,21 @@ def evaluate(model, optimizer, train_loader, valid_loader, losses, total_ap, epo
 
         mAP = evaluate_on_COCO_metrics(prediction_annotations)
 
-        if not cross_validate:
-            val_loss = (class_loss_val + loc_loss_val) / val_set_size
-            if params.loss > val_loss:
-                torch.save({
-                    'epoch': epoch,
-                    'model_state_dict': model.state_dict(),
-                    'optimizer_state_dict': optimizer.state_dict(),
-                }, SAVE_PATH)
-                params.loss = val_loss
-                params.save('misc/experiments/ssdnet/params.json')
-                print('Model saved succesfully')
+        val_loss = (class_loss_val + loc_loss_val) / val_set_size
+        if params.loss > val_loss:
+            torch.save({
+                'epoch': epoch,
+                'model_state_dict': model.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+            }, SAVE_PATH)
+            params.loss = val_loss
+            params.save('misc/experiments/ssdnet/params.json')
+            print('Model saved succesfully')
 
-            # tensorboard
-            average_precision = 0
-            update_tensorboard_graphs(writer, loc_loss_train, class_loss_train,
-                                      loc_loss_val, class_loss_val, average_precision, epoch)
+        # tensorboard
+        average_precision = 0
+        update_tensorboard_graphs(writer, loc_loss_train, class_loss_train,
+                                  loc_loss_val, class_loss_val, average_precision, epoch)
 
     print('Validation finished')
     return mAP

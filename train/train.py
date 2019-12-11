@@ -31,15 +31,14 @@ def train(model, optimizer, train_loader, valid_loader,
 
     lr_decay_policy = retina_decay.Lr_decay(params.learning_rate)
     losses = [0] * 4
-    one_tenth_of_loader = len(train_loader) // 10
+    one_tenth_of_loader = len(train_loader) // 1000
 
     print(datetime.datetime.now())
     for epoch in range(start_epoch, params.n_epochs):
         model.train()
 
         for batch_idx, (input_, label, _) in enumerate(train_loader):
-            train_step(model, input_, label, anchors, grid_sizes,
-                       optimizer, losses, device, params)
+            train_step(model, input_, label, optimizer, losses, detection_loss, params)
 
             if batch_idx % one_tenth_of_loader == 0 and batch_idx > 0:
                 print_batch_stats(model, epoch, batch_idx, train_loader,
@@ -50,8 +49,8 @@ def train(model, optimizer, train_loader, valid_loader,
 
         if (epoch + 1) % params.eval_step == 0:
             evaluate(model, optimizer, train_loader, valid_loader, losses,
-                     total_ap, epoch, detection_loss, writer, params)
-            losses[2], losses[3], total_ap = 0, 0, 0
+                     epoch, detection_loss, writer, params)
+            losses[2], losses[3] = 0, 0
 
         # lr decay step
         lr_decay_policy.step(optimizer)

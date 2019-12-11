@@ -10,9 +10,6 @@ from train.helpers import *
 from data import dataloaders
 from train import train
 from architectures.models import SSDNet
-<< << << < HEAD
-== == == =
->>>>>> > cross-validation
 
 
 def run(path='misc/experiments/ssdnet/params.json', resume=False, eval_only=False, cross_validate=False):
@@ -71,13 +68,14 @@ def run(path='misc/experiments/ssdnet/params.json', resume=False, eval_only=Fals
 
     if eval_only:
         print('Only eval')
-        evaluate(model, valid_loader, device, optimizer, train_loader=train_loader, writer=writer, losses=[0, 0, 0, 0], epoch=0,
-                 conf_threshold=0.35, suppress_threshold=0.5, cross_validate=False, params=params)
+        losses, epoch = [0, 0, 0, 0], 0
+        evaluate(model, optimizer, train_loader, valid_loader, losses,
+                 epoch, detection_loss, writer, params)
     elif cross_validate:
         cross_validation.cross_validate(model, valid_loader, device, params)
 
     else:
         train.train(model, optimizer, train_loader, valid_loader,
-                    anchors, grid_sizes, writer, device, params, start_epoch)
+                    writer, detection_loss, params, start_epoch)
 
 # run()

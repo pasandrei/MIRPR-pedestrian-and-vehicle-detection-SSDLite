@@ -9,7 +9,7 @@ import copy
 
 class Model_output_handler():
 
-    def __init__(self, device, conf_threshold, suppress_threshold):
+    def __init__(self, device, conf_threshold=0.35, suppress_threshold=0.5):
         self.device = device
         self.unnorm = UnNormalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
         self.confidence_threshold = conf_threshold

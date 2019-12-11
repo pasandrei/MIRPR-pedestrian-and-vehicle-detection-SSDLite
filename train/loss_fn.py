@@ -93,12 +93,12 @@ class Detection_Loss():
         overlaps = jaccard(gt_bbox, hw2corners(self.anchors[:, :2], self.anchors[:, 2:]))
 
         # map each anchor to the highest IOU obj, gt_idx - ids of mapped objects
-        gt_bbox_for_matched_anchors, matched_gt_class_ids, matched_pred_bboxes, pos_idx = map_to_ground_truth(
-            overlaps, gt_bbox, gt_class, pred_bbox)
+        gt_bbox_for_matched_anchors, matched_gt_class_ids, pos_idx = map_to_ground_truth(
+            overlaps, gt_bbox, gt_class)
 
-        loc_loss = ((matched_pred_bboxes - gt_bbox_for_matched_anchors).abs()).mean()
+        loc_loss = ((pred_bbox[pos_idx] - gt_bbox_for_matched_anchors).abs()).mean()
 
-        class_loss = self.class_loss(pred_class, matched_gt_class_ids, matched_pred_bboxes.shape[0])
+        class_loss = self.class_loss(pred_class, matched_gt_class_ids, pos_idx.shape[0])
         return loc_loss, class_loss
 
     def ssd_loss(self, pred, targ):
