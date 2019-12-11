@@ -21,9 +21,9 @@ def model_output_pipeline(params_path):
         model = SSDNet.SSD_Head(params.n_classes)
     model.to(device)
 
-    # checkpoint = torch.load('misc/experiments/{}/model_checkpoint'.format(params.model_id))
-    # model.load_state_dict(checkpoint['model_state_dict'])
-    # print('Model loaded successfully')
+    checkpoint = torch.load('misc/experiments/{}/model_checkpoint'.format(params.model_id))
+    model.load_state_dict(checkpoint['model_state_dict'])
+    print('Model loaded successfully')
 
     _, valid_loader = dataloaders.get_dataloaders(params)
     output_handler = Model_output_handler(device)

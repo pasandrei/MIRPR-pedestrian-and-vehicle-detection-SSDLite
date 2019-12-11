@@ -32,8 +32,8 @@ def prepare_outputs_for_COCOeval(output, image_info, prediction_annotations, pre
             prediction_id += 1
             prediction_annotations.append(
                 {"image_id": image_id, "bbox": bbox,
-                 "score": float(complete_outputs[index][4]),
-                 "category_id": complete_outputs[index][5], "id": prediction_id})
+                 "score": float(complete_outputs[index][5]),
+                 "category_id": int(complete_outputs[index][4]), "id": prediction_id})
 
     return prediction_annotations, prediction_id
 
@@ -53,7 +53,7 @@ def evaluate_on_COCO_metrics(prediction_annotations):
     cocoevalu.summarize()
 
 
-def evaluate(model, optimizer, anchors, grid_sizes, train_loader, valid_loader, losses, total_ap, epoch, device, writer, params):
+def evaluate(model, optimizer, anchors, grid_sizes, train_loader, valid_loader, losses, epoch, device, writer, params):
     '''
     evaluates model performance of the validation set, saves current set if it is better that the best so far
     '''
@@ -65,9 +65,6 @@ def evaluate(model, optimizer, anchors, grid_sizes, train_loader, valid_loader, 
 
     print('Average train loss at eval start: Localization: {}; Classification: {}'.format(
         loc_loss_train, class_loss_train))
-
-    ap = total_ap / eval_step_avg_factor
-    print('Average train precision at eval start: {}'.format(ap))
 
     print('Validation start...')
 

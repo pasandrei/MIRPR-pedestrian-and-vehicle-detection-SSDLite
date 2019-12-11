@@ -1,8 +1,10 @@
 from train.helpers import *
 from misc.postprocessing import *
+from misc.utils import *
 from my_tests import anchor_mapping
 
 import numpy as np
+import copy
 
 
 class Model_output_handler():
@@ -10,7 +12,7 @@ class Model_output_handler():
     def __init__(self, device):
         self.device = device
         self.unnorm = UnNormalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
-        self.confidence_threshold = 0.25
+        self.confidence_threshold = 0.35
         anchors, grid_sizes = create_anchors()
         self.anchors_hw, self.grid_sizes = anchors.to(self.device), grid_sizes.to(self.device)
         self.corner_anchors = hw2corners(anchors[:, :2], anchors[:, 2:])
@@ -26,7 +28,8 @@ class Model_output_handler():
         indeces_kept_by_nms = nms(prediction_bboxes)
 
         # new structure: array of bbox, class, confidence
-
+        # for some reason, bboxes should be WH format
+        prediction_bboxes = corners_to_wh(prediction_bboxes)
         complete_outputs = np.concatenate(
             (prediction_bboxes, predicted_classes, highest_confidence_for_predictions), axis=1)
 
@@ -151,11 +154,12 @@ class Model_output_handler():
         returns: bboxes upscaled by height and width as numpy array on cpu
         """
         height, width = size
-        bboxes[:, 0] *= height
-        bboxes[:, 2] *= height
-        bboxes[:, 1] *= width
-        bboxes[:, 3] *= width
-        return (bboxes.cpu().numpy()).astype(int)
+        scale_bboxes = copy.deepcopy(bboxes)
+        scale_bboxes[:, 0] *= height
+        scale_bboxes[:, 2] *= height
+        scale_bboxes[:, 1] *= width
+        scale_bboxes[:, 3] *= width
+        return (scale_bboxes.cpu().numpy()).astype(int)
 
 
 class UnNormalize(object):

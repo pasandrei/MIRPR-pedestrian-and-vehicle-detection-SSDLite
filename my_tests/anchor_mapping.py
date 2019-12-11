@@ -5,7 +5,6 @@ import numpy as np
 
 from train.helpers import *
 from misc.postprocessing import *
-from misc.metrics import get_IoU
 
 
 def test(raw_bbox, image, anchors, pred_bbox, highest_confidence_for_prediction, gt_bbox, pos_idx, high_confidence_indeces, indeces_kept_by_nms, size):
@@ -29,24 +28,21 @@ def test(raw_bbox, image, anchors, pred_bbox, highest_confidence_for_prediction,
 
     print("Matched ANCHORS WITH THEIR RESPECTIVE OFFSET PREDICTIONS: ")
     print(matched_anchors, matched_anchors.shape)
-    print(matched_bbox, matched_bbox.shape)
-    for i in range(len(matched_anchors)):
-        cur_anchor_bbox = matched_anchors[i]
-        cur_pred_bbox = matched_bbox[i]
-        plot_bounding_boxes(image, cur_anchor_bbox, "ANCHOR", size)
-        plot_bounding_boxes(image, cur_pred_bbox, "PRED FROM ANCHOR")
-        print('Confidence for this pair of anchor/pred: ',
-              highest_confidence_for_prediction[i], size)
+    # for i in range(len(matched_anchors)):
+    #     cur_anchor_bbox = matched_anchors[i]
+    #     cur_pred_bbox = matched_bbox[i]
+    #     plot_bounding_boxes(image, cur_anchor_bbox, "ANCHOR", size)
+    #     plot_bounding_boxes(image, cur_pred_bbox, "PRED FROM ANCHOR")
+    #     print('Confidence for this pair of anchor/pred: ',
+    #           highest_confidence_for_prediction[i], size)
 
     print("Matched Pred BBOXES: ", matched_bbox, matched_bbox.shape)
-    print('CONFIDENCES FOR PREDICTED BBOXES: ', highest_confidence_for_prediction[pos_idx])
+    print('CONFIDENCES FOR PREDICTED BBOXES: ', highest_confidence_for_prediction)
     plot_bounding_boxes(image, matched_bbox, "PREDICTED (CHEATED) BY THE NETWORK", size)
+    plot_bounding_boxes(image, matched_anchors, "MATCHED ANCHORS", size)
 
-    print("INDECES KEPT BY CONFIDENCE", high_confidence_indeces)
-    high_confidence_anchors = anchors[high_confidence_indeces]
     print("THIS IS PRED BBOX KEPT BY CONFIDENCE", pred_bbox,
           pred_bbox.shape)
-    plot_bounding_boxes(image, high_confidence_anchors, "HIGH CONFIDENCE ANCHORS", size)
     plot_bounding_boxes(image, pred_bbox, "ACTUAL MODEL OUTPUTS", size)
     post_nms_predictions = pred_bbox[indeces_kept_by_nms]
     plot_bounding_boxes(
