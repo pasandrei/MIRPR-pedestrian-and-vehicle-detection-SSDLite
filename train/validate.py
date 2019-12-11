@@ -2,7 +2,6 @@ import torch
 import datetime
 import json
 
-from train.loss_fn import ssd_loss
 from misc.postprocessing import convert_output_to_workable_data, after_nms, predictions_over_threshold, get_predicted_class, corners_to_wh
 from pycocotools.cocoeval import COCOeval
 from pycocotools.coco import COCO
@@ -68,10 +67,11 @@ def evaluate_on_COCO_metrics(prediction_annotations):
     cocoevalu.summarize()
 
 
-def evaluate(model, optimizer, anchors, grid_sizes, train_loader, valid_loader, losses, total_ap, epoch, device, writer, params):
+def evaluate(model, optimizer, train_loader, valid_loader, losses, total_ap, epoch, detection_loss, writer, params):
     '''
     evaluates model performance of the validation set, saves current set if it is better that the best so far
     '''
+
     eval_step_avg_factor = params.eval_step * len(train_loader.sampler.sampler)
     loc_loss_train, class_loss_train = losses[2] / \
         eval_step_avg_factor, losses[3] / eval_step_avg_factor
@@ -98,8 +98,8 @@ def evaluate(model, optimizer, anchors, grid_sizes, train_loader, valid_loader, 
             input_ = input_.to(detection_loss.device)
             output = model(input_)
 
-            prediction_annotations, prediction_id = prepare_outputs_for_COCOeval(
-                output, anchors, grid_sizes, image_info, prediction_annotations, prediction_id)
+            # prediction_annotations, prediction_id = prepare_outputs_for_COCOeval(
+            #     output, anchors, grid_sizes, image_info, prediction_annotations, prediction_id)
 
             loc_loss, class_loss = detection_loss.ssd_loss(output, label)
             loc_loss_val += loc_loss.item()
@@ -115,22 +115,22 @@ def evaluate(model, optimizer, anchors, grid_sizes, train_loader, valid_loader, 
 
         SAVE_PATH = 'misc/experiments/{}/model_checkpoint'.format(params.model_id)
 
-        evaluate_on_COCO_metrics(prediction_annotations)
-
-        val_loss = (class_loss_val + loc_loss_val) / val_set_size
-        if params.loss > val_loss:
-            torch.save({
-                'epoch': epoch,
-                'model_state_dict': model.state_dict(),
-                'optimizer_state_dict': optimizer.state_dict(),
-            }, SAVE_PATH)
-            params.loss = val_loss
-            params.save('misc/experiments/ssdnet/params.json')
-            print('Model saved succesfully')
-
-        # tensorboard
-        average_precision = 0
-        update_tensorboard_graphs(writer, loc_loss_train, class_loss_train,
-                                  loc_loss_val, class_loss_val, average_precision, epoch)
+        # evaluate_on_COCO_metrics(prediction_annotations)
+        #
+        # val_loss = (class_loss_val + loc_loss_val) / val_set_size
+        # if params.loss > val_loss:
+        #     torch.save({
+        #         'epoch': epoch,
+        #         'model_state_dict': model.state_dict(),
+        #         'optimizer_state_dict': optimizer.state_dict(),
+        #     }, SAVE_PATH)
+        #     params.loss = val_loss
+        #     params.save('misc/experiments/ssdnet/params.json')
+        #     print('Model saved succesfully')
+        #
+        # # tensorboard
+        # average_precision = 0
+        # update_tensorboard_graphs(writer, loc_loss_train, class_loss_train,
+        #                           loc_loss_val, class_loss_val, average_precision, epoch)
 
     print('Validation finished')
