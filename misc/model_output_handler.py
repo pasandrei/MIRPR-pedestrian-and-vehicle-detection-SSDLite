@@ -9,10 +9,11 @@ import copy
 
 class Model_output_handler():
 
-    def __init__(self, device):
+    def __init__(self, device, conf_threshold, suppress_threshold):
         self.device = device
         self.unnorm = UnNormalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
-        self.confidence_threshold = 0.35
+        self.confidence_threshold = conf_threshold
+        self.suppress_threshold = suppress_threshold
         anchors, grid_sizes = create_anchors()
         self.anchors_hw, self.grid_sizes = anchors.to(self.device), grid_sizes.to(self.device)
         self.corner_anchors = hw2corners(anchors[:, :2], anchors[:, 2:])
@@ -25,7 +26,7 @@ class Model_output_handler():
         prediction_bboxes, predicted_classes, highest_confidence_for_predictions, _ = self.__get_sorted_predictions(
             bbox_predictions, classification_predictions, image_info)
 
-        indeces_kept_by_nms = nms(prediction_bboxes)
+        indeces_kept_by_nms = nms(prediction_bboxes, self.suppress_threshold)
 
         # new structure: array of bbox, class, confidence
         # for some reason, bboxes should be WH format

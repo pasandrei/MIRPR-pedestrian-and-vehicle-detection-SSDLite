@@ -7,12 +7,13 @@ from train.helpers import *
 from data import dataloaders
 from train import train
 from architectures.models import SSDNet
+from misc import cross_validation
 
 
 from torch.utils.tensorboard import SummaryWriter
 
 
-def run(path='misc/experiments/ssdnet/params.json', resume=False, eval_only=False):
+def run(path='misc/experiments/ssdnet/params.json', resume=False, eval_only=False, cross_validate=False):
     '''
     args: path - string path to the json config file
     trains model refered by that file, saves model and optimizer dict at the same location
@@ -69,9 +70,13 @@ def run(path='misc/experiments/ssdnet/params.json', resume=False, eval_only=Fals
 
         losses = [0, 0, 0, 0]
         epoch = 0
-        evaluate(model, optimizer, anchors, grid_sizes, train_loader,
-                 valid_loader, losses, epoch, device, writer, params)
+        evaluate(model, valid_loader, device, optimizer, train_loader=train_loader, writer=writer, losses=[0, 0, 0, 0], epoch=0,
+                 conf_threshold=0.35, suppress_threshold=0.5, cross_validate=False, params=params)
+    elif cross_validate:
+        cross_validation.cross_validate(model, valid_loader, device, params)
+
     else:
         train.train(model, optimizer, train_loader, valid_loader,
                     anchors, grid_sizes, writer, device, params, start_epoch)
+
 # run()

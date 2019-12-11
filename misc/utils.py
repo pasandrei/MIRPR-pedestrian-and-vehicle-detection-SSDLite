@@ -67,3 +67,50 @@ def corners_to_wh(prediction_bboxes):
         prediction_bboxes[index][3] = height
 
     return prediction_bboxes
+
+
+def update_tensorboard_graphs(writer, loc_loss_train, class_loss_train, loc_loss_val, class_loss_val, average_precision, epoch):
+    writer.add_scalar('Localization Loss/train', loc_loss_train, epoch)
+    writer.add_scalar('Classification Loss/train', class_loss_train, epoch)
+    writer.add_scalar('Localization Loss/val', loc_loss_val, epoch)
+    writer.add_scalar('Classification Loss/val', class_loss_val, epoch)
+    writer.add_scalar('Precision', average_precision, epoch)
+
+
+def prepare_outputs_for_COCOeval(output, image_info, prediction_annotations, prediction_id, output_handler):
+    batch_size = output[0].shape[0]
+
+    for i in range(batch_size):
+
+        image_id = image_info[i][0]
+
+        complete_outputs = output_handler.process_outputs(
+            output[0][i], output[1][i], image_info[i])
+
+        for index in range(complete_outputs.shape[0]):
+            bbox = [int(x) for x in complete_outputs[index][:4]]
+
+            prediction_id += 1
+            prediction_annotations.append(
+                {"image_id": image_id, "bbox": bbox,
+                 "score": float(complete_outputs[index][5]),
+                 "category_id": int(complete_outputs[index][4]), "id": prediction_id})
+
+    return prediction_annotations, prediction_id
+
+
+def evaluate_on_COCO_metrics(prediction_annotations):
+    with open("fisierul.json", 'w') as f:
+        json.dump(prediction_annotations, f)
+
+    graundtrutu = COCO('..\\..\\COCO\\annotations\\instances_val2017.json')
+    predictile = graundtrutu.loadRes(
+        'C:\\Users\\Andrei Popovici\\Documents\\GitHub\\drl_zice_ca_se_poate_schimba_DA_MA\\fisierul.json')
+
+    cocoevalu = COCOeval(graundtrutu, predictile, iouType='bbox')
+
+    cocoevalu.evaluate()
+    cocoevalu.accumulate()
+    cocoevalu.summarize()
+
+    return cocoevalu.summarize()._summarize(1)

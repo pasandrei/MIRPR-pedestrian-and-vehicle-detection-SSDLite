@@ -49,8 +49,8 @@ def train(model, optimizer, train_loader, valid_loader,
                     print('Current learning_rate:', pg['lr'])
 
         if (epoch + 1) % params.eval_step == 0:
-            evaluate(model, optimizer, anchors, grid_sizes, train_loader,
-                     valid_loader, losses, epoch, device, writer, params)
+            evaluate(model, valid_loader, device, optimizer=optimizer, train_loader=train_loader, writer=writer, losses=losses, epoch=epoch,
+                     conf_threshold=0.35, suppress_threshold=0.5, cross_validate=False, params=params)
             losses[2], losses[3] = 0, 0, 0
 
         # lr decay step
