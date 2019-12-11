@@ -46,7 +46,7 @@ def activations_to_bboxes(actn, anchors, grid_sizes):
     return hw2corners(actn_centers, actn_hw)
 
 
-def map_to_ground_truth(overlaps, gt_bbox, gt_class, pred_bbox):
+def map_to_ground_truth(overlaps, gt_bbox, gt_class):
     """ maps priors to max IOU obj
    returns:
    - gt_bbox_for_matched_anchors: tensor of size matched_priors x 4 - essentially assigning GT bboxes to corresponding highest IOU priors
@@ -74,7 +74,7 @@ def map_to_ground_truth(overlaps, gt_bbox, gt_class, pred_bbox):
     gt_bbox_for_matched_anchors = raw_matched_bbox[pos_idx]
 
     # so now we have the GT represented with priors
-    return gt_bbox_for_matched_anchors, matched_gt_class_ids, pred_bbox[pos_idx], pos_idx
+    return gt_bbox_for_matched_anchors, matched_gt_class_ids, pos_idx
 
 
 def create_anchors():
