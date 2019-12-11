@@ -1,3 +1,6 @@
+from torch.utils.tensorboard import SummaryWriter
+from misc import cross_validation
+from train.loss_fn import Detection_Loss
 import torch
 import torch.optim as optim
 
@@ -7,13 +10,12 @@ from train.helpers import *
 from data import dataloaders
 from train import train
 from architectures.models import SSDNet
-from train.loss_fn import Detection_Loss
+<< << << < HEAD
+== == == =
+>>>>>> > cross-validation
 
 
-from torch.utils.tensorboard import SummaryWriter
-
-
-def run(path='misc/experiments/ssdnet/params.json', resume=False, eval_only=False):
+def run(path='misc/experiments/ssdnet/params.json', resume=False, eval_only=False, cross_validate=False):
     '''
     args: path - string path to the json config file
     trains model refered by that file, saves model and optimizer dict at the same location
@@ -45,10 +47,10 @@ def run(path='misc/experiments/ssdnet/params.json', resume=False, eval_only=Fals
 
     start_epoch = 0
     if resume or eval_only:
-        checkpoint = torch.load('misc/experiments/{}/model_checkpoint'.format(params.model_id))
-        model.load_state_dict(checkpoint['model_state_dict'])
-        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-        start_epoch = checkpoint['epoch']
+        # checkpoint = torch.load('misc/experiments/{}/model_checkpoint'.format(params.model_id))
+        # model.load_state_dict(checkpoint['model_state_dict'])
+        # optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        # start_epoch = checkpoint['epoch']
         print('Model loaded successfully')
 
         # for pg in optimizer.param_groups:
@@ -69,12 +71,13 @@ def run(path='misc/experiments/ssdnet/params.json', resume=False, eval_only=Fals
 
     if eval_only:
         print('Only eval')
+        evaluate(model, valid_loader, device, optimizer, train_loader=train_loader, writer=writer, losses=[0, 0, 0, 0], epoch=0,
+                 conf_threshold=0.35, suppress_threshold=0.5, cross_validate=False, params=params)
+    elif cross_validate:
+        cross_validation.cross_validate(model, valid_loader, device, params)
 
-        losses = [0, 0, 0, 0]
-        epoch, total_ap = 0, 0
-        evaluate(model, optimizer, train_loader,
-                 valid_loader, losses, total_ap, epoch, detection_loss, writer, params)
     else:
         train.train(model, optimizer, train_loader, valid_loader,
-                    writer, detection_loss, params, start_epoch)
+                    anchors, grid_sizes, writer, device, params, start_epoch)
+
 # run()

@@ -3,8 +3,6 @@ from train.validate import evaluate
 from train.lr_policies import constant_decay, retina_decay
 from misc.print_stats import *
 
-from misc.metrics import calculate_AP
-
 import datetime
 
 
@@ -21,9 +19,6 @@ def train_step(model, input_, label, optimizer, losses, detection_loss, params):
     loss.backward()
     optimizer.step()
 
-    # ap for batch
-    return calculate_AP(output, label, detection_loss.anchors, detection_loss.grid_sizes)
-
 
 def train(model, optimizer, train_loader, valid_loader,
           writer, detection_loss, params, start_epoch=0):
@@ -36,7 +31,6 @@ def train(model, optimizer, train_loader, valid_loader,
 
     lr_decay_policy = retina_decay.Lr_decay(params.learning_rate)
     losses = [0] * 4
-    total_ap = 0
     one_tenth_of_loader = len(train_loader) // 10
 
     print(datetime.datetime.now())
@@ -44,15 +38,12 @@ def train(model, optimizer, train_loader, valid_loader,
         model.train()
 
         for batch_idx, (input_, label, _) in enumerate(train_loader):
-            cur_batch_ap = train_step(model, input_, label, optimizer,
-                                      losses, detection_loss, params)
-            total_ap += cur_batch_ap
+            train_step(model, input_, label, anchors, grid_sizes,
+                       optimizer, losses, device, params)
 
             if batch_idx % one_tenth_of_loader == 0 and batch_idx > 0:
                 print_batch_stats(model, epoch, batch_idx, train_loader,
                                   losses, params)
-                nr_images = (batch_idx + 1) * params.batch_size
-                print("Average precision: ", total_ap / nr_images)
                 losses[0], losses[1] = 0, 0
                 for pg in optimizer.param_groups:
                     print('Current learning_rate:', pg['lr'])
