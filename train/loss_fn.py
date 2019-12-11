@@ -60,11 +60,11 @@ def ssd_1_loss(pred_bbox, pred_class, gt_bbox, gt_class, anchors, grid_sizes, de
 
     # map each anchor to the highest IOU obj, gt_idx - ids of mapped objects
     gt_bbox_for_matched_anchors, matched_gt_class_ids, pos_idx = map_to_ground_truth(
-        overlaps, gt_bbox, gt_class, pred_bbox)
+        overlaps, gt_bbox, gt_class)
 
     loc_loss = ((pred_bbox[pos_idx] - gt_bbox_for_matched_anchors).abs()).mean()
 
-    loss_f = BCE_Loss(params.n_classes, device, matched_pred_bboxes.shape[0])
+    loss_f = BCE_Loss(params.n_classes, device, pos_idx.shape[0])
     class_loss = loss_f(pred_class, matched_gt_class_ids)
     return loc_loss, class_loss
 

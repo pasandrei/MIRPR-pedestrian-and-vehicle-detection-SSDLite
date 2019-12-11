@@ -3,7 +3,6 @@ import datetime
 import json
 
 from train.loss_fn import ssd_loss
-from misc.postprocessing import convert_output_to_workable_data, after_nms, predictions_over_threshold, get_predicted_class, corners_to_wh
 from pycocotools.cocoeval import COCOeval
 from pycocotools.coco import COCO
 from misc.model_output_handler import *
@@ -25,18 +24,16 @@ def prepare_outputs_for_COCOeval(output, image_info, prediction_annotations, pre
         image_id = image_info[i][0]
 
         complete_outputs = output_handler.process_outputs(
-            self, output[0][i], output[1][i], image_info[i][1])
+            output[0][i], output[1][i], image_info[i])
 
-        # print("SHAPE de prediction idnex:", prediction_index.shape)
-
-        for index in range(prediction_bboxes.shape[0]):
-            python_category_id = [int(x) for x in prediction_bboxes[index]]
+        for index in range(complete_outputs.shape[0]):
+            bbox = [int(x) for x in complete_outputs[index][:4]]
 
             prediction_id += 1
             prediction_annotations.append(
-                {"image_id": image_id, "bbox": python_category_id,
-                 "score": float(predicted_confidences[index]),
-                 "category_id": category_id, "id": prediction_id})
+                {"image_id": image_id, "bbox": bbox,
+                 "score": float(complete_outputs[index][4]),
+                 "category_id": complete_outputs[index][5], "id": prediction_id})
 
     return prediction_annotations, prediction_id
 
@@ -89,7 +86,7 @@ def evaluate(model, optimizer, anchors, grid_sizes, train_loader, valid_loader, 
             output = model(input_)
 
             prediction_annotations, prediction_id = prepare_outputs_for_COCOeval(
-                output, anchors, grid_sizes, image_info, prediction_annotations, prediction_id, output_handler)
+                output, image_info, prediction_annotations, prediction_id, output_handler)
 
             loc_loss, class_loss = ssd_loss(output, label, anchors, grid_sizes, device, params)
             loc_loss_val += loc_loss.item()

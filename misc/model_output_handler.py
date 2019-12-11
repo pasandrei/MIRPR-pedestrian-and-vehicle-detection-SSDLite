@@ -82,7 +82,6 @@ class Model_output_handler():
         prediction_bboxes, predicted_classes, highest_confidence_for_predictions, high_confidence_indeces = self.__sort_predictions_by_confidence(
             prediction_bboxes, prediction_confidences)
 
-        predicted_classes = np.reshape(predicted_classes, (predicted_classes.shape[0], 1))
         highest_confidence_for_predictions = np.reshape(
             highest_confidence_for_predictions, (highest_confidence_for_predictions.shape[0], 1))
 
@@ -122,11 +121,13 @@ class Model_output_handler():
         idx2id, predicted_classes = {0: 1, 1: 3}, []
         for x in predicted_idxs:
             predicted_classes.append(idx2id[x])
+        predicted_classes = np.array(predicted_classes)
+        predicted_classes = np.reshape(predicted_classes, (predicted_classes.shape[0], 1))
 
         highest_confidence_for_predictions = np.amax(
             prediction_confidences, axis=1)
 
-        return np.array(predicted_classes), highest_confidence_for_predictions
+        return predicted_classes, highest_confidence_for_predictions
 
     def __convert_bboxes_to_workable_data(self, prediction_bboxes, size):
         height, width = size
