@@ -1,5 +1,10 @@
 import numpy as np
 import cv2
+import json
+
+
+from pycocotools.cocoeval import COCOeval
+from pycocotools.coco import COCO
 
 
 def plot_bounding_boxes(image, bounding_boxes, message='no_message', size=(500, 500), ok=0):
@@ -113,4 +118,4 @@ def evaluate_on_COCO_metrics(prediction_annotations):
     cocoevalu.accumulate()
     cocoevalu.summarize()
 
-    return cocoevalu.summarize()._summarize(1)
+    return cocoevalu.stats[1]

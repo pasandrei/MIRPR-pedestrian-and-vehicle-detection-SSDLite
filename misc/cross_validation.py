@@ -1,5 +1,6 @@
 from misc.model_output_handler import *
 from train import validate
+import torch
 
 
 def cross_validate(model, valid_loader, device, params):
@@ -27,6 +28,8 @@ def cross_validate(model, valid_loader, device, params):
             output_handler = Model_output_handler(
                 device, cur_conf_threshold, cur_suppress_threshold)
 
+            cur_conf_threshold = torch.tensor(cur_conf_threshold).to(device)
+            cur_suppress_threshold = torch.tensor(cur_suppress_threshold).to(device)
             cur_mAP = validate.evaluate(model, valid_loader, device, optimizer=None, conf_threshold=cur_conf_threshold,
                                         suppress_threshold=cur_suppress_threshold, cross_validate=True, params=params)
 
