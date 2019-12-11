@@ -64,7 +64,7 @@ def map_to_ground_truth(overlaps, gt_bbox, gt_class):
 
     # for each prior, get the actual id of the class it should predict, unmatched anchors (low IOU) should predict background
     matched_gt_class_ids = gt_class[prior_to_gt_idx]
-    pos = prior_to_gt_overlap > 0.4
+    pos = prior_to_gt_overlap > 0.6
     matched_gt_class_ids[~pos] = 100  # background code
 
     # for each matched prior, get the bbox it should predict
