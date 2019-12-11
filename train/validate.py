@@ -56,7 +56,7 @@ class Model_evaluator():
                 if batch_idx % one_tenth_of_loader == 0 and batch_idx > 0:
                     # nr_images = (batch_idx + 1) * self.params.batch_size
                     nr_images = 100
-
+                    print(datetime.datetime.now())
                     print("Average Loc Loss: ", loc_loss_val /
                           nr_images)
                     print("Average Class Loss: ", class_loss_val /
@@ -95,7 +95,7 @@ class Model_evaluator():
         model.eval()
         with torch.no_grad():
             loc_loss_val, class_loss_val = 0, 0
-            one_tenth_of_loader = len(self.valid_loader) // 10
+            one_tenth_of_loader = len(self.valid_loader) // 1000
 
             prediction_annotations = []
             prediction_id = 0
@@ -114,7 +114,7 @@ class Model_evaluator():
                 if batch_idx % one_tenth_of_loader == 0 and batch_idx > 0:
                     # nr_images = (batch_idx + 1) * self.params.batch_size
                     nr_images = 100
-
+                    print(datetime.datetime.now())
                     print("Average Loc Loss: ", loc_loss_val /
                           nr_images)
                     print("Average Class Loss: ", class_loss_val /
