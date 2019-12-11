@@ -4,8 +4,6 @@ from train.validate import evaluate
 from train.lr_policies import constant_decay, retina_decay
 from misc.print_stats import *
 
-from misc.metrics import calculate_AP
-
 import datetime
 
 
@@ -22,9 +20,6 @@ def train_step(model, input_, label, anchors, grid_sizes, optimizer, losses, dev
     loss.backward()
     optimizer.step()
 
-    # ap for batch
-    return calculate_AP(output, label, anchors, grid_sizes)
-
 
 def train(model, optimizer, train_loader, valid_loader,
           anchors, grid_sizes, writer, device, params, start_epoch=0):
@@ -36,7 +31,6 @@ def train(model, optimizer, train_loader, valid_loader,
     '''
     lr_decay_policy = retina_decay.Lr_decay(params.learning_rate)
     losses = [0] * 4
-    total_ap = 0
     one_tenth_of_loader = len(train_loader) // 10
 
     print(datetime.datetime.now())
@@ -44,23 +38,20 @@ def train(model, optimizer, train_loader, valid_loader,
         model.train()
 
         for batch_idx, (input_, label, _) in enumerate(train_loader):
-            cur_batch_ap = train_step(model, input_, label, anchors, grid_sizes,
-                                      optimizer, losses, device, params)
-            total_ap += cur_batch_ap
+            train_step(model, input_, label, anchors, grid_sizes,
+                       optimizer, losses, device, params)
 
             if batch_idx % one_tenth_of_loader == 0 and batch_idx > 0:
                 print_batch_stats(model, epoch, batch_idx, train_loader,
                                   losses, params)
-                nr_images = (batch_idx + 1) * params.batch_size
-                print("Average precision: ", total_ap / nr_images)
                 losses[0], losses[1] = 0, 0
                 for pg in optimizer.param_groups:
                     print('Current learning_rate:', pg['lr'])
 
         if (epoch + 1) % params.eval_step == 0:
             evaluate(model, optimizer, anchors, grid_sizes, train_loader,
-                     valid_loader, losses, total_ap, epoch, device, writer, params)
-            losses[2], losses[3], total_ap = 0, 0, 0
+                     valid_loader, losses, epoch, device, writer, params)
+            losses[2], losses[3] = 0, 0, 0
 
         # lr decay step
         lr_decay_policy.step(optimizer)

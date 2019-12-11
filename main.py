@@ -68,9 +68,9 @@ def run(path='misc/experiments/ssdnet/params.json', resume=False, eval_only=Fals
         print('Only eval')
 
         losses = [0, 0, 0, 0]
-        epoch, total_ap = 0, 0
+        epoch = 0
         evaluate(model, optimizer, anchors, grid_sizes, train_loader,
-                 valid_loader, losses, total_ap, epoch, device, writer, params)
+                 valid_loader, losses, epoch, device, writer, params)
     else:
         train.train(model, optimizer, train_loader, valid_loader,
                     anchors, grid_sizes, writer, device, params, start_epoch)

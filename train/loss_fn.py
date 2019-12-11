@@ -59,12 +59,12 @@ def ssd_1_loss(pred_bbox, pred_class, gt_bbox, gt_class, anchors, grid_sizes, de
     overlaps = jaccard(gt_bbox, hw2corners(anchors[:, :2], anchors[:, 2:]))
 
     # map each anchor to the highest IOU obj, gt_idx - ids of mapped objects
-    gt_bbox_for_matched_anchors, matched_gt_class_ids, matched_pred_bboxes, pos_idx = map_to_ground_truth(
-        overlaps, gt_bbox, gt_class, pred_bbox)
+    gt_bbox_for_matched_anchors, matched_gt_class_ids, pos_idx = map_to_ground_truth(
+        overlaps, gt_bbox, gt_class)
 
-    loc_loss = ((matched_pred_bboxes - gt_bbox_for_matched_anchors).abs()).mean()
+    loc_loss = ((pred_bbox[pos_idx] - gt_bbox_for_matched_anchors).abs()).mean()
 
-    loss_f = BCE_Loss(params.n_classes, device, matched_pred_bboxes.shape[0])
+    loss_f = BCE_Loss(params.n_classes, device, pos_idx.shape[0])
     class_loss = loss_f(pred_class, matched_gt_class_ids)
     return loc_loss, class_loss
 

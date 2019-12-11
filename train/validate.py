@@ -3,9 +3,9 @@ import datetime
 import json
 
 from train.loss_fn import ssd_loss
-from misc.postprocessing import convert_output_to_workable_data, after_nms, predictions_over_threshold, get_predicted_class, corners_to_wh
 from pycocotools.cocoeval import COCOeval
 from pycocotools.coco import COCO
+from misc.model_output_handler import *
 
 
 def update_tensorboard_graphs(writer, loc_loss_train, class_loss_train, loc_loss_val, class_loss_val, average_precision, epoch):
@@ -16,39 +16,24 @@ def update_tensorboard_graphs(writer, loc_loss_train, class_loss_train, loc_loss
     writer.add_scalar('Precision', average_precision, epoch)
 
 
-def prepare_outputs_for_COCOeval(output, anchors, grid_sizes, image_info, prediction_annotations, prediction_id):
+def prepare_outputs_for_COCOeval(output, image_info, prediction_annotations, prediction_id, output_handler):
     batch_size = output[0].shape[0]
 
     for i in range(batch_size):
-        prediction_bboxes, predicted_confidences = convert_output_to_workable_data(
-            output[0][i], output[1][i], anchors, grid_sizes, image_info[i][1])
-
-        prediction_bboxes, predicted_confidences = predictions_over_threshold(
-            prediction_bboxes, predicted_confidences, 0.25)
-
-        prediction_bboxes, predicted_confidences = after_nms(
-            prediction_bboxes, predicted_confidences)
-
-        prediction_bboxes = corners_to_wh(prediction_bboxes)
-        prediction_index, predicted_confidences = get_predicted_class(predicted_confidences)
 
         image_id = image_info[i][0]
 
-        # print("SHAPE de prediction idnex:", prediction_index.shape)
+        complete_outputs = output_handler.process_outputs(
+            output[0][i], output[1][i], image_info[i])
 
-        for index in range(prediction_bboxes.shape[0]):
-            if prediction_index[index] == 0:
-                category_id = 1
-            else:
-                category_id = 3
-
-            python_category_id = [int(x) for x in prediction_bboxes[index]]
+        for index in range(complete_outputs.shape[0]):
+            bbox = [int(x) for x in complete_outputs[index][:4]]
 
             prediction_id += 1
             prediction_annotations.append(
-                {"image_id": image_id, "bbox": python_category_id,
-                 "score": float(predicted_confidences[index]),
-                 "category_id": category_id, "id": prediction_id})
+                {"image_id": image_id, "bbox": bbox,
+                 "score": float(complete_outputs[index][5]),
+                 "category_id": int(complete_outputs[index][4]), "id": prediction_id})
 
     return prediction_annotations, prediction_id
 
@@ -68,19 +53,18 @@ def evaluate_on_COCO_metrics(prediction_annotations):
     cocoevalu.summarize()
 
 
-def evaluate(model, optimizer, anchors, grid_sizes, train_loader, valid_loader, losses, total_ap, epoch, device, writer, params):
+def evaluate(model, optimizer, anchors, grid_sizes, train_loader, valid_loader, losses, epoch, device, writer, params):
     '''
     evaluates model performance of the validation set, saves current set if it is better that the best so far
     '''
+    output_handler = Model_output_handler(device)
+
     eval_step_avg_factor = params.eval_step * len(train_loader.sampler.sampler)
     loc_loss_train, class_loss_train = losses[2] / \
         eval_step_avg_factor, losses[3] / eval_step_avg_factor
 
     print('Average train loss at eval start: Localization: {}; Classification: {}'.format(
         loc_loss_train, class_loss_train))
-
-    ap = total_ap / eval_step_avg_factor
-    print('Average train precision at eval start: {}'.format(ap))
 
     print('Validation start...')
 
@@ -99,7 +83,7 @@ def evaluate(model, optimizer, anchors, grid_sizes, train_loader, valid_loader, 
             output = model(input_)
 
             prediction_annotations, prediction_id = prepare_outputs_for_COCOeval(
-                output, anchors, grid_sizes, image_info, prediction_annotations, prediction_id)
+                output, image_info, prediction_annotations, prediction_id, output_handler)
 
             loc_loss, class_loss = ssd_loss(output, label, anchors, grid_sizes, device, params)
             loc_loss_val += loc_loss.item()
