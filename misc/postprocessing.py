@@ -6,7 +6,7 @@ from misc.utils import *
 # postprocess
 
 
-def nms(bounding_boxes, threshold=0.5):
+def nms(bounding_boxes, predicted_classes, threshold=0.5):
     """
     args:
         bounding_boxes: nr_bboxes x 4 sorted by confidence
@@ -28,7 +28,7 @@ def nms(bounding_boxes, threshold=0.5):
         for index in range(indices.shape[0]):
             IoU = get_IoU(prediction, bounding_boxes[indices[index]])
 
-            if IoU < threshold:
+            if IoU < threshold or (predicted_classes[indices[0]] != predicted_classes[indices[index]]):
                 to_keep.append(index)
 
         indices = indices[to_keep]

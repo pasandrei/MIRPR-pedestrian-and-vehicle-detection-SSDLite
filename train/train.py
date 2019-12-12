@@ -1,19 +1,17 @@
-from train.loss_fn import ssd_loss
 from train.helpers import *
-from train.validate import evaluate
 from train.lr_policies import constant_decay, retina_decay
 from misc.print_stats import *
 
 import datetime
 
 
-def train_step(model, input_, label, anchors, grid_sizes, optimizer, losses, device, params):
+def train_step(model, input_, label, optimizer, losses, detection_loss, params):
     # print(datetime.datetime.now())
-    input_ = input_.to(device)
+    input_ = input_.to(detection_loss.device)
 
     optimizer.zero_grad()
     output = model(input_)
-    l_loss, c_loss = ssd_loss(output, label, anchors, grid_sizes, device, params)
+    l_loss, c_loss = detection_loss.ssd_loss(output, label)
     loss = l_loss + c_loss
 
     update_losses(losses, l_loss.item(), c_loss.item())
@@ -21,14 +19,14 @@ def train_step(model, input_, label, anchors, grid_sizes, optimizer, losses, dev
     optimizer.step()
 
 
-def train(model, optimizer, train_loader, valid_loader,
-          anchors, grid_sizes, writer, device, params, start_epoch=0):
+def train(model, optimizer, train_loader, model_evaluator, detection_loss, params, start_epoch=0):
     '''
     args: model - nn.Module CNN to train
           optimizer - torch.optim
           params - json config
     trains model, saves best model by validation
     '''
+
     lr_decay_policy = retina_decay.Lr_decay(params.learning_rate)
     losses = [0] * 4
     one_tenth_of_loader = len(train_loader) // 10
@@ -38,8 +36,7 @@ def train(model, optimizer, train_loader, valid_loader,
         model.train()
 
         for batch_idx, (input_, label, _) in enumerate(train_loader):
-            train_step(model, input_, label, anchors, grid_sizes,
-                       optimizer, losses, device, params)
+            train_step(model, input_, label, optimizer, losses, detection_loss, params)
 
             if batch_idx % one_tenth_of_loader == 0 and batch_idx > 0:
                 print_batch_stats(model, epoch, batch_idx, train_loader,
@@ -49,31 +46,11 @@ def train(model, optimizer, train_loader, valid_loader,
                     print('Current learning_rate:', pg['lr'])
 
         if (epoch + 1) % params.eval_step == 0:
-            evaluate(model, optimizer, anchors, grid_sizes, train_loader,
-                     valid_loader, losses, epoch, device, writer, params)
-            losses[2], losses[3] = 0, 0, 0
+            model_evaluator.complete_evaluate(model, optimizer, train_loader, losses, epoch)
+            losses[2], losses[3] = 0, 0
 
         # lr decay step
         lr_decay_policy.step(optimizer)
-
-        #     SAVE_PATH = 'misc/experiments/{}/model_checkpoint'.format(params.model_id)
-        #     eval_step_avg_factor = params.eval_step * len(train_loader.sampler.sampler)
-        #     print("AVERAGES AT EVAL STEP: ",
-        #           losses[2] / eval_step_avg_factor, losses[3] / eval_step_avg_factor)
-        #     print('Average AP at eval step ', total_ap / eval_step_avg_factor)
-        #     if params.loss > losses[2] + losses[3]:
-        #         torch.save({
-        #             'epoch': epoch,
-        #             'model_state_dict': model.state_dict(),
-        #             'optimizer_state_dict': optimizer.state_dict(),
-        #             'loss': losses[2] + losses[3],
-        #         }, SAVE_PATH)
-        #         params.loss = losses[2] + losses[3]
-        #         params.save('misc/experiments/ssdnet/params.json')
-        #         print('Model saved succesfully')
-        #     losses[2], losses[3], total_ap = 0, 0, 0
-        #
-        # constant_decay.lr_decay(optimizer)
 
 
 def update_losses(losses, l_loss, c_loss):
