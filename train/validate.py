@@ -54,14 +54,12 @@ class Model_evaluator():
                 class_loss_val += class_loss.item()
 
                 if batch_idx % one_tenth_of_loader == 0 and batch_idx > 0:
-                    # nr_images = (batch_idx + 1) * self.params.batch_size
-                    nr_images = 100
+                    nr_images = (batch_idx + 1) * self.params.batch_size
                     print(datetime.datetime.now())
                     print("Average Loc Loss: ", loc_loss_val /
                           nr_images)
                     print("Average Class Loss: ", class_loss_val /
                           nr_images, " until batch: ", batch_idx)
-                    loc_loss_val, class_loss_val = 0, 0
 
             SAVE_PATH = 'misc/experiments/{}/model_checkpoint'.format(self.params.model_id)
 
@@ -80,9 +78,9 @@ class Model_evaluator():
                 print('Model saved succesfully')
 
             # tensorboard
-            average_precision = 0
+            loc_loss_val, class_loss_val = loc_loss_val / val_set_size, class_loss_val / val_set_size
             update_tensorboard_graphs(self.writer, loc_loss_train, class_loss_train,
-                                      loc_loss_val, class_loss_val, average_precision, epoch)
+                                      loc_loss_val, class_loss_val, epoch)
 
         print('Validation finished')
 

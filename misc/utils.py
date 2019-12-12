@@ -74,12 +74,11 @@ def corners_to_wh(prediction_bboxes):
     return prediction_bboxes
 
 
-def update_tensorboard_graphs(writer, loc_loss_train, class_loss_train, loc_loss_val, class_loss_val, average_precision, epoch):
+def update_tensorboard_graphs(writer, loc_loss_train, class_loss_train, loc_loss_val, class_loss_val, epoch):
     writer.add_scalar('Localization Loss/train', loc_loss_train, epoch)
     writer.add_scalar('Classification Loss/train', class_loss_train, epoch)
     writer.add_scalar('Localization Loss/val', loc_loss_val, epoch)
     writer.add_scalar('Classification Loss/val', class_loss_val, epoch)
-    writer.add_scalar('Precision', average_precision, epoch)
 
 
 def prepare_outputs_for_COCOeval(output, image_info, prediction_annotations, prediction_id, output_handler):

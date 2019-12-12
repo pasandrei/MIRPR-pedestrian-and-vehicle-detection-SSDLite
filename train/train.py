@@ -52,25 +52,6 @@ def train(model, optimizer, train_loader, model_evaluator, detection_loss, param
         # lr decay step
         lr_decay_policy.step(optimizer)
 
-        #     SAVE_PATH = 'misc/experiments/{}/model_checkpoint'.format(params.model_id)
-        #     eval_step_avg_factor = params.eval_step * len(train_loader.sampler.sampler)
-        #     print("AVERAGES AT EVAL STEP: ",
-        #           losses[2] / eval_step_avg_factor, losses[3] / eval_step_avg_factor)
-        #     print('Average AP at eval step ', total_ap / eval_step_avg_factor)
-        #     if params.loss > losses[2] + losses[3]:
-        #         torch.save({
-        #             'epoch': epoch,
-        #             'model_state_dict': model.state_dict(),
-        #             'optimizer_state_dict': optimizer.state_dict(),
-        #             'loss': losses[2] + losses[3],
-        #         }, SAVE_PATH)
-        #         params.loss = losses[2] + losses[3]
-        #         params.save('misc/experiments/ssdnet/params.json')
-        #         print('Model saved succesfully')
-        #     losses[2], losses[3], total_ap = 0, 0, 0
-        #
-        # constant_decay.lr_decay(optimizer)
-
 
 def update_losses(losses, l_loss, c_loss):
     '''
