@@ -29,7 +29,7 @@ def train(model, optimizer, train_loader, model_evaluator, detection_loss, param
 
     lr_decay_policy = retina_decay.Lr_decay(params.learning_rate)
     losses = [0] * 4
-    one_tenth_of_loader = len(train_loader) // 1000
+    one_tenth_of_loader = len(train_loader) // 10
 
     print(datetime.datetime.now())
     for epoch in range(start_epoch, params.n_epochs):

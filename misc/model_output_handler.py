@@ -26,7 +26,11 @@ class Model_output_handler():
         prediction_bboxes, predicted_classes, highest_confidence_for_predictions, _ = self.__get_sorted_predictions(
             bbox_predictions, classification_predictions, image_info)
 
-        indeces_kept_by_nms = nms(prediction_bboxes, self.suppress_threshold)
+        # prediction_bboxes = prediction_bboxes[:50]
+        # predicted_classes = predicted_classes[:50]
+        # highest_confidence_for_predictions = highest_confidence_for_predictions[:50]
+
+        indeces_kept_by_nms = nms(prediction_bboxes, predicted_classes, self.suppress_threshold)
 
         # new structure: array of bbox, class, confidence
         # for some reason, bboxes should be WH format
@@ -54,7 +58,7 @@ class Model_output_handler():
         _, _, pos_idx = map_to_ground_truth(
             overlaps, gt_bbox, gt_class)
 
-        indeces_kept_by_nms = nms(prediction_bboxes)
+        indeces_kept_by_nms = nms(prediction_bboxes, predicted_classes, self.suppress_threshold)
 
         image = self.__unnorm_scale_image(image)
         pos_idx = (pos_idx.cpu().numpy())

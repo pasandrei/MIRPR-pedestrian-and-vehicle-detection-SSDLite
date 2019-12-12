@@ -21,23 +21,24 @@ def cross_validate(model, detection_loss, valid_loader, model_evaluator, params)
     conf_range = [(0.2 + i / 100) for i in range(26)]
     suppress_range = [(0.4 + i / 50) for i in range(11)]
 
+    print(conf_range)
+
     for i in range(len(conf_range)):
         for j in range(len(suppress_range)):
             print("Current best hyperparams: ")
             print("Confidence: ", best_conf_threshold, "Suppress: ", best_suppress_threshold)
 
-            cur_conf_threshold, cur_suppress_threshold = conf_range[i], suppress_range[j]
-            cur_conf_threshold = torch.tensor(cur_conf_threshold).to(detection_loss.device)
-            cur_suppress_threshold = torch.tensor(cur_suppress_threshold).to(detection_loss.device)
-
-            model_evaluator.conf_threshold = cur_conf_threshold
-            model_evaluator.suppress_threshold = cur_suppress_threshold
+            print("Currently trying: ", conf_range[i], suppress_range[j])
+            model_evaluator.output_handler.confidence_threshold = conf_range[i]
+            model_evaluator.output_handler.suppress_threshold = suppress_range[j]
             cur_mAP = model_evaluator.only_mAP(model)
+            print("Current mAP: ", cur_mAP)
 
             if cur_mAP > best_mAP:
                 print("New best values found")
-                best_conf_threshold, best_suppress_threshold, best_mAP = cur_conf_threshold, cur_suppress_threshold, cur_mAP
-                params.conf_threshold = cur_conf_threshold
-                params.suppress_threshold = cur_suppress_threshold
+                best_conf_threshold, best_suppress_threshold, best_mAP = conf_range[i], suppress_range[j], cur_mAP
+                params.conf_threshold = conf_range[i]
+                params.suppress_threshold = suppress_range[j]
+                params.mAP = cur_mAP
                 params.save('misc/experiments/ssdnet/params.json')
                 print('Params saved succesfully')

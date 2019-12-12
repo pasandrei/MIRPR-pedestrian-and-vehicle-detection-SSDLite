@@ -19,6 +19,8 @@ def run(path='misc/experiments/ssdnet/params.json', resume=False, eval_only=Fals
     '''
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
+    print(device)
+
     params = Params(path)
     print("MODEL ID: ", params.model_id)
     if params.model_id == 'ssdnet' or params.model_id == 'ssdnet_loc':
@@ -43,11 +45,11 @@ def run(path='misc/experiments/ssdnet/params.json', resume=False, eval_only=Fals
     print(opt_params)
 
     start_epoch = 0
-    if resume or eval_only:
-        # checkpoint = torch.load('misc/experiments/{}/model_checkpoint'.format(params.model_id))
-        # model.load_state_dict(checkpoint['model_state_dict'])
-        # optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-        # start_epoch = checkpoint['epoch']
+    if resume or eval_only or cross_validate:
+        checkpoint = torch.load('misc/experiments/{}/model_checkpoint'.format(params.model_id))
+        model.load_state_dict(checkpoint['model_state_dict'])
+        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        start_epoch = checkpoint['epoch']
         print('Model loaded successfully')
 
         # for pg in optimizer.param_groups:
@@ -66,7 +68,7 @@ def run(path='misc/experiments/ssdnet/params.json', resume=False, eval_only=Fals
 
     detection_loss = Detection_Loss(anchors, grid_sizes, device, params)
 
-    conf_thresh, suppress_thresh = 0.35, 0.5
+    conf_thresh, suppress_thresh = 0.35, 0.46
     model_evaluator = Model_evaluator(valid_loader, detection_loss,
                                       conf_thresh, suppress_thresh, writer, params)
 

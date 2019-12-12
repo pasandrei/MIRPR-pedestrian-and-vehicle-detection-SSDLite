@@ -118,4 +118,4 @@ def evaluate_on_COCO_metrics(prediction_annotations):
     cocoevalu.accumulate()
     cocoevalu.summarize()
 
-    return cocoevalu.stats[1]
+    return cocoevalu.stats[0]

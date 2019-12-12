@@ -36,7 +36,7 @@ class Model_evaluator():
         with torch.no_grad():
             loc_loss_val, class_loss_val = 0, 0
             val_set_size = len(self.valid_loader.sampler.sampler)
-            one_tenth_of_loader = len(self.valid_loader) // 1000
+            one_tenth_of_loader = len(self.valid_loader) // 10
 
             prediction_annotations = []
             prediction_id = 0
@@ -62,8 +62,6 @@ class Model_evaluator():
                     print("Average Class Loss: ", class_loss_val /
                           nr_images, " until batch: ", batch_idx)
                     loc_loss_val, class_loss_val = 0, 0
-
-                print('should be good')
 
             SAVE_PATH = 'misc/experiments/{}/model_checkpoint'.format(self.params.model_id)
 
@@ -95,7 +93,7 @@ class Model_evaluator():
         model.eval()
         with torch.no_grad():
             loc_loss_val, class_loss_val = 0, 0
-            one_tenth_of_loader = len(self.valid_loader) // 1000
+            one_tenth_of_loader = len(self.valid_loader) // 10
 
             prediction_annotations = []
             prediction_id = 0
@@ -121,8 +119,6 @@ class Model_evaluator():
                           nr_images, " until batch: ", batch_idx)
 
                     loc_loss_val, class_loss_val = 0, 0
-
-                print('should be good')
 
             # map
             return evaluate_on_COCO_metrics(prediction_annotations)
