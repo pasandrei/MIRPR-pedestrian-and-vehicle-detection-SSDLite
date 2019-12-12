@@ -35,4 +35,4 @@ def get_dataloaders(params):
                                   shuffle=False, num_workers=4,
                                   sampler=BatchSampler(SequentialSampler([i for i in range(nr_images_in_val)]), batch_size=params.batch_size, drop_last=False))
 
-    return train_loader, valid_dataloader
+    return train_dataloader, valid_dataloader
