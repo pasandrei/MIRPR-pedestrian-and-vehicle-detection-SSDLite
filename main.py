@@ -65,7 +65,7 @@ def run(path='misc/experiments/ssdnet/params.json', resume=False, eval_only=Fals
 
     detection_loss = Detection_Loss(anchors, grid_sizes, device, params)
 
-    model_evaluator = Model_evaluator(valid_loader, detection_loss, writer, params)
+    model_evaluator = Model_evaluator(valid_loader, detection_loss, writer=writer, params=params)
 
     if eval_only:
         print('Only eval')

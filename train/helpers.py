@@ -8,6 +8,20 @@ def hw2corners(ctr, hw):
     return torch.cat([ctr-hw/2, ctr+hw/2], dim=1)
 
 
+def corners_to_center_hw(bbox):
+    height = bbox[2]-bbox[0]
+    width = bbox[3]-bbox[1]
+
+    center_x = (bbox[2]+bbox[0])/2
+    center_y = (bbox[3]+bbox[1])/2
+
+    return torch.FloatTensor((center_x, center_y, height, width))
+
+
+def clamp_corners(bbox):
+    return torch.clamp(bbox, 0, 1)
+
+
 def intersect(box_a, box_b):
     """ Returns the intersection of two boxes """
     max_xy = torch.min(box_a[:, None, 2:], box_b[None, :, 2:])
@@ -30,16 +44,9 @@ def jaccard(box_a, box_b):
 
 def activations_to_bboxes(actn, anchors, grid_sizes):
     """ activations to bounding boxes format """
-
-    # this is probably a bug, all tensors should be the same size if slicing operations with addition are performed
     anchors = anchors.type(torch.float64)
-
-    # -1...1
-    #print("OFFSETS BEFORE TANH: ", actn)
     actn_offsets = torch.tanh(actn)
-    #print("OFFSETS OF CURRENT IMAGE: ", actn_offsets)
 
-    # -0.5....0.5
     actn_centers = actn_offsets[:, :2]/2 * grid_sizes + anchors[:, :2]
     actn_hw = (actn_offsets[:, 2:]/2+1) * anchors[:, 2:]
 
@@ -64,7 +71,7 @@ def map_to_ground_truth(overlaps, gt_bbox, gt_class):
 
     # for each prior, get the actual id of the class it should predict, unmatched anchors (low IOU) should predict background
     matched_gt_class_ids = gt_class[prior_to_gt_idx]
-    pos = prior_to_gt_overlap > 0.4  # careful what you change!!!
+    pos = prior_to_gt_overlap > 0.5  # careful what you change!!!
     matched_gt_class_ids[~pos] = 100  # background code
 
     # for each matched prior, get the bbox it should predict
@@ -149,6 +156,12 @@ def create_anchors():
     anchors1, grid_sizes1 = create(anc_grids1, anc_zooms1, anc_ratios1)
 
     anchors = torch.cat([anchors20, anchors10, anchors5, anchors3, anchors1])
+
+    anchor_corner = hw2corners(anchors[:, :2], anchors[:, 2:])
+    anchor_corner = clamp_corners(anchor_corner)
+    for idx, anchor in enumerate(anchor_corner):
+        anchors[idx] = corners_to_center_hw(anchor)
+
     grid_sizes = torch.cat([grid_sizes20, grid_sizes10, grid_sizes5, grid_sizes3, grid_sizes1])
 
     # old

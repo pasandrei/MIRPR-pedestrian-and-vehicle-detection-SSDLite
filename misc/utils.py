@@ -7,7 +7,7 @@ from pycocotools.cocoeval import COCOeval
 from pycocotools.coco import COCO
 
 
-def plot_anchor_gt(image, anchor, gt):
+def plot_anchor_gt(image, anchor, gt, message="DA_MA", size=(320, 320)):
     image = image.transpose(1, 2, 0)
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     image = cv2.resize(image, dsize=(size[1], size[0]))
