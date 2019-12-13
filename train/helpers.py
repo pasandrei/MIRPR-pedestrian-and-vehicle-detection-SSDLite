@@ -112,6 +112,47 @@ def create_anchors():
 
         return anchors, grid_sizes
 
+    # new
+    # 12
+    anc_grids20 = [20]
+    anc_zooms20 = [1, 1.25, 1.5]
+    anc_ratios20 = [(2, 1), (4, 1), (1, 1.22), (1, 3)]
+
+    # 20
+    anc_grids10 = [10]
+    anc_zooms10 = [0.75, 1, 1.25, 1.5]
+    anc_ratios10 = [(1, 1), (2, 1), (4, 1), (1, 1.22), (1, 3)]
+
+    # 30
+    anc_grids5 = [5]
+    anc_zooms5 = [0.6, 0.75, 0.85, 1., 1.25, 1.5]
+    anc_ratios5 = [(1, 1), (2, 1), (4, 1), (1, 1.22), (1, 3)]
+
+    # 40
+    anc_grids3 = [3, 2]
+    anc_zooms3 = [0.45, 0.55, 0.65, 0.75, 0.85, 1., 1.25, 1.5]
+    anc_ratios3 = [(1, 1), (2, 1), (4, 1), (1, 1.22), (1, 3)]
+
+    # 50
+    anc_grids1 = [1]
+    anc_zooms1 = [0.2, 0.25, 0.3, 0.35, 0.45, 0.55, 0.65, 0.75, 0.85, 1.]
+    anc_ratios1 = [(1, 1), (2, 1), (4, 1), (1, 1.22), (1, 3)]
+
+    anchors20, grid_sizes20 = create(anc_grids20, anc_zooms20, anc_ratios20)
+
+    anchors10, grid_sizes10 = create(anc_grids10, anc_zooms10, anc_ratios10)
+
+    anchors5, grid_sizes5 = create(anc_grids5, anc_zooms5, anc_ratios5)
+
+    anchors3, grid_sizes3 = create(anc_grids3, anc_zooms3, anc_ratios3)
+
+    anchors1, grid_sizes1 = create(anc_grids1, anc_zooms1, anc_ratios1)
+
+    anchors = torch.cat([anchors20, anchors10, anchors5, anchors3, anchors1])
+    grid_sizes = torch.cat([grid_sizes20, grid_sizes10, grid_sizes5, grid_sizes3, grid_sizes1])
+
+    # old
+    '''
     anc_grids10 = [10]
     anc_zooms10 = [1., 1.2, 1.5, 1.8]
     anc_ratios10 = [(1., 1.), (1., 0.7), (0.57, 1)]
@@ -126,6 +167,7 @@ def create_anchors():
 
     anchors = torch.cat([anchors10, anchors5])
     grid_sizes = torch.cat([grid_sizes10, grid_sizes5])
+    '''
 
     return anchors, grid_sizes
 

@@ -4,7 +4,7 @@ import numpy as np
 # import torch.nn.functional as F
 
 from train.helpers import *
-from misc.postprocessing import *
+from misc import postprocessing
 from misc.utils import *
 from misc.model_output_handler import *
 
@@ -54,33 +54,57 @@ def inspect_anchors(image, anchors, gt_bbox, pos_idx, size):
 
 
 def mean_mapping_IOU(anchors, pos_idx, gt_bbox_for_matched_anchors):
-    total = 0
+    ious = []
     for i in range(pos_idx.shape[0]):
-        total += get_IoU(anchors[pos_idx[i]], gt_bbox_for_matched_anchors[i])
+        ious.append(get_IoU(anchors[pos_idx[i]], gt_bbox_for_matched_anchors[i]))
 
-    print("Mean anchor mapping IoU for this image: ", total / pos_idx.shape[0])
-    return total / pos_idx.shape[0]
+    ious = np.array(ious)
+    print("Mean anchor mapping IoU for this image: ", ious.mean())
+    print("Sorted: ", sorted(ious))
+    print('--------------------------------------------------------------------------------------')
+    return ious.mean()
 
 
 def mapping_per_set(anchors, pos_idx):
-    grid_maps = [0, 0, 0, 0, 0]
-    thresh_10 = 10*10*12
+    # grid_maps = [0, 0, 0, 0, 0]
+    # thresh_10 = 10*10*12
+    # thresh_5 = thresh_10 + 5*5*20
+    # thresh_3 = thresh_5 + 3*3*20
+    # thresh_2 = thresh_3 + 2*2*20
+    # for idx in pos_idx:
+    #     if idx < thresh_10:
+    #         grid_maps[0] += 1
+    #     elif idx < thresh_5:
+    #         grid_maps[1] += 1
+    #     elif idx < thresh_3:
+    #         grid_maps[2] += 1
+    #     elif idx < thresh_2:
+    #         grid_maps[3] += 1
+    #     else:
+    #         grid_maps[4] += 1
+
+    grid_maps = [0, 0, 0, 0, 0, 0]
+    thresh_20 = 20*20*12
+    thresh_10 = thresh_20 + 10*10*20
     thresh_5 = thresh_10 + 5*5*20
     thresh_3 = thresh_5 + 3*3*20
     thresh_2 = thresh_3 + 2*2*20
     for idx in pos_idx:
-        if idx < thresh_10:
+        if idx < thresh_20:
             grid_maps[0] += 1
-        elif idx < thresh_5:
+        elif idx < thresh_10:
             grid_maps[1] += 1
-        elif idx < thresh_3:
+        elif idx < thresh_5:
             grid_maps[2] += 1
-        elif idx < thresh_2:
+        elif idx < thresh_3:
             grid_maps[3] += 1
-        else:
+        elif idx < thresh_2:
             grid_maps[4] += 1
+        else:
+            grid_maps[5] += 1
 
     print("Anchors per grid matched this image: ", grid_maps)
+    print('--------------------------------------------------------------------------------')
     return np.array(grid_maps)
 
 
@@ -104,14 +128,16 @@ def test_anchor_mapping(image, bbox_predictions, classification_predictions, gt_
     gt_bbox_for_matched_anchors, _, pos_idx = map_to_ground_truth(
         overlaps, gt_bbox, gt_class)
 
-    indeces_kept_by_nms = nms(prediction_bboxes, predicted_classes,
-                              output_handler.suppress_threshold)
+    # inexplicable bug
+    # print('nms on YOOOO postpros')
+    # indeces_kept_by_nms = postprocessing.nms(prediction_bboxes, predicted_classes,
+    #                                          output_handler.suppress_threshold)
 
     image = output_handler._unnorm_scale_image(image)
     pos_idx = (pos_idx.cpu().numpy())
     gt_bbox = output_handler._rescale_bboxes(gt_bbox, image_info[1])
-    bbox_predictions = output_handler._convert_bboxes_to_workable_data(
-        bbox_predictions, image_info[1])
+    # bbox_predictions = output_handler._convert_bboxes_to_workable_data(
+    #     bbox_predictions, image_info[1])
 
     iou = mean_mapping_IOU(output_handler.corner_anchors, pos_idx, gt_bbox_for_matched_anchors)
     maps = mapping_per_set(output_handler.corner_anchors, pos_idx)
@@ -119,13 +145,15 @@ def test_anchor_mapping(image, bbox_predictions, classification_predictions, gt_
     # inspect_anchors(image=image, anchors=output_handler._rescale_bboxes(
     #     output_handler.corner_anchors, image_info[1]), gt_bbox=gt_bbox, pos_idx=pos_idx, size=image_info[1])
     #
-    test(bbox_predictions, image, output_handler._rescale_bboxes(output_handler.corner_anchors, image_info[1]),
-         prediction_bboxes, highest_confidence_for_predictions, gt_bbox, pos_idx, high_confidence_indeces, indeces_kept_by_nms, image_info[1])
+    # test(raw_bbox=bbox_predictions, image=image, anchors=output_handler._rescale_bboxes(output_handler.corner_anchors, image_info[1]),
+    #      pred_bbox=prediction_bboxes, highest_confidence_for_predictions=highest_confidence_for_predictions,
+    #      gt_bbox=gt_bbox, pos_idx=pos_idx, high_confidence_indeces=high_confidence_indeces, size=image_info[1])
 
     return iou, maps
 
 
-def test(raw_bbox, image, anchors, pred_bbox, highest_confidence_for_prediction, gt_bbox, pos_idx, high_confidence_indeces, indeces_kept_by_nms, size):
+def test(raw_bbox=None, image=None, anchors=None, pred_bbox=None, highest_confidence_for_predictions=None,
+         gt_bbox=None, pos_idx=None, high_confidence_indeces=None, size=(320, 320), indeces_kept_by_nms=None):
     '''
     what we have:
                   - raw_bbox - all model bbox predictions
@@ -154,10 +182,10 @@ def test(raw_bbox, image, anchors, pred_bbox, highest_confidence_for_prediction,
     #     plot_bounding_boxes(image, cur_anchor_bbox, "ANCHOR", size)
     #     plot_bounding_boxes(image, cur_pred_bbox, "PRED FROM ANCHOR")
     #     print('Confidence for this pair of anchor/pred: ',
-    #           highest_confidence_for_prediction[i], size)
+    #           highest_confidence_for_predictions[i], size)
 
     # print("Matched Pred BBOXES: ", matched_bbox, matched_bbox.shape)
-    # print('CONFIDENCES FOR PREDICTED BBOXES: ', highest_confidence_for_prediction)
+    # print('CONFIDENCES FOR PREDICTED BBOXES: ', highest_confidence_for_predictions)
     # plot_bounding_boxes(image, matched_bbox, "PREDICTED (CHEATED) BY THE NETWORK", size)
     plot_bounding_boxes(image, matched_anchors, "MATCHED ANCHORS", size)
 

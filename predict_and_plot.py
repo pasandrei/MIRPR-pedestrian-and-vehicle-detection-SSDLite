@@ -17,26 +17,32 @@ def model_output_pipeline(params_path):
     device = torch.device("cpu")
     params = Params(params_path)
 
-    if params.model_id == 'ssdnet':
-        model = SSDNet.SSD_Head(params.n_classes)
-    model.to(device)
-
-    # checkpoint = torch.load('misc/experiments/{}/model_checkpoint'.format(params.model_id))
-    # model.load_state_dict(checkpoint['model_state_dict'])
-    print('Model loaded successfully')
-
+    # if params.model_id == 'ssdnet':
+    #     model = SSDNet.SSD_Head(params.n_classes)
+    # model.to(device)
+    #
+    # # checkpoint = torch.load('misc/experiments/{}/model_checkpoint'.format(params.model_id))
+    # # model.load_state_dict(checkpoint['model_state_dict'])
+    # print('Model loaded successfully')
+    #
     _, valid_loader = dataloaders.get_dataloaders(params)
     anchors, grid_sizes = create_anchors()
 
     print('EVALUATION')
-    model.eval()
+    # model.eval()
     with torch.no_grad():
-        total_iou, total_maps = 0, np.array([0, 0, 0, 0, 0])
+        total_iou, total_maps = 0, np.array([0, 0, 0, 0, 0, 0])
         for batch_idx, (batch_images, batch_targets, images_info) in enumerate(valid_loader):
-            batch_images = batch_images.to(device)
+            # batch_images = batch_images.to(device)
             # predictions[0] = B x #anchors x 4
             # predictions[1] = B x #anchors x 2 -> [0.2, 0.9], [0.01, 0.01]
-            predictions = model(batch_images)
+            # predictions = model(batch_images)
+            # predictions = [torch.FloatTensor(
+            #     params.batch_size, 1980, 4), torch.FloatTensor(params.batch_size, 1980, 2)]
+
+            predictions = [torch.FloatTensor(
+                params.batch_size, 400*12 + 100*20 + 25*30 + 9*40 + 4*40 + 1*50, 4),
+                torch.FloatTensor(params.batch_size, 400*12 + 100*20 + 25*30 + 9*40 + 4*40 + 1*50, 2)]
 
             for idx in range(len(batch_images)):
                 iou, maps = anchor_mapping.test_anchor_mapping(
@@ -48,6 +54,8 @@ def model_output_pipeline(params_path):
             avg = (batch_idx + 1) * params.batch_size
             print("Mean iou so far: ", total_iou / avg)
             print("Mean maps so far: ", total_maps / avg)
-            # return
+            if batch_idx == 10:
+                return
+
 
 # model_output_pipeline('misc/experiments/ssdnet/params.json')

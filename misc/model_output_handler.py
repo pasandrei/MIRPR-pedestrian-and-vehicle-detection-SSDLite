@@ -20,7 +20,9 @@ class Model_output_handler():
         """
         returns complete model outputs in format array of:
         bbox, class id, confidence
+        all operations done on cpu
         """
+        bbox_predictions = bbox_predictions.cpu()
         prediction_bboxes, predicted_classes, highest_confidence_for_predictions, _ = self._get_sorted_predictions(
             bbox_predictions, classification_predictions, image_info)
 
