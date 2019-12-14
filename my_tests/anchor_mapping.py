@@ -157,9 +157,12 @@ def test_anchor_mapping(image, bbox_predictions, classification_predictions, gt_
                                                           image_info[1]), pos_idx, output_handler._rescale_bboxes(gt_bbox_for_matched_anchors, image_info[1]))
     maps = mapping_per_set(pos_idx)
 
-    test(raw_bbox=output_handler._convert_bboxes_to_workable_data(bbox_predictions, image_info[1]), image=image, anchors=output_handler._rescale_bboxes(output_handler.corner_anchors, image_info[1]),
-         pred_bbox=prediction_bboxes, highest_confidence_for_predictions=highest_confidence_for_predictions,
-         gt_bbox=gt_bbox, pos_idx=pos_idx, high_confidence_indeces=high_confidence_indeces, size=image_info[1], indeces_kept_by_nms=indeces_kept_by_nms)
+    test(raw_bbox=output_handler._convert_bboxes_to_workable_data(bbox_predictions, image_info[1]),
+         raw_class=output_handler._convert_confidences_to_workable_data(classification_predictions),
+         image=image, anchors=output_handler._rescale_bboxes(
+         output_handler.corner_anchors, image_info[1]), pred_bbox=prediction_bboxes,
+         highest_confidence_for_predictions=highest_confidence_for_predictions, gt_bbox=gt_bbox, pos_idx=pos_idx,
+         high_confidence_indeces=high_confidence_indeces, size=image_info[1], indeces_kept_by_nms=indeces_kept_by_nms)
 
     # inspect_anchors(image=image, anchors=output_handler._rescale_bboxes(
     #     output_handler.corner_anchors, image_info[1]),
@@ -168,7 +171,7 @@ def test_anchor_mapping(image, bbox_predictions, classification_predictions, gt_
     return iou, maps
 
 
-def test(raw_bbox=None, image=None, anchors=None, pred_bbox=None, highest_confidence_for_predictions=None,
+def test(raw_bbox=None, raw_class=None, image=None, anchors=None, pred_bbox=None, highest_confidence_for_predictions=None,
          gt_bbox=None, pos_idx=None, high_confidence_indeces=None, size=(320, 320), indeces_kept_by_nms=None):
     '''
     what we have:
@@ -186,6 +189,7 @@ def test(raw_bbox=None, image=None, anchors=None, pred_bbox=None, highest_confid
     '''
     matched_anchors = anchors[pos_idx]
     matched_bbox = raw_bbox[pos_idx]
+    matched_conf = raw_class[pos_idx]
 
     print("GT BBOXES: ", gt_bbox, gt_bbox.shape)
     plot_bounding_boxes(image, gt_bbox, "GROUND TRUTH", size)
@@ -201,12 +205,13 @@ def test(raw_bbox=None, image=None, anchors=None, pred_bbox=None, highest_confid
     #     print('Confidence for this pair of anchor/pred: ',
     #           highest_confidence_for_predictions[i], size)
 
-    print('CONFIDENCES FOR PREDICTED BBOXES: ', highest_confidence_for_predictions)
+    print('CONFIDENCES FOR PREDICTED BBOXES that matched anchors: ', matched_conf)
     plot_bounding_boxes(image, matched_bbox, "PREDICTED (CHEATED) BY THE NETWORK", size)
     # plot_bounding_boxes(image, matched_anchors, "MATCHED ANCHORS", size)
 
     print("THIS IS PRED BBOX KEPT BY CONFIDENCE", pred_bbox,
           pred_bbox.shape)
+    print("These are confidences for model outputs: ", highest_confidence_for_predictions)
     plot_bounding_boxes(image, pred_bbox, "ACTUAL MODEL OUTPUTS", size)
     post_nms_predictions = pred_bbox[indeces_kept_by_nms]
     plot_bounding_boxes(
