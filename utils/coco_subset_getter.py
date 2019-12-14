@@ -26,10 +26,7 @@ def extract_from_annotations_file(annotations_file_path, folder, wanted_categori
 
         useful_images_to_labels = {}
         for annotation in data['annotations']:
-            width = annotation['bbox'][2]
-            height = annotation['bbox'][3]
-
-            area = width*height
+            area = annotation['area']
 
             if annotation['category_id'] in wanted_categories_id and area > 32*32:
                 image_id = annotation['image_id']
