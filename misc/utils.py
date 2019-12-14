@@ -7,6 +7,23 @@ from pycocotools.cocoeval import COCOeval
 from pycocotools.coco import COCO
 
 
+def plot_anchor_gt(image, anchor, gt, message="DA_MA", size=(320, 320)):
+    image = image.transpose(1, 2, 0)
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    image = cv2.resize(image, dsize=(size[1], size[0]))
+
+    color_anchor = (0, 0, 255)
+    cv2.rectangle(image, (anchor[1], anchor[0]),
+                  (anchor[3], anchor[2]), color_anchor, 2)
+
+    color_gt = (0, 255, 0)
+    cv2.rectangle(image, (gt[1], gt[0]),
+                  (gt[3], gt[2]), color_gt, 2)
+
+    cv2.imshow(message, image)
+    cv2.waitKey(0)
+
+
 def plot_bounding_boxes(image, bounding_boxes, message='no_message', size=(500, 500), ok=0):
     # loop over the bounding boxes for each image and draw them
     image = image.transpose(1, 2, 0)

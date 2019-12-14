@@ -14,7 +14,7 @@ class Model_evaluator():
         self.valid_loader = valid_loader
         self.detection_loss = detection_loss
         self.output_handler = Model_output_handler(
-            self.detection_loss.device, conf_threshold=conf_thresh, suppress_threshold=suppress_thresh)
+            conf_threshold=conf_thresh, suppress_threshold=suppress_thresh)
         self.writer = writer
         self.params = params
 
