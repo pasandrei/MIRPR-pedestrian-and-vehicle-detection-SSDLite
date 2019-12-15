@@ -11,8 +11,10 @@ from data import dataloaders
 from architectures.models import SSDNet
 from misc import cross_validation
 
+from test_pipeline import mobilenet_v2_ssd_lite
 
-def run(path='misc/experiments/ssdnet/params.json', resume=False, eval_only=False, cross_validate=False):
+
+def run(path='misc/experiments/ssdnet/params.json', resume=False, eval_only=False, cross_validate=False, test_pipeline=True):
     '''
     args: path - string path to the json config file
     trains model refered by that file, saves model and optimizer dict at the same location
@@ -22,9 +24,14 @@ def run(path='misc/experiments/ssdnet/params.json', resume=False, eval_only=Fals
     print(device)
 
     params = Params(path)
-    print("MODEL ID: ", params.model_id)
-    if params.model_id == 'ssdnet' or params.model_id == 'ssdnet_loc':
-        model = SSDNet.SSD_Head(n_classes=params.n_classes)
+
+    if test_pipeline:
+        print("TESTING")
+        model = mobilenet_v2_ssd_lite.create_mobilenetv2_ssd_lite(num_classes=2)
+    else:
+        print("MODEL ID: ", params.model_id)
+        if params.model_id == 'ssdnet' or params.model_id == 'ssdnet_loc':
+            model = SSDNet.SSD_Head(n_classes=params.n_classes)
     model.to(device)
 
     if params.optimizer == 'adam':
@@ -46,10 +53,10 @@ def run(path='misc/experiments/ssdnet/params.json', resume=False, eval_only=Fals
 
     start_epoch = 0
     if resume or eval_only or cross_validate:
-        checkpoint = torch.load('misc/experiments/{}/model_checkpoint'.format(params.model_id))
-        model.load_state_dict(checkpoint['model_state_dict'])
-        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-        start_epoch = checkpoint['epoch']
+        # checkpoint = torch.load('misc/experiments/{}/model_checkpoint'.format(params.model_id))
+        # model.load_state_dict(checkpoint['model_state_dict'])
+        # optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        # start_epoch = checkpoint['epoch']
         print('Model loaded successfully')
 
     train_loader, valid_loader = dataloaders.get_dataloaders(params)
