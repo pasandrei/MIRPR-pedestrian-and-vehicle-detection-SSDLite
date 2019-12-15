@@ -8,6 +8,12 @@ from collections import namedtuple
 GraphPath = namedtuple("GraphPath", ['s0', 'name', 's1'])  #
 
 
+'''
+taken from https://github.com/qfgaohao
+use it to test and compare
+'''
+
+
 class SSD(nn.Module):
     def __init__(self, num_classes: int, base_net: nn.ModuleList, source_layer_indexes: List[int],
                  extras: nn.ModuleList, classification_headers: nn.ModuleList,
@@ -35,7 +41,7 @@ class SSD(nn.Module):
         if is_test:
             self.config = config
             self.priors = config.priors.to(self.device)
-            
+
     def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         confidences = []
         locations = []
@@ -85,7 +91,6 @@ class SSD(nn.Module):
 
         confidences = torch.cat(confidences, 1)
         locations = torch.cat(locations, 1)
-        
 
         return locations, confidences
 
@@ -101,7 +106,8 @@ class SSD(nn.Module):
         return confidence, location
 
     def init_from_base_net(self, model):
-        self.base_net.load_state_dict(torch.load(model, map_location=lambda storage, loc: storage), strict=True)
+        self.base_net.load_state_dict(torch.load(
+            model, map_location=lambda storage, loc: storage), strict=True)
         self.source_layer_add_ons.apply(_xavier_init_)
         self.extras.apply(_xavier_init_)
         self.classification_headers.apply(_xavier_init_)
@@ -109,7 +115,8 @@ class SSD(nn.Module):
 
     def init_from_pretrained_ssd(self, model):
         state_dict = torch.load(model, map_location=lambda storage, loc: storage)
-        state_dict = {k: v for k, v in state_dict.items() if not (k.startswith("classification_headers") or k.startswith("regression_headers"))}
+        state_dict = {k: v for k, v in state_dict.items() if not (k.startswith(
+            "classification_headers") or k.startswith("regression_headers"))}
         model_dict = self.state_dict()
         model_dict.update(state_dict)
         self.load_state_dict(model_dict)
@@ -128,6 +135,7 @@ class SSD(nn.Module):
 
     def save(self, model_path):
         torch.save(self.state_dict(), model_path)
+
 
 def _xavier_init_(m: nn.Module):
     if isinstance(m, nn.Conv2d):
