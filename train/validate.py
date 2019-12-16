@@ -41,8 +41,9 @@ class Model_evaluator():
             prediction_annotations = []
             prediction_id = 0
 
+            print(datetime.datetime.now())
+
             for batch_idx, (input_, label, image_info) in enumerate(self.valid_loader):
-                # print(datetime.datetime.now())
                 input_ = input_.to(self.detection_loss.device)
                 output = model(input_)
 

@@ -36,7 +36,7 @@ class OutConv(nn.Module):
 
 
 class SSD_Head(nn.Module):
-    def __init__(self, n_classes, k_20=12, k_10=20, k_5=30, k_3=40, k_2=40, k_1=50, width_mult=1):
+    def __init__(self, n_classes, k_20=6, k_10=6, k_5=6, k_3=6, k_2=6, k_1=6, width_mult=1):
         super().__init__()
 
         # intermediate lay 15 with os = 16, will be a 20x20 grid for 320x320 input, 576 is the expansion size of layer 15 in MobileNetV2

@@ -14,7 +14,7 @@ from misc import cross_validation
 from test_pipeline import mobilenet_v2_ssd_lite
 
 
-def run(path='misc/experiments/ssdnet/params.json', resume=False, eval_only=False, cross_validate=False, test_pipeline=True):
+def run(path='misc/experiments/ssdnet/params.json', resume=False, eval_only=False, cross_validate=False, test_pipeline=False):
     '''
     args: path - string path to the json config file
     trains model refered by that file, saves model and optimizer dict at the same location
@@ -53,10 +53,10 @@ def run(path='misc/experiments/ssdnet/params.json', resume=False, eval_only=Fals
 
     start_epoch = 0
     if resume or eval_only or cross_validate:
-        # checkpoint = torch.load('misc/experiments/{}/model_checkpoint'.format(params.model_id))
-        # model.load_state_dict(checkpoint['model_state_dict'])
-        # optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-        # start_epoch = checkpoint['epoch']
+        checkpoint = torch.load('misc/experiments/{}/model_checkpoint'.format(params.model_id))
+        model.load_state_dict(checkpoint['model_state_dict'])
+        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        start_epoch = checkpoint['epoch']
         print('Model loaded successfully')
 
     train_loader, valid_loader = dataloaders.get_dataloaders(params)

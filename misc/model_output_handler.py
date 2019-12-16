@@ -68,11 +68,9 @@ class Model_output_handler():
         """
         keep predictions above a confidence threshold
         """
-        keep_indices = []
-        for index, one_hot_pred in enumerate(predicted_confidences):
-            max_conf = np.amax(one_hot_pred)
-            if max_conf > self.confidence_threshold:
-                keep_indices.append(index)
+
+        highest_confidence = np.amax(predicted_confidences, axis=1)
+        keep_indices = (highest_confidence > self.confidence_threshold)
 
         prediction_bboxes = prediction_bboxes[keep_indices]
         predicted_confidences = predicted_confidences[keep_indices]
@@ -95,14 +93,18 @@ class Model_output_handler():
         returns class id and value of maximum confidence
         """
         predicted_idxs = np.argmax(prediction_confidences, axis=1)
-        idx2id, predicted_classes = {0: 1, 1: 3}, []
-        for x in predicted_idxs:
-            predicted_classes.append(idx2id[x])
-        predicted_classes = np.array(predicted_classes)
-        predicted_classes = np.reshape(predicted_classes, (predicted_classes.shape[0], 1))
 
-        highest_confidence_for_predictions = np.amax(
-            prediction_confidences, axis=1)
+        pos0 = (predicted_idxs == 0)
+        pos1 = (predicted_idxs == 1)
+
+        predicted_classes = np.zeros((predicted_idxs.shape[0], 1), dtype=np.int32)
+
+        predicted_classes[pos0] = 1
+        predicted_classes[pos1] = 3
+
+        # predicted_classes = np.reshape(predicted_classes, (predicted_classes.shape[0], 1))
+
+        highest_confidence_for_predictions = np.amax(prediction_confidences, axis=1)
 
         return predicted_classes, highest_confidence_for_predictions
 
