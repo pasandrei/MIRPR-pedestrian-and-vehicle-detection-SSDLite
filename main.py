@@ -40,10 +40,10 @@ def run(path='misc/experiments/ssdnet/params.json', resume=False, eval_only=Fals
 
     start_epoch = 0
     if resume or eval_only or cross_validate:
-        # checkpoint = torch.load('misc/experiments/{}/model_checkpoint'.format(params.model_id))
-        # model.load_state_dict(checkpoint['model_state_dict'])
-        # optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-        # start_epoch = checkpoint['epoch']
+        checkpoint = torch.load('misc/experiments/{}/model_checkpoint'.format(params.model_id))
+        model.load_state_dict(checkpoint['model_state_dict'])
+        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        start_epoch = checkpoint['epoch']
         print('Model loaded successfully')
 
     print('Total number of parameters given to optimizer: ')
