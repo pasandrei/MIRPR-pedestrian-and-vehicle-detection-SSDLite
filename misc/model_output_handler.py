@@ -26,8 +26,7 @@ class Model_output_handler():
         prediction_bboxes, predicted_classes, highest_confidence_for_predictions, _ = self._get_sorted_predictions(
             bbox_predictions, classification_predictions, image_info)
 
-        # indeces_kept_by_nms = nms(prediction_bboxes, predicted_classes, self.suppress_threshold)
-        indeces_kept_by_nms = np.array([1])
+        indeces_kept_by_nms = nms(prediction_bboxes, predicted_classes, self.suppress_threshold)
 
         # new structure: array of bbox, class, confidence
         # for some reason, bboxes should be WH format

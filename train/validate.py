@@ -42,7 +42,6 @@ class Model_evaluator():
             prediction_id = 0
 
             print(datetime.datetime.now())
-
             for batch_idx, (input_, label, image_info) in enumerate(self.valid_loader):
                 input_ = input_.to(self.detection_loss.device)
                 output = model(input_)
@@ -55,8 +54,8 @@ class Model_evaluator():
                 class_loss_val += class_loss.item()
 
                 if batch_idx % one_tenth_of_loader == 0 and batch_idx > 0:
-                    nr_images = (batch_idx + 1) * self.params.batch_size
                     print(datetime.datetime.now())
+                    nr_images = (batch_idx + 1) * self.params.batch_size
                     print("Average Loc Loss: ", loc_loss_val /
                           nr_images)
                     print("Average Class Loss: ", class_loss_val /
@@ -97,7 +96,6 @@ class Model_evaluator():
             prediction_annotations = []
             prediction_id = 0
             for batch_idx, (input_, label, image_info) in enumerate(self.valid_loader):
-                # print(datetime.datetime.now())
                 input_ = input_.to(self.detection_loss.device)
                 output = model(input_)
 
@@ -109,8 +107,8 @@ class Model_evaluator():
                 class_loss_val += class_loss.item()
 
                 if batch_idx % one_tenth_of_loader == 0 and batch_idx > 0:
-                    nr_images = (batch_idx + 1) * self.params.batch_size
                     print(datetime.datetime.now())
+                    nr_images = (batch_idx + 1) * self.params.batch_size
                     print("Average Loc Loss: ", loc_loss_val /
                           nr_images)
                     print("Average Class Loss: ", class_loss_val /

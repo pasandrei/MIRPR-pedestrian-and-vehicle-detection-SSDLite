@@ -140,9 +140,8 @@ def test_anchor_mapping(image, bbox_predictions, classification_predictions, gt_
     gt_bbox_for_matched_anchors, _, pos_idx = map_to_ground_truth(
         overlaps, gt_bbox, gt_class)
 
-    # indeces_kept_by_nms = postprocessing.nms(prediction_bboxes, predicted_classes,
-    #                                          output_handler.suppress_threshold)
-    indeces_kept_by_nms = np.array([1])
+    indeces_kept_by_nms = postprocessing.nms(prediction_bboxes, predicted_classes,
+                                             output_handler.suppress_threshold)
 
     # get things in the right format
     image = output_handler._unnorm_scale_image(image)
