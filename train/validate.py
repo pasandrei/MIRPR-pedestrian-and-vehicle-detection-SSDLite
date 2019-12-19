@@ -10,15 +10,15 @@ from misc.utils import *
 
 class Model_evaluator():
 
-    def __init__(self, valid_loader, detection_loss, conf_thresh=0.35, suppress_thresh=0.5, writer=None, params=None):
+    def __init__(self, valid_loader, detection_loss, writer=None, params=None):
         self.valid_loader = valid_loader
         self.detection_loss = detection_loss
         self.output_handler = Model_output_handler(
-            conf_threshold=conf_thresh, suppress_threshold=suppress_thresh)
+            conf_threshold=params.conf_threshold, suppress_threshold=params.suppress_threshold)
         self.writer = writer
         self.params = params
 
-    def complete_evaluate(self, model, optimizer, train_loader, losses, epoch):
+    def complete_evaluate(self, model, optimizer, train_loader, losses=[0, 0, 0, 0], epoch=0):
         '''
         evaluates model performance of the validation set, saves current model, optimizer, stats if it is better that the best so far
         also logs info to tensorboard
@@ -36,7 +36,7 @@ class Model_evaluator():
         with torch.no_grad():
             loc_loss_val, class_loss_val = 0, 0
             val_set_size = len(self.valid_loader.sampler.sampler)
-            one_tenth_of_loader = len(self.valid_loader) // 10
+            one_tenth_of_loader = len(self.valid_loader) // self.params.train_stats_step
 
             prediction_annotations = []
             prediction_id = 0
@@ -92,7 +92,7 @@ class Model_evaluator():
         model.eval()
         with torch.no_grad():
             loc_loss_val, class_loss_val = 0, 0
-            one_tenth_of_loader = len(self.valid_loader) // 10
+            one_tenth_of_loader = len(self.valid_loader) // self.params.train_stats_step
 
             prediction_annotations = []
             prediction_id = 0
@@ -109,8 +109,7 @@ class Model_evaluator():
                 class_loss_val += class_loss.item()
 
                 if batch_idx % one_tenth_of_loader == 0 and batch_idx > 0:
-                    # nr_images = (batch_idx + 1) * self.params.batch_size
-                    nr_images = 100
+                    nr_images = (batch_idx + 1) * self.params.batch_size
                     print(datetime.datetime.now())
                     print("Average Loc Loss: ", loc_loss_val /
                           nr_images)

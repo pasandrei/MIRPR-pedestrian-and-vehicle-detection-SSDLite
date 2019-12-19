@@ -11,27 +11,18 @@ from data import dataloaders
 from architectures.models import SSDNet
 from misc import cross_validation
 
-from test_pipeline import mobilenet_v2_ssd_lite
 
-
-def run(path='misc/experiments/ssdnet/params.json', resume=False, eval_only=False, cross_validate=False, test_pipeline=False):
+def run(path='misc/experiments/ssdnet/params.json', resume=False, eval_only=False, cross_validate=False):
     '''
     args: path - string path to the json config file
     trains model refered by that file, saves model and optimizer dict at the same location
     '''
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
-    print(device)
-
     params = Params(path)
 
-    if test_pipeline:
-        print("TESTING")
-        model = mobilenet_v2_ssd_lite.create_mobilenetv2_ssd_lite(num_classes=2)
-    else:
-        print("MODEL ID: ", params.model_id)
-        if params.model_id == 'ssdnet' or params.model_id == 'ssdnet_loc':
-            model = SSDNet.SSD_Head(n_classes=params.n_classes)
+    print("MODEL ID: ", params.model_id)
+    if params.model_id == 'ssdnet':
+        model = SSDNet.SSD_Head(n_classes=params.n_classes)
     model.to(device)
 
     if params.optimizer == 'adam':
@@ -43,21 +34,22 @@ def run(path='misc/experiments/ssdnet/params.json', resume=False, eval_only=Fals
 
     print('Number of epochs:', params.n_epochs)
     print('Total number of parameters of model: ',
+          sum(p.numel() for p in model.parameters()))
+    print('Total number of trainable parameters of model: ',
           sum(p.numel() for p in model.parameters() if p.requires_grad))
-    print('Total number of parameters given to optimizer: ')
-
-    opt_params = 0
-    for pg in optimizer.param_groups:
-        opt_params += sum(p.numel() for p in model.parameters() if p.requires_grad)
-    print(opt_params)
 
     start_epoch = 0
     if resume or eval_only or cross_validate:
-        checkpoint = torch.load('misc/experiments/{}/model_checkpoint'.format(params.model_id))
-        model.load_state_dict(checkpoint['model_state_dict'])
-        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-        start_epoch = checkpoint['epoch']
+        # checkpoint = torch.load('misc/experiments/{}/model_checkpoint'.format(params.model_id))
+        # model.load_state_dict(checkpoint['model_state_dict'])
+        # optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        # start_epoch = checkpoint['epoch']
         print('Model loaded successfully')
+
+    print('Total number of parameters given to optimizer: ')
+    print(sum(p.numel() for pg in optimizer.param_groups for p in pg['params']))
+    print('Total number of trainable parameters given to optimizer: ')
+    print(sum(p.numel() for pg in optimizer.param_groups for p in pg['params'] if p.requires_grad))
 
     train_loader, valid_loader = dataloaders.get_dataloaders(params)
 
@@ -71,13 +63,10 @@ def run(path='misc/experiments/ssdnet/params.json', resume=False, eval_only=Fals
     anchors, grid_sizes = anchors.to(device), grid_sizes.to(device)
 
     detection_loss = Detection_Loss(anchors, grid_sizes, device, params)
-
     model_evaluator = Model_evaluator(valid_loader, detection_loss, writer=writer, params=params)
 
     if eval_only:
-        print('Only eval')
-        losses, epoch = [0, 0, 0, 0], 0
-        model_evaluator.complete_evaluate(model, optimizer, train_loader, losses, epoch)
+        model_evaluator.complete_evaluate(model, optimizer, train_loader)
 
     elif cross_validate:
         cross_validation.cross_validate(

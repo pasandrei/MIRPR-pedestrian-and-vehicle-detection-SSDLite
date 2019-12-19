@@ -1,7 +1,6 @@
 import torch
 from torch import nn
 import numpy as np
-# import torch.nn.functional as F
 
 from train.helpers import *
 from misc import postprocessing
@@ -118,7 +117,7 @@ def mapping_per_set(pos_idx):
     return np.array(grid_maps)
 
 
-def test_anchor_mapping(image, bbox_predictions, classification_predictions, gt_bbox, gt_class, image_info):
+def test_anchor_mapping(image, bbox_predictions, classification_predictions, gt_bbox, gt_class, image_info, params):
     """
     Args: all input is required per image
 
@@ -127,46 +126,46 @@ def test_anchor_mapping(image, bbox_predictions, classification_predictions, gt_
         - predicted bboxes higher than a threshold, sorted by predicted confidence, at right scale
         - gt bboxes for the image, at right scale
     """
-    output_handler = Model_output_handler()
+    output_handler = Model_output_handler(
+        conf_threshold=params.conf_threshold, suppress_threshold=params.suppress_threshold)
+
+    corner_anchors = output_handler.corner_anchors
+    overlaps = jaccard(gt_bbox, corner_anchors)
+
     bbox_predictions = bbox_predictions.cpu()
-
-    overlaps = jaccard(gt_bbox, output_handler.corner_anchors)
-
     prediction_bboxes, predicted_classes, highest_confidence_for_predictions, high_confidence_indeces = output_handler._get_sorted_predictions(
         bbox_predictions, classification_predictions, image_info)
-
-    print("THESE BBOXES SHOULD LOOK OK", prediction_bboxes)
 
     # map each anchor to the highest IOU obj, gt_idx - ids of mapped objects
     gt_bbox_for_matched_anchors, _, pos_idx = map_to_ground_truth(
         overlaps, gt_bbox, gt_class)
 
-    # inexplicable bug
-    print('nms on YOOOO postpros')
-    indeces_kept_by_nms = postprocessing.nms(prediction_bboxes, predicted_classes,
-                                             output_handler.suppress_threshold)
-    print('indices kept by nms')
+    # indeces_kept_by_nms = postprocessing.nms(prediction_bboxes, predicted_classes,
+    #                                          output_handler.suppress_threshold)
+    indeces_kept_by_nms = np.array([1])
 
+    # get things in the right format
     image = output_handler._unnorm_scale_image(image)
     pos_idx = (pos_idx.cpu().numpy())
     gt_bbox = output_handler._rescale_bboxes(gt_bbox, image_info[1])
-    # bbox_predictions = output_handler._convert_bboxes_to_workable_data(
-    #     bbox_predictions, image_info[1])
+    bbox_predictions = output_handler._convert_bboxes_to_workable_data(
+        bbox_predictions, image_info[1])
+    corner_anchors = output_handler._rescale_bboxes(corner_anchors, image_info[1])
+    gt_bbox_for_matched_anchors = output_handler._rescale_bboxes(
+        gt_bbox_for_matched_anchors, image_info[1])
+    classification_predictions = output_handler._convert_confidences_to_workable_data(
+        classification_predictions)
 
-    iou = mean_mapping_IOU(output_handler._rescale_bboxes(output_handler.corner_anchors,
-                                                          image_info[1]), pos_idx, output_handler._rescale_bboxes(gt_bbox_for_matched_anchors, image_info[1]))
+    iou = mean_mapping_IOU(corner_anchors, pos_idx, gt_bbox_for_matched_anchors)
     maps = mapping_per_set(pos_idx)
 
-    test(raw_bbox=output_handler._convert_bboxes_to_workable_data(bbox_predictions, image_info[1]),
-         raw_class=output_handler._convert_confidences_to_workable_data(classification_predictions),
-         image=image, anchors=output_handler._rescale_bboxes(
-         output_handler.corner_anchors, image_info[1]), pred_bbox=prediction_bboxes,
-         highest_confidence_for_predictions=highest_confidence_for_predictions, gt_bbox=gt_bbox, pos_idx=pos_idx,
-         high_confidence_indeces=high_confidence_indeces, size=image_info[1], indeces_kept_by_nms=indeces_kept_by_nms)
+    test(raw_bbox=bbox_predictions, raw_class=classification_predictions, image=image,
+         anchors=corner_anchors, pred_bbox=prediction_bboxes, highest_confidence_for_predictions=highest_confidence_for_predictions,
+         gt_bbox=gt_bbox, pos_idx=pos_idx, high_confidence_indeces=high_confidence_indeces,
+         size=image_info[1], indeces_kept_by_nms=indeces_kept_by_nms)
 
-    # inspect_anchors(image=image, anchors=output_handler._rescale_bboxes(
-    #     output_handler.corner_anchors, image_info[1]),
-    #     gt_bbox_for_matched_anchors=output_handler._rescale_bboxes(gt_bbox_for_matched_anchors, image_info[1]), pos_idx=pos_idx, size=image_info[1])
+    inspect_anchors(image=image, anchors=corner_anchors,
+                    gt_bbox_for_matched_anchors=gt_bbox_for_matched_anchors, pos_idx=pos_idx, size=image_info[1])
 
     return iou, maps
 
@@ -197,17 +196,17 @@ def test(raw_bbox=None, raw_class=None, image=None, anchors=None, pred_bbox=None
     print("Matched ANCHORS WITH THEIR RESPECTIVE OFFSET PREDICTIONS: ")
     print(matched_anchors, matched_anchors.shape)
     print("Matched Pred BBOXES: ", matched_bbox, matched_bbox.shape)
-    # for i in range(len(matched_anchors)):
-    #     cur_anchor_bbox = matched_anchors[i]
-    #     cur_pred_bbox = matched_bbox[i]
-    #     plot_bounding_boxes(image, cur_anchor_bbox, "ANCHOR", size)
-    #     plot_bounding_boxes(image, cur_pred_bbox, "PRED FROM ANCHOR", size)
-    #     print('Confidence for this pair of anchor/pred: ',
-    #           highest_confidence_for_predictions[i], size)
+    for i in range(len(matched_anchors)):
+        cur_anchor_bbox = matched_anchors[i]
+        cur_pred_bbox = matched_bbox[i]
+        plot_bounding_boxes(image, cur_anchor_bbox, "ANCHOR", size)
+        plot_bounding_boxes(image, cur_pred_bbox, "PRED FROM ANCHOR", size)
+        print('Confidence for this pair of anchor/pred: ',
+              highest_confidence_for_predictions[i], size)
 
     print('CONFIDENCES FOR PREDICTED BBOXES that matched anchors: ', matched_conf)
     plot_bounding_boxes(image, matched_bbox, "PREDICTED (CHEATED) BY THE NETWORK", size)
-    # plot_bounding_boxes(image, matched_anchors, "MATCHED ANCHORS", size)
+    plot_bounding_boxes(image, matched_anchors, "MATCHED ANCHORS", size)
 
     print("THIS IS PRED BBOX KEPT BY CONFIDENCE", pred_bbox,
           pred_bbox.shape)
