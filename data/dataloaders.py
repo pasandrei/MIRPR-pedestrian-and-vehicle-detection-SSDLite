@@ -25,7 +25,8 @@ def get_dataloaders(params):
 
     train_dataloader = DataLoader(train_dataset, batch_size=None,
                                   shuffle=False, num_workers=4,
-                                  sampler=BatchSampler(SubsetRandomSampler([i for i in range(nr_images_in_train)]), batch_size=params.batch_size, drop_last=False))
+                                  sampler=BatchSampler(SubsetRandomSampler([i for i in range(nr_images_in_train)]),
+                                                       batch_size=params.batch_size, drop_last=True))
 
     with open(val_annotations_path) as json_file:
         data = json.load(json_file)
@@ -33,6 +34,7 @@ def get_dataloaders(params):
 
     valid_dataloader = DataLoader(validation_dataset, batch_size=None,
                                   shuffle=False, num_workers=4,
-                                  sampler=BatchSampler(SequentialSampler([i for i in range(nr_images_in_val)]), batch_size=params.batch_size, drop_last=False))
+                                  sampler=BatchSampler(SequentialSampler([i for i in range(nr_images_in_val)]),
+                                                       batch_size=params.batch_size, drop_last=True))
 
     return train_dataloader, valid_dataloader
