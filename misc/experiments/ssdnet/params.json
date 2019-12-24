@@ -3,7 +3,7 @@
     "optimizer": "adam",
     "n_classes": 2,
     "learning_rate": 0.01,
-    "batch_size": 2,
+    "batch_size": 16,
     "conf_threshold": 0.35,
     "suppress_threshold": 0.46,
     "weight_decay": 0.0001,
