@@ -5,6 +5,7 @@ from matplotlib import pyplot as plt
 
 
 def hw2corners(ctr, hw):
+    #taken from fastai
     return torch.cat([ctr-hw/2, ctr+hw/2], dim=1)
 
 
@@ -23,6 +24,7 @@ def clamp_corners(bbox):
 
 
 def intersect(box_a, box_b):
+    #taken from fastai
     """ Returns the intersection of two boxes """
     max_xy = torch.min(box_a[:, None, 2:], box_b[None, :, 2:])
     min_xy = torch.max(box_a[:, None, :2], box_b[None, :, :2])
@@ -31,11 +33,13 @@ def intersect(box_a, box_b):
 
 
 def box_sz(b):
+    #taken from fastai
     """ Returns the box size"""
     return ((b[:, 2]-b[:, 0]) * (b[:, 3]-b[:, 1]))
 
 
 def jaccard(box_a, box_b):
+    #taken from fastai
     """ Returns the jaccard distance between two boxes"""
     inter = intersect(box_a, box_b)
     union = box_sz(box_a).unsqueeze(1) + box_sz(box_b).unsqueeze(0) - inter
@@ -43,6 +47,7 @@ def jaccard(box_a, box_b):
 
 
 def activations_to_bboxes(actn, anchors, grid_sizes):
+    #taken from fastai
     """ activations to bounding boxes format """
     anchors = anchors.type(torch.float64)
     actn_offsets = torch.tanh(actn)
@@ -54,6 +59,7 @@ def activations_to_bboxes(actn, anchors, grid_sizes):
 
 
 def map_to_ground_truth(overlaps, gt_bbox, gt_class):
+    #taken from fastai
     """ maps priors to max IOU obj
    returns:
    - gt_bbox_for_matched_anchors: tensor of size matched_priors x 4 - essentially assigning GT bboxes to corresponding highest IOU priors
@@ -85,6 +91,7 @@ def map_to_ground_truth(overlaps, gt_bbox, gt_class):
 
 
 def create_anchors():
+    #taken from fastai
     ''' anchors and sizes
     returns in the following format:
     k = zooms * ratios
@@ -118,7 +125,7 @@ def create_anchors():
         anchors = torch.from_numpy(np.concatenate([anc_ctrs, anc_sizes], axis=1)).float()
 
         return anchors, grid_sizes
-        
+
     anc_grids10 = [20, 10, 5, 3, 2, 1]
     anc_zooms10 = [1., 1.25]
     anc_ratios10 = [(1., 1.), (2., 1.), (1., 2.)]
