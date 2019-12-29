@@ -126,16 +126,20 @@ def create_anchors():
 
         return anchors, grid_sizes
 
-    anc_grids10 = [20, 10, 5, 3, 2, 1]
-    anc_zooms10 = [1., 1.25]
-    anc_ratios10 = [(1., 1.), (2., 1.), (1., 2.)]
+    anc_grids10 = [10]
+    anc_zooms10 = [1., 1.2, 1.5, 1.8]
+    anc_ratios10 = [(1., 1.), (1., 0.5), (0.5, 1)]
 
-    anchors, grid_sizes = create(anc_grids10, anc_zooms10, anc_ratios10)
+    anchors10, grid_sizes10 = create(anc_grids10, anc_zooms10, anc_ratios10)
 
-    anchor_corner = hw2corners(anchors[:, :2], anchors[:, 2:])
-    anchor_corner = clamp_corners(anchor_corner)
-    for idx, anchor in enumerate(anchor_corner):
-        anchors[idx] = corners_to_center_hw(anchor)
+    anc_grids5 = [5, 3, 2, 1]
+    anc_zooms5 = [0.75, 1., 1.25, 1.5]
+    anc_ratios5 = [(1., 1.), (1., 0.5), (0.5, 1), (2, 1), (1, 2)]
+
+    anchors5, grid_sizes5 = create(anc_grids5, anc_zooms5, anc_ratios5)
+
+    anchors = torch.cat([anchors10, anchors5])
+    grid_sizes = torch.cat([grid_sizes10, grid_sizes5])
 
     return anchors, grid_sizes
 
