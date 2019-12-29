@@ -3,7 +3,7 @@ from train.helpers import *
 from train.config import Params
 from data import dataloaders
 from architectures.models import SSDNet
-from my_tests import anchor_mapping
+from visualize import anchor_mapping
 from misc.model_output_handler import *
 
 import cv2

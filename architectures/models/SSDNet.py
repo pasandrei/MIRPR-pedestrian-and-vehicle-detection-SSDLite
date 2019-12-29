@@ -36,11 +36,11 @@ class OutConv(nn.Module):
 
 
 class SSD_Head(nn.Module):
-    def __init__(self, n_classes, k_20=6, k_10=6, k_5=6, k_3=6, k_2=6, k_1=6, width_mult=1):
+    def __init__(self, n_classes, k_10=12, k_5=20, width_mult=1):
         super().__init__()
 
         # intermediate lay 15 with os = 16, will be a 20x20 grid for 320x320 input, 576 is the expansion size of layer 15 in MobileNetV2
-        self.out0 = OutConv(int(576 * width_mult), n_classes, k_20)
+        # self.out0 = OutConv(int(576 * width_mult), n_classes, k)
 
         # from now we use the 1280 output of the backbone, first grid 10x10
         self.out1 = OutConv(1280, n_classes, k_10)
@@ -51,15 +51,15 @@ class SSD_Head(nn.Module):
 
         # third grid 3x3
         self.inv3 = InvertedResidual(inp=512, oup=256, stride=2, expand_ratio=0.25)
-        self.out3 = OutConv(256, n_classes, k_3)
+        self.out3 = OutConv(256, n_classes, k_5)
 
         # fourth grid 2x2
         self.inv4 = InvertedResidual(inp=256, oup=256, stride=2, expand_ratio=0.25)
-        self.out4 = OutConv(256, n_classes, k_2)
+        self.out4 = OutConv(256, n_classes, k_5)
 
         # last grid 1x1
         self.inv5 = InvertedResidual(inp=256, oup=64, stride=2, expand_ratio=0.5)
-        self.out5 = OutConv(64, n_classes, k_1)
+        self.out5 = OutConv(64, n_classes, k_5)
 
         # weight initialization
         for m in self.modules():
@@ -82,7 +82,7 @@ class SSD_Head(nn.Module):
         lay15, x = self.backbone(x)
 
         # 20*20*k x 4
-        _20bbox, _20class = self.out0(lay15)
+        # _20bbox, _20class = self.out0(lay15)
         _10bbox, _10class = self.out1(x)
 
         x = self.inv2(x)
@@ -99,5 +99,5 @@ class SSD_Head(nn.Module):
 
         # bboxes prediction:  B x (20*20) * 6 x 4 ...
         # class prediction:  B x (20*20) * 6 x n_classes ...
-        return [torch.cat([_20bbox, _10bbox, _5bbox, _3bbox, _2bbox, _1bbox], dim=1),
-                torch.cat([_20class, _10class, _5class, _3class, _2class, _1class], dim=1)]
+        return [torch.cat([_10bbox, _5bbox, _3bbox, _2bbox, _1bbox], dim=1),
+                torch.cat([_10class, _5class, _3class, _2class, _1class], dim=1)]

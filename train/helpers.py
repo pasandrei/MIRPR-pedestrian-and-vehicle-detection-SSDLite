@@ -5,6 +5,7 @@ from matplotlib import pyplot as plt
 
 
 def hw2corners(ctr, hw):
+    #taken from fastai
     return torch.cat([ctr-hw/2, ctr+hw/2], dim=1)
 
 
@@ -23,6 +24,7 @@ def clamp_corners(bbox):
 
 
 def intersect(box_a, box_b):
+    #taken from fastai
     """ Returns the intersection of two boxes """
     max_xy = torch.min(box_a[:, None, 2:], box_b[None, :, 2:])
     min_xy = torch.max(box_a[:, None, :2], box_b[None, :, :2])
@@ -31,11 +33,13 @@ def intersect(box_a, box_b):
 
 
 def box_sz(b):
+    #taken from fastai
     """ Returns the box size"""
     return ((b[:, 2]-b[:, 0]) * (b[:, 3]-b[:, 1]))
 
 
 def jaccard(box_a, box_b):
+    #taken from fastai
     """ Returns the jaccard distance between two boxes"""
     inter = intersect(box_a, box_b)
     union = box_sz(box_a).unsqueeze(1) + box_sz(box_b).unsqueeze(0) - inter
@@ -43,6 +47,7 @@ def jaccard(box_a, box_b):
 
 
 def activations_to_bboxes(actn, anchors, grid_sizes):
+    #taken from fastai
     """ activations to bounding boxes format """
     anchors = anchors.type(torch.float64)
     actn_offsets = torch.tanh(actn)
@@ -54,6 +59,7 @@ def activations_to_bboxes(actn, anchors, grid_sizes):
 
 
 def map_to_ground_truth(overlaps, gt_bbox, gt_class):
+    #taken from fastai
     """ maps priors to max IOU obj
    returns:
    - gt_bbox_for_matched_anchors: tensor of size matched_priors x 4 - essentially assigning GT bboxes to corresponding highest IOU priors
@@ -85,6 +91,7 @@ def map_to_ground_truth(overlaps, gt_bbox, gt_class):
 
 
 def create_anchors():
+    #taken from fastai
     ''' anchors and sizes
     returns in the following format:
     k = zooms * ratios
@@ -119,63 +126,20 @@ def create_anchors():
 
         return anchors, grid_sizes
 
-    # # new
-    # # 12
-    # anc_grids20 = [20]
-    # anc_zooms20 = [1, 1.25, 1.5]
-    # anc_ratios20 = [(2, 1), (4, 1), (1, 1.22), (1, 3)]
-    #
-    # # 20
-    # anc_grids10 = [10]
-    # anc_zooms10 = [0.75, 1, 1.25, 1.5]
-    # anc_ratios10 = [(1, 1), (2, 1), (4, 1), (1, 1.22), (1, 3)]
-    #
-    # # 30
-    # anc_grids5 = [5]
-    # anc_zooms5 = [0.6, 0.75, 0.85, 1., 1.25, 1.5]
-    # anc_ratios5 = [(1, 1), (2, 1), (4, 1), (1, 1.22), (1, 3)]
-    #
-    # # 40
-    # anc_grids3 = [3, 2]
-    # anc_zooms3 = [0.45, 0.55, 0.65, 0.75, 0.85, 1., 1.25, 1.5]
-    # anc_ratios3 = [(1, 1), (2, 1), (4, 1), (1, 1.22), (1, 3)]
-    #
-    # # 50
-    # anc_grids1 = [1]
-    # anc_zooms1 = [0.2, 0.25, 0.3, 0.35, 0.45, 0.55, 0.65, 0.75, 0.85, 1.]
-    # anc_ratios1 = [(1, 1), (2, 1), (4, 1), (1, 1.22), (1, 3)]
-    #
-    # anchors20, grid_sizes20 = create(anc_grids20, anc_zooms20, anc_ratios20)
-    #
-    # anchors10, grid_sizes10 = create(anc_grids10, anc_zooms10, anc_ratios10)
-    #
-    # anchors5, grid_sizes5 = create(anc_grids5, anc_zooms5, anc_ratios5)
-    #
-    # anchors3, grid_sizes3 = create(anc_grids3, anc_zooms3, anc_ratios3)
-    #
-    # anchors1, grid_sizes1 = create(anc_grids1, anc_zooms1, anc_ratios1)
-    #
-    # anchors = torch.cat([anchors20, anchors10, anchors5, anchors3, anchors1])
-    #
-    # anchor_corner = hw2corners(anchors[:, :2], anchors[:, 2:])
-    # anchor_corner = clamp_corners(anchor_corner)
-    # for idx, anchor in enumerate(anchor_corner):
-    #     anchors[idx] = corners_to_center_hw(anchor)
-    #
-    # grid_sizes = torch.cat([grid_sizes20, grid_sizes10, grid_sizes5, grid_sizes3, grid_sizes1])
+    anc_grids10 = [10]
+    anc_zooms10 = [1., 1.2, 1.5, 1.8]
+    anc_ratios10 = [(1., 1.), (1., 0.5), (0.5, 1)]
 
-    # old
+    anchors10, grid_sizes10 = create(anc_grids10, anc_zooms10, anc_ratios10)
 
-    anc_grids10 = [20, 10, 5, 3, 2, 1]
-    anc_zooms10 = [1., 1.25]
-    anc_ratios10 = [(1., 1.), (2., 1.), (1., 2.)]
+    anc_grids5 = [5, 3, 2, 1]
+    anc_zooms5 = [0.75, 1., 1.25, 1.5]
+    anc_ratios5 = [(1., 1.), (1., 0.5), (0.5, 1), (2, 1), (1, 2)]
 
-    anchors, grid_sizes = create(anc_grids10, anc_zooms10, anc_ratios10)
+    anchors5, grid_sizes5 = create(anc_grids5, anc_zooms5, anc_ratios5)
 
-    anchor_corner = hw2corners(anchors[:, :2], anchors[:, 2:])
-    anchor_corner = clamp_corners(anchor_corner)
-    for idx, anchor in enumerate(anchor_corner):
-        anchors[idx] = corners_to_center_hw(anchor)
+    anchors = torch.cat([anchors10, anchors5])
+    grid_sizes = torch.cat([grid_sizes10, grid_sizes5])
 
     return anchors, grid_sizes
 

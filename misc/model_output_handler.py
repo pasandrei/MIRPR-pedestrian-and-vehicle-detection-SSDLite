@@ -1,7 +1,6 @@
 from train.helpers import *
 from misc.postprocessing import *
 from misc.utils import *
-from my_tests import anchor_mapping
 
 import numpy as np
 import copy
@@ -22,7 +21,6 @@ class Model_output_handler():
         bbox, class id, confidence
         all operations done on cpu
         """
-        bbox_predictions = bbox_predictions.cpu()
         prediction_bboxes, predicted_classes, highest_confidence_for_predictions, _ = self._get_sorted_predictions(
             bbox_predictions, classification_predictions, image_info)
 
@@ -110,6 +108,7 @@ class Model_output_handler():
 
     def _convert_bboxes_to_workable_data(self, prediction_bboxes, size):
         height, width = size
+        prediction_bboxes = prediction_bboxes.cpu()
         prediction_bboxes = activations_to_bboxes(
             prediction_bboxes, self.anchors_hw, self.grid_sizes)
         return self._rescale_bboxes(prediction_bboxes, size)
