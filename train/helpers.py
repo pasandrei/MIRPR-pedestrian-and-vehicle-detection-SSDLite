@@ -3,6 +3,8 @@ import numpy as np
 import cv2
 from matplotlib import pyplot as plt
 
+from general_config import anchor_config
+
 
 def hw2corners(ctr, hw):
     #taken from fastai
@@ -126,20 +128,15 @@ def create_anchors():
 
         return anchors, grid_sizes
 
-    anc_grids10 = [10]
-    anc_zooms10 = [1., 1.2, 1.5, 1.8]
-    anc_ratios10 = [(1., 1.), (1., 0.5), (0.5, 1)]
+    anchors, grid_sizes = [], []
+    for (k_zoom, v_zoom), (k_ratio, v_ratio) in zip(anchor_config.zoom.items(), anchor_config.ratio.items()):
+        if v_zoom != []:
+            cur_anchors, cur_grid_sizes = create([k_zoom], v_zoom, v_ratio)
+            anchors.append(cur_anchors)
+            grid_sizes.append(cur_grid_sizes)
 
-    anchors10, grid_sizes10 = create(anc_grids10, anc_zooms10, anc_ratios10)
-
-    anc_grids5 = [5, 3, 2, 1]
-    anc_zooms5 = [0.75, 1., 1.25, 1.5]
-    anc_ratios5 = [(1., 1.), (1., 0.5), (0.5, 1), (2, 1), (1, 2)]
-
-    anchors5, grid_sizes5 = create(anc_grids5, anc_zooms5, anc_ratios5)
-
-    anchors = torch.cat([anchors10, anchors5])
-    grid_sizes = torch.cat([grid_sizes10, grid_sizes5])
+    anchors = torch.cat(anchors)
+    grid_sizes = torch.cat(grid_sizes)
 
     return anchors, grid_sizes
 

@@ -1,6 +1,7 @@
 from misc.postprocessing import nms, plot_bounding_boxes
 from train.helpers import *
 from train.config import Params
+from general_config import anchor_config
 from data import dataloaders
 from architectures.models import SSDNet
 from visualize import anchor_mapping
@@ -18,7 +19,7 @@ def model_output_pipeline(params_path):
     params = Params(params_path)
 
     if params.model_id == 'ssdnet':
-        model = SSDNet.SSD_Head(params.n_classes)
+        model = SSDNet.SSD_Head(params.n_classes, anchor_config.k_list)
     model.to(device)
 
     checkpoint = torch.load('misc/experiments/{}/model_checkpoint'.format(params.model_id))
