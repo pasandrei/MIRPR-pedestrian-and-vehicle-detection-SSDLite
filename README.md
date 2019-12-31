@@ -6,6 +6,6 @@ We trained the network only on humans and car annotations that are considered me
 
 ### Future work
 
-In the following iterations we will use data augmentations because the networks overfits the training data.
+In the following iterations we will use data augmentation because the network overfits the training data.
 
 We are also planning to test the netowrk performance with 20x20 anchors.
