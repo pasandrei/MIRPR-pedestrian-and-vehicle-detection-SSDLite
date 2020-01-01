@@ -119,7 +119,6 @@ def test_anchor_mapping(image, bbox_predictions, classification_predictions, gt_
     corner_anchors = output_handler.corner_anchors
     overlaps = jaccard(gt_bbox, corner_anchors)
 
-    image_info[1] = (800,800)
     prediction_bboxes, predicted_classes, highest_confidence_for_predictions, high_confidence_indeces = output_handler._get_sorted_predictions(
         bbox_predictions, classification_predictions, image_info)
 
