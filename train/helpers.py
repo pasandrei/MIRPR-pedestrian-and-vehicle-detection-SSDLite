@@ -138,6 +138,11 @@ def create_anchors():
     anchors = torch.cat(anchors)
     grid_sizes = torch.cat(grid_sizes)
 
+    anchor_corner = hw2corners(anchors[:, :2], anchors[:, 2:])
+    anchor_corner = clamp_corners(anchor_corner)
+    for idx, anchor in enumerate(anchor_corner):
+        anchors[idx] = corners_to_center_hw(anchor)
+
     return anchors, grid_sizes
 
 
