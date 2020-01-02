@@ -8,9 +8,9 @@
     "conf_threshold": 0.35,
     "suppress_threshold": 0.46,
     "weight_decay": 0.0001,
-    "n_epochs": 40,
+    "n_epochs": 45,
     "train_stats_step": 10,
-    "eval_step": 10,
+    "eval_step": 1,
     "loss": 0.26126615819964905,
     "mAP": 0.20807749002761391
 }
