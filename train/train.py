@@ -39,6 +39,7 @@ def train(model, optimizer, train_loader, model_evaluator, detection_loss, param
             train_step(model, input_, label, optimizer, losses, detection_loss, params)
 
             if batch_idx % one_tenth_of_loader == 0 and batch_idx > 0:
+                print(datetime.datetime.now())
                 print_batch_stats(model, epoch, batch_idx, train_loader,
                                   losses, params)
                 losses[0], losses[1] = 0, 0

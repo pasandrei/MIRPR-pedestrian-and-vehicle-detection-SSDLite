@@ -138,7 +138,7 @@ def test_anchor_mapping(image, bbox_predictions, classification_predictions, gt_
 
     # map each anchor to the highest IOU obj, gt_idx - ids of mapped objects
     gt_bbox_for_matched_anchors, matched_gt_class_ids, pos_idx = map_to_ground_truth(
-        overlaps, gt_bbox, gt_class)
+        overlaps, gt_bbox, gt_class, params)
 
     indeces_kept_by_nms = postprocessing.nms(prediction_bboxes, predicted_classes,
                                              output_handler.suppress_threshold)
