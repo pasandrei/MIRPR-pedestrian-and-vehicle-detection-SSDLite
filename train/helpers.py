@@ -60,7 +60,7 @@ def activations_to_bboxes(actn, anchors, grid_sizes):
     return hw2corners(actn_centers, actn_hw)
 
 
-def map_to_ground_truth(overlaps, gt_bbox, gt_class):
+def map_to_ground_truth(overlaps, gt_bbox, gt_class, params):
     #taken from fastai
     """ maps priors to max IOU obj
    returns:
@@ -79,7 +79,7 @@ def map_to_ground_truth(overlaps, gt_bbox, gt_class):
 
     # for each prior, get the actual id of the class it should predict, unmatched anchors (low IOU) should predict background
     matched_gt_class_ids = gt_class[prior_to_gt_idx]
-    pos = prior_to_gt_overlap > 0.5  # careful what you change!!!
+    pos = prior_to_gt_overlap > params.mapping_threshold  
     matched_gt_class_ids[~pos] = 100  # background code
 
     # for each matched prior, get the bbox it should predict

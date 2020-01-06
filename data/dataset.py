@@ -4,6 +4,8 @@ import os
 import os.path
 import torchvision.transforms.functional as F
 import numpy
+import random
+import copy
 
 from train.helpers import *
 
@@ -20,13 +22,16 @@ class CocoDetection(VisionDataset):
             target and transforms it.
         transforms (callable, optional): A function/transform that takes input sample and its target as entry
             and returns a transformed version.
+
+    We are using the COCO API on top of which we build our custom data processing
     """
 
-    def __init__(self, root, annFile, transform=None, target_transform=None, transforms=None):
+    def __init__(self, root, annFile, transform=None, target_transform=None, transforms=None, augmentation=True):
         super().__init__(root, transforms, transform, target_transform)
         from pycocotools.coco import COCO
         self.coco = COCO(annFile)
         self.ids = list(sorted(self.coco.imgs.keys()))
+        self.augmentation = augmentation
 
     def __getitem__(self, batched_indices):
         """
@@ -49,6 +54,8 @@ class CocoDetection(VisionDataset):
             width, height = img.size
 
             img = F.resize(img, size=(320, 320), interpolation=2)
+            if self.augmentation:
+                img, target = self.augment_data(img, target)
 
             # C x H x W
             img = F.to_tensor(img)
@@ -63,11 +70,34 @@ class CocoDetection(VisionDataset):
         # B x C x H x W
         batch_images = torch.stack(imgs)
 
-        # target[0] = list of bboxes tensors for each image
-        # target[1] = list of class id tensors for each image
+        # batch_targets[0] = list of bboxes tensors for each image
+        # batch_targets[1] = list of class id tensors for each image
         batch_targets = [targets_bboxes, targets_classes]
 
         return batch_images, batch_targets, image_info
 
     def __len__(self):
         return len(self.ids)
+
+    def augment_data(self, img, target):
+        # random flip
+        if random.random() > 0.5:
+            img = F.hflip(img)
+            self.flip_gt_bboxes(target[0])
+
+        # color jitter
+        img = F.adjust_brightness(img, random.uniform(0.85, 1.15))
+        img = F.adjust_contrast(img, random.uniform(0.85, 1.15))
+        img = F.adjust_saturation(img, random.uniform(0.85, 1.15))
+        img = F.adjust_hue(img, random.uniform(-0.08, 0.08))
+
+        return img, target
+
+    def flip_gt_bboxes(self, image_bboxes):
+        image_bboxes[:, 1] = 1 - image_bboxes[:, 1]
+        image_bboxes[:, 3] = 1 - image_bboxes[:, 3]
+
+        # don't forget to also swap second and fourth columns to keep format
+        temp = copy.deepcopy(image_bboxes[:, 1])
+        image_bboxes[:, 1] = image_bboxes[:, 3]
+        image_bboxes[:, 3] = temp

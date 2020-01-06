@@ -94,7 +94,7 @@ class Detection_Loss():
 
         # map each anchor to the highest IOU obj, gt_idx - ids of mapped objects
         gt_bbox_for_matched_anchors, matched_gt_class_ids, pos_idx = map_to_ground_truth(
-            overlaps, gt_bbox, gt_class)
+            overlaps, gt_bbox, gt_class, self.params)
 
         loc_loss = ((pred_bbox[pos_idx] - gt_bbox_for_matched_anchors).abs()).mean()
 

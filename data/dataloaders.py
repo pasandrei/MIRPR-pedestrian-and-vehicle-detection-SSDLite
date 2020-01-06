@@ -5,19 +5,19 @@ from data.dataset import CocoDetection
 from torch.utils.data.sampler import *
 import json
 
-# get actual train and valid datasets, will be done when merging
-
 
 def get_dataloaders(params):
     ''' creates and returns train and validation data loaders '''
 
     train_annotations_path = '..\\..\\COCO\\annotations\\instances_train2017.json'
     train_dataset = CocoDetection(root='..\\..\\COCO\\train2017',
-                                       annFile=train_annotations_path)
+                                       annFile=train_annotations_path,
+                                       augmentation=True)
 
     val_annotations_path = '..\\..\\COCO\\annotations\\instances_val2017.json'
     validation_dataset = CocoDetection(root='..\\..\\COCO\\val2017',
-                                       annFile=val_annotations_path)
+                                       annFile=val_annotations_path,
+                                       augmentation=False)
 
     with open(train_annotations_path) as json_file:
         data = json.load(json_file)
