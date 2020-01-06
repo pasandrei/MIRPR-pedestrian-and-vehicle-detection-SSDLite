@@ -8,6 +8,7 @@ from general_config import anchor_config
 from train.helpers import *
 from train import train
 from train.validate import Model_evaluator
+from train.optimizer_handler import *
 from data import dataloaders
 from architectures.models import SSDNet
 from misc import cross_validation
@@ -28,8 +29,7 @@ def run(path='misc/experiments/ssdnet/params.json', resume=False, eval_only=Fals
     model.to(device)
 
     if params.optimizer == 'adam':
-        optimizer = optim.Adam(model.parameters(), lr=params.learning_rate,
-                               weight_decay=params.weight_decay)
+        optimizer = layer_specific_adam(model, params)
     elif params.optimizer == 'sgd':
         optimizer = optim.SGD(model.parameters(), lr=params.learning_rate,
                               weight_decay=params.weight_decay, momentum=0.9)
