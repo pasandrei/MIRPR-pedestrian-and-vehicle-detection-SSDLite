@@ -7,7 +7,7 @@ from pycocotools.cocoeval import COCOeval
 from pycocotools.coco import COCO
 
 
-def plot_anchor_gt(image, anchor, gt, message="DA_MA", size=(320, 320)):
+def plot_anchor_gt(image, anchor, gt, cur_class, message="DA_MA", size=(320, 320)):
     image = image.transpose(1, 2, 0)
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     image = cv2.resize(image, dsize=(size[1], size[0]))
@@ -16,7 +16,9 @@ def plot_anchor_gt(image, anchor, gt, message="DA_MA", size=(320, 320)):
     cv2.rectangle(image, (anchor[1], anchor[0]),
                   (anchor[3], anchor[2]), color_anchor, 2)
 
-    color_gt = (0, 255, 0)
+
+    gt_id_2_color = {1:(200,200,0), 3:(150,250,150)}
+    color_gt = gt_id_2_color[cur_class]
     cv2.rectangle(image, (gt[1], gt[0]),
                   (gt[3], gt[2]), color_gt, 2)
 
@@ -24,19 +26,34 @@ def plot_anchor_gt(image, anchor, gt, message="DA_MA", size=(320, 320)):
     cv2.waitKey(0)
 
 
-def plot_bounding_boxes(image, bounding_boxes, message='no_message', size=(500, 500), ok=0):
-    # loop over the bounding boxes for each image and draw them
+def plot_bounding_boxes(image, bounding_boxes, classes, bbox_type="pred", message='no_message', size=(500, 500)):
+    """
+    Plots an array of bounding_boxes with their respective color
+    """
     image = image.transpose(1, 2, 0)
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     image = cv2.resize(image, dsize=(size[1], size[0]))
 
-    color = (0, 255, 0) if ok else (0, 0, 255)
-    if len(bounding_boxes.shape) == 1:
-        cv2.rectangle(image, (bounding_boxes[1], bounding_boxes[0]),
-                      (bounding_boxes[3], bounding_boxes[2]), color, 2)
+    # light blue gt is human, light green is vehicle
+    gt_id_2_color = {1:(200,200,0), 3:(150,250,150)}
+    # blue prediction is human, green is vehicle
+    pred_id_2_color = {1:(255,0,0), 3:(0,255,0)}
+    # anchors are not class aware, they are just red
+    anchor_id_2_color = {1:(0,0,255), 3:(0,0,255)}
+    if bbox_type == "pred":
+        id_2_color = pred_id_2_color
+    elif bbox_type == "gt":
+        id_2_color = gt_id_2_color
     else:
-        for (startX, startY, endX, endY) in bounding_boxes:
-            cv2.rectangle(image, (startY, startX), (endY, endX), color, 2)
+        id_2_color = anchor_id_2_color
+
+    if len(bounding_boxes.shape) == 1:
+        bounding_boxes = bounding_boxes.reshape(1, -1)
+    classes = classes.reshape(-1)
+
+    for (startX, startY, endX, endY), pred_class in zip(bounding_boxes, classes):
+        color = id_2_color[pred_class]
+        cv2.rectangle(image, (startY, startX), (endY, endX), color, 2)
 
     # display the image
     cv2.imshow(message, image)

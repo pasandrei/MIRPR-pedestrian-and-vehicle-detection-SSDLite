@@ -17,6 +17,8 @@ def nms(bounding_boxes, predicted_classes, threshold=0.5):
 
     bounding_boxes MUST be sorted
     """
+    bounding_boxes = bounding_boxes[:200]
+    predicted_classes = predicted_classes[:200]
 
     indices = np.array(range(bounding_boxes.shape[0]))
     final_model_predictions = []
