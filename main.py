@@ -23,7 +23,7 @@ def run(path='misc/experiments/ssdnet/params.json', resume=False, eval_only=Fals
 
     print("MODEL ID: ", params.model_id)
     if params.model_id == 'ssdnet':
-        print(anchor_config.k_list)
+        print("List of anchors per feature map cell: ", anchor_config.k_list)
         model = SSDNet.SSD_Head(n_classes=params.n_classes, k_list=anchor_config.k_list)
     model.to(device)
 
