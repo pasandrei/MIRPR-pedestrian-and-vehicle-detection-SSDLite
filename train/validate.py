@@ -72,10 +72,19 @@ class Model_evaluator():
                     'model_state_dict': model.state_dict(),
                     'optimizer_state_dict': optimizer.state_dict(),
                 }, SAVE_PATH)
-                self.params.loss = val_loss
                 self.params.mAP = mAP
                 self.params.save('misc/experiments/ssdnet/params.json')
                 print('Model saved succesfully')
+
+            SAVE_PATH2 = 'misc/experiments/{}/model_checkpoint2'.format(self.params.model_id)
+            if self.params.loss > val_loss:
+                torch.save({
+                    'epoch': epoch,
+                    'model_state_dict': model.state_dict(),
+                    'optimizer_state_dict': optimizer.state_dict(),
+                }, SAVE_PATH2)
+                self.params.loss = val_loss
+                print('Model saved succesfully by loss')
 
             # tensorboard
             loc_loss_val, class_loss_val = loc_loss_val / val_set_size, class_loss_val / val_set_size
