@@ -4,6 +4,7 @@ import torch
 import torch.optim as optim
 
 from train.config import Params
+from general_config import anchor_config
 from train.helpers import *
 from train import train
 from train.validate import Model_evaluator
@@ -22,7 +23,8 @@ def run(path='misc/experiments/ssdnet/params.json', resume=False, eval_only=Fals
 
     print("MODEL ID: ", params.model_id)
     if params.model_id == 'ssdnet':
-        model = SSDNet.SSD_Head(n_classes=params.n_classes)
+        print("List of anchors per feature map cell: ", anchor_config.k_list)
+        model = SSDNet.SSD_Head(n_classes=params.n_classes, k_list=anchor_config.k_list)
     model.to(device)
 
     if params.optimizer == 'adam':
