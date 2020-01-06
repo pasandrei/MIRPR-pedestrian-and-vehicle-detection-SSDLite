@@ -13,7 +13,6 @@ from architectures.models import SSDNet
 from misc import cross_validation
 
 
-
 def run(path='misc/experiments/ssdnet/params.json', resume=False, eval_only=False, cross_validate=False):
     '''
     args: path - string path to the json config file
