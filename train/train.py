@@ -59,6 +59,7 @@ def train(model, optimizer, train_loader, model_evaluator, detection_loss, param
             model_evaluator.complete_evaluate(model, optimizer, train_loader, losses, epoch)
             losses[2], losses[3] = 0, 0
 
+
 def update_losses(losses, l_loss, c_loss):
     """
     losses[0], losses[1] - batch l and c loss, similarily for idx 2 and 3 epoch loss
