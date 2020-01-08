@@ -16,9 +16,8 @@ def plot_anchor_gt(image, anchor, gt, cur_class, message="DA_MA", size=(320, 320
     cv2.rectangle(image, (anchor[1], anchor[0]),
                   (anchor[3], anchor[2]), color_anchor, 2)
 
-
-    gt_id_2_color = {1:(200,200,0), 3:(150,250,150)}
-    color_gt = gt_id_2_color[cur_class]
+    # gt_id_2_color = {1: (200, 200, 0), 3: (150, 250, 150)}
+    color_gt = (200, 200, 0)
     cv2.rectangle(image, (gt[1], gt[0]),
                   (gt[3], gt[2]), color_gt, 2)
 
@@ -35,11 +34,11 @@ def plot_bounding_boxes(image, bounding_boxes, classes, bbox_type="pred", messag
     image = cv2.resize(image, dsize=(size[1], size[0]))
 
     # light blue gt is human, light green is vehicle
-    gt_id_2_color = {1:(200,200,0), 3:(150,250,150)}
+    gt_id_2_color = {1: (200, 200, 0), 3: (150, 250, 150)}
     # blue prediction is human, green is vehicle
-    pred_id_2_color = {1:(255,0,0), 3:(0,255,0)}
+    pred_id_2_color = {1: (255, 0, 0), 3: (0, 255, 0)}
     # anchors are not class aware, they are just red
-    anchor_id_2_color = {1:(0,0,255), 3:(0,0,255)}
+    anchor_id_2_color = {1: (0, 0, 255), 3: (0, 0, 255)}
     if bbox_type == "pred":
         id_2_color = pred_id_2_color
     elif bbox_type == "gt":
@@ -52,7 +51,10 @@ def plot_bounding_boxes(image, bounding_boxes, classes, bbox_type="pred", messag
     classes = classes.reshape(-1)
 
     for (startX, startY, endX, endY), pred_class in zip(bounding_boxes, classes):
-        color = id_2_color[pred_class]
+        if pred_class not in id_2_color:
+            color = (100, 100, 100)
+        else:
+            color = id_2_color[pred_class]
         cv2.rectangle(image, (startY, startX), (endY, endX), color, 2)
 
     # display the image
