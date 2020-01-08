@@ -91,20 +91,21 @@ class Model_output_handler():
         returns class id and value of maximum confidence
         """
         predicted_idxs = np.argmax(prediction_confidences, axis=1)
+        predicted_idxs = np.reshape(predicted_idxs, (predicted_idxs.shape[0], 1))
 
-        pos0 = (predicted_idxs == 0)
-        pos1 = (predicted_idxs == 1)
+        # pos0 = (predicted_idxs == 0)
+        # pos1 = (predicted_idxs == 1)
 
         predicted_classes = np.zeros((predicted_idxs.shape[0], 1), dtype=np.int32)
 
-        predicted_classes[pos0] = 1
-        predicted_classes[pos1] = 3
+        # predicted_classes[pos0] = 1
+        # predicted_classes[pos1] = 3
 
         # predicted_classes = np.reshape(predicted_classes, (predicted_classes.shape[0], 1))
 
         highest_confidence_for_predictions = np.amax(prediction_confidences, axis=1)
 
-        return predicted_classes, highest_confidence_for_predictions
+        return predicted_idxs, highest_confidence_for_predictions
 
     def _convert_bboxes_to_workable_data(self, prediction_bboxes, size):
         height, width = size

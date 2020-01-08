@@ -1,6 +1,7 @@
 import numpy as np
 import cv2
 import json
+from general_config import classes_config
 
 
 from pycocotools.cocoeval import COCOeval
@@ -134,7 +135,7 @@ def prepare_outputs_for_COCOeval(output, image_info, prediction_annotations, pre
             prediction_annotations.append(
                 {"image_id": image_id, "bbox": bbox,
                  "score": float(complete_outputs[index][5]),
-                 "category_id": int(complete_outputs[index][4]), "id": prediction_id})
+                 "category_id": int(classes_config.idx_training_ids2[complete_outputs[index][4]]), "id": prediction_id})
 
     return prediction_annotations, prediction_id
 

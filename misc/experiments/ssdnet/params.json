@@ -17,5 +17,5 @@
     "train_stats_step": 10,
     "eval_step": 1,
     "loss": 9999,
-    "mAP": 0.0005062006776863625
+    "mAP": 0
 }

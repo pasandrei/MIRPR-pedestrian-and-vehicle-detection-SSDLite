@@ -62,6 +62,8 @@ class CocoDetection(VisionDataset):
             img = F.normalize(img, mean=[0.485, 0.456, 0.406],
                               std=[0.229, 0.224, 0.225])
 
+            if len(target[0].shape) < 2:
+                continue
             imgs.append(img)
             targets_bboxes.append(target[0])
             targets_classes.append(target[1])
