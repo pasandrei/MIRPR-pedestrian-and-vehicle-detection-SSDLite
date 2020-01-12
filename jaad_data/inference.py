@@ -12,7 +12,7 @@ from misc.utils import *
 rootdir = '.'
 
 
-def jadd_inference(model, output_handler):
+def jaad_inference(model, output_handler):
 
     for subdir, _, files in os.walk(rootdir):
         new_dir_name = subdir + "_inference"

@@ -16,6 +16,7 @@ from misc import cross_validation
 from misc.model_output_handler import *
 
 from my_tests import jaad_test
+from jaad_data import inference
 
 
 def run(path='misc/experiments/ssdnet/params.json', resume=False, eval_only=False, cross_validate=False, jaad=True):
@@ -56,6 +57,7 @@ def run(path='misc/experiments/ssdnet/params.json', resume=False, eval_only=Fals
         handler = Model_output_handler(
             conf_threshold=params.conf_threshold, suppress_threshold=params.suppress_threshold)
         jaad_test.dummy_input(model, np.ones((500, 500, 3)), handler)
+        inference.jaad_inference(model, handler)
         return
 
     print('Total number of parameters given to optimizer: ')
