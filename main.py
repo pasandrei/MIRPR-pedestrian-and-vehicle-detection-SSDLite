@@ -2,6 +2,7 @@ from torch.utils.tensorboard import SummaryWriter
 from train.loss_fn import Detection_Loss
 import torch
 import torch.optim as optim
+import numpy as np
 
 from train.config import Params
 from general_config import anchor_config
@@ -12,9 +13,12 @@ from train.optimizer_handler import *
 from data import dataloaders
 from architectures.models import SSDNet
 from misc import cross_validation
+from misc.model_output_handler import *
+
+from my_tests import jaad_test
 
 
-def run(path='misc/experiments/ssdnet/params.json', resume=False, eval_only=False, cross_validate=False):
+def run(path='misc/experiments/ssdnet/params.json', resume=False, eval_only=False, cross_validate=False, jaad=True):
     '''
     args: path - string path to the json config file
     trains model refered by that file, saves model and optimizer dict at the same location
@@ -47,6 +51,12 @@ def run(path='misc/experiments/ssdnet/params.json', resume=False, eval_only=Fals
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         start_epoch = checkpoint['epoch']
         print('Model loaded successfully')
+
+    if jaad:
+        handler = Model_output_handler(
+            conf_threshold=params.conf_threshold, suppress_threshold=params.suppress_threshold)
+        jaad_test.dummy_input(model, np.ones((500, 500, 3)), handler)
+        return
 
     print('Total number of parameters given to optimizer: ')
     print(sum(p.numel() for pg in optimizer.param_groups for p in pg['params']))
