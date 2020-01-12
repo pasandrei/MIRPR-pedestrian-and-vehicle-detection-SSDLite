@@ -53,7 +53,7 @@ def plot_bounding_boxes(image, bounding_boxes, classes, bbox_type="pred", messag
 
     for (startX, startY, endX, endY), pred_class in zip(bounding_boxes, classes):
         if pred_class not in id_2_color:
-            color = (100, 100, 100)
+            color = (0, 0, 255)
         else:
             color = id_2_color[pred_class]
         cv2.rectangle(image, (startY, startX), (endY, endX), color, 2)
@@ -144,11 +144,14 @@ def evaluate_on_COCO_metrics(prediction_annotations):
     with open("fisierul.json", 'w') as f:
         json.dump(prediction_annotations, f)
 
-    graundtrutu = COCO('..\\..\\COCO\\annotations\\instances_val2017.json')
+    graundtrutu = COCO(
+        '..\\..\\COCO\\annotations\\instances_val2017.json')
     predictile = graundtrutu.loadRes(
         'C:\\Users\\Andrei Popovici\\Documents\\GitHub\\drl_zice_ca_se_poate_schimba_DA_MA\\fisierul.json')
 
     cocoevalu = COCOeval(graundtrutu, predictile, iouType='bbox')
+
+    # cocoevalu.params.catIds = [1, 3]
 
     cocoevalu.evaluate()
     cocoevalu.accumulate()

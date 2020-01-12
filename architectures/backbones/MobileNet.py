@@ -162,6 +162,8 @@ class MobileNetV2(nn.Module):
                 inter = x
                 x = layer.conv[1](x)
                 x = layer.conv[2](x)
+                # print("bn is back: ", layer.conv[3])
+                x = layer.conv[3](x)
             else:
                 x = layer(x)
         return inter, x

@@ -22,6 +22,8 @@ def run(path='misc/experiments/ssdnet/params.json', resume=False, eval_only=Fals
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     params = Params(path)
 
+    print("evaluation step: ", params.eval_step)
+
     print("MODEL ID: ", params.model_id)
     if params.model_id == 'ssdnet':
         print("List of anchors per feature map cell: ", anchor_config.k_list)

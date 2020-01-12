@@ -56,10 +56,10 @@ def extract_from_annotations_file(annotations_file_path, folder, wanted_categori
             json.dump(new_data, outfile)
 
 
-path = Path('D:\\COCO')
-destination = Path('D:\\COCO_new')
+path = Path('C:\\Users\Andrei Popovici\Desktop\COCO')
+destination = Path('C:\\Users\Andrei Popovici\Documents\COCO')
 
-wanted_categories_id = [1, 3]
+wanted_categories_id = [1, 2, 3, 4, 6, 7, 8, 11, 14, 15, 18, 19, 20, 21]
 
 train_annotations_path = path / 'annotations' / 'instances_train2017.json'
 train_folder_path = path / 'train2017'

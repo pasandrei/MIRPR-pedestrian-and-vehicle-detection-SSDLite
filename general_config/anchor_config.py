@@ -2,7 +2,7 @@ from collections import OrderedDict
 import math
 
 zoom = {
-    20: [1],
+    20: [],
     10: [1],
     5: [1],
     3: [1],
@@ -14,7 +14,7 @@ zoom = OrderedDict(zoom)
 _sqrt2 = math.sqrt(2)
 _sqrt3 = math.sqrt(3)
 ratio = {
-    20: [(1., 1.), (1.25, 1.25), (_sqrt2, 1/_sqrt2), (1/_sqrt2, _sqrt2), (_sqrt3, 1/_sqrt3), (1/_sqrt3, _sqrt3)],
+    20: [],
     10: [(1., 1.), (1.25, 1.25), (_sqrt2, 1/_sqrt2), (1/_sqrt2, _sqrt2), (_sqrt3, 1/_sqrt3), (1/_sqrt3, _sqrt3)],
     5: [(1., 1.), (1.25, 1.25), (_sqrt2, 1/_sqrt2), (1/_sqrt2, _sqrt2), (_sqrt3, 1/_sqrt3), (1/_sqrt3, _sqrt3)],
     3: [(1., 1.), (1.25, 1.25), (_sqrt2, 1/_sqrt2), (1/_sqrt2, _sqrt2), (_sqrt3, 1/_sqrt3), (1/_sqrt3, _sqrt3)],
