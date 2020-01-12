@@ -6,6 +6,7 @@ import torchvision.transforms.functional as F
 import numpy
 import random
 import copy
+import torch
 
 from train.helpers import *
 
@@ -49,11 +50,32 @@ class CocoDetection(VisionDataset):
 
             # target[0] = tensor of bboxes of objects in image
             # target[1] = tensor of class ids in image
-            target = prepare_gt(img, target)
 
             width, height = img.size
 
-            img = F.resize(img, size=(320, 320), interpolation=2)
+            ratio = width/height
+            if width > height:
+                target_width = 320
+                target_height = int(320/ratio)
+
+                pad_left = pad_right = pad_top = 0
+                pad_bottom = 320 - target_height
+            else:
+                target_width = int(320*ratio)
+                target_height = 320
+
+                pad_left = pad_top = pad_bottom = 0
+                pad_right = (320 - target_width)
+
+            cosanta = width/target_width
+
+            target = prepare_gt(img, target, ratio)
+
+            img = F.resize(img, size=(target_height, target_width), interpolation=2)
+            print("anainte de pad:", img.size)
+            img = F.pad(img, (pad_left, pad_top, pad_right, pad_bottom))
+            print(pad_left, pad_right, pad_top, pad_bottom)
+            print("dupa de pad:", img.size)
             if self.augmentation:
                 img, target = self.augment_data(img, target)
 
@@ -65,7 +87,7 @@ class CocoDetection(VisionDataset):
             imgs.append(img)
             targets_bboxes.append(target[0])
             targets_classes.append(target[1])
-            image_info.append((img_id, (height, width)))
+            image_info.append((img_id, (int(target_height*cosanta), int(target_width*cosanta))))
 
         # B x C x H x W
         batch_images = torch.stack(imgs)

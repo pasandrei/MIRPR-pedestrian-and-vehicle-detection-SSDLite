@@ -34,7 +34,7 @@ def run(path='misc/experiments/ssdnet/params.json', resume=False, eval_only=Fals
     model.to(device)
 
     if params.optimizer == 'adam':
-        optimizer = layer_specific_adam(model, params)
+        optimizer = plain_adam(model, params)
     elif params.optimizer == 'sgd':
         optimizer = optim.SGD(model.parameters(), lr=params.learning_rate,
                               weight_decay=params.weight_decay, momentum=0.9)
@@ -56,7 +56,7 @@ def run(path='misc/experiments/ssdnet/params.json', resume=False, eval_only=Fals
     if jaad:
         handler = Model_output_handler(
             conf_threshold=params.conf_threshold, suppress_threshold=params.suppress_threshold)
-        jaad_test.dummy_input(model, np.ones((500, 500, 3)), handler)
+        # jaad_test.dummy_input(model, np.ones((500, 500, 3)), handler)
         inference.jaad_inference(model, handler)
         return
 

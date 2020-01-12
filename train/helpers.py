@@ -7,7 +7,7 @@ from general_config import anchor_config
 
 
 def hw2corners(ctr, hw):
-    #taken from fastai
+    # taken from fastai
     return torch.cat([ctr-hw/2, ctr+hw/2], dim=1)
 
 
@@ -26,7 +26,7 @@ def clamp_corners(bbox):
 
 
 def intersect(box_a, box_b):
-    #taken from fastai
+    # taken from fastai
     """ Returns the intersection of two boxes """
     max_xy = torch.min(box_a[:, None, 2:], box_b[None, :, 2:])
     min_xy = torch.max(box_a[:, None, :2], box_b[None, :, :2])
@@ -35,13 +35,13 @@ def intersect(box_a, box_b):
 
 
 def box_sz(b):
-    #taken from fastai
+    # taken from fastai
     """ Returns the box size"""
     return ((b[:, 2]-b[:, 0]) * (b[:, 3]-b[:, 1]))
 
 
 def jaccard(box_a, box_b):
-    #taken from fastai
+    # taken from fastai
     """ Returns the jaccard distance between two boxes"""
     inter = intersect(box_a, box_b)
     union = box_sz(box_a).unsqueeze(1) + box_sz(box_b).unsqueeze(0) - inter
@@ -49,7 +49,7 @@ def jaccard(box_a, box_b):
 
 
 def activations_to_bboxes(actn, anchors, grid_sizes):
-    #taken from fastai
+    # taken from fastai
     """ activations to bounding boxes format """
     anchors = anchors.type(torch.float64)
     actn_offsets = torch.tanh(actn)
@@ -61,7 +61,7 @@ def activations_to_bboxes(actn, anchors, grid_sizes):
 
 
 def map_to_ground_truth(overlaps, gt_bbox, gt_class, params):
-    #taken from fastai
+    # taken from fastai
     """ maps priors to max IOU obj
    returns:
    - gt_bbox_for_matched_anchors: tensor of size matched_priors x 4 - essentially assigning GT bboxes to corresponding highest IOU priors
@@ -79,7 +79,7 @@ def map_to_ground_truth(overlaps, gt_bbox, gt_class, params):
 
     # for each prior, get the actual id of the class it should predict, unmatched anchors (low IOU) should predict background
     matched_gt_class_ids = gt_class[prior_to_gt_idx]
-    pos = prior_to_gt_overlap > params.mapping_threshold  
+    pos = prior_to_gt_overlap > params.mapping_threshold
     matched_gt_class_ids[~pos] = 100  # background code
 
     # for each matched prior, get the bbox it should predict
@@ -93,7 +93,7 @@ def map_to_ground_truth(overlaps, gt_bbox, gt_class, params):
 
 
 def create_anchors():
-    #taken from fastai
+    # taken from fastai
     ''' anchors and sizes
     returns in the following format:
     k = zooms * ratios
@@ -146,7 +146,7 @@ def create_anchors():
     return anchors, grid_sizes
 
 
-def prepare_gt(input_img, gt_target):
+def prepare_gt(input_img, gt_target, cosanta):
     '''
     NUMA SEFU STIE CE SENTAMPLA AICI. NICI MACAR DUMNEZEU NU ARE IDEEE
     args:
@@ -167,12 +167,17 @@ def prepare_gt(input_img, gt_target):
     height_size, width_size = input_img.size[0], input_img.size[1]
 
     # width_size, height_size = 1, 1
+    a = b = 1
+    if height_size > width_size:
+        b = cosanta
+    else:
+        a = cosanta
     for idx, bbox in enumerate(gt[0]):
         new_bbox = [0] * 4
-        new_bbox[1] = bbox[0] / height_size
-        new_bbox[0] = bbox[1] / width_size
-        new_bbox[3] = (bbox[0] + bbox[2]) / height_size
-        new_bbox[2] = (bbox[1] + bbox[3]) / width_size
+        new_bbox[1] = bbox[0] / (height_size * a)
+        new_bbox[0] = bbox[1] / (width_size * b)
+        new_bbox[3] = (bbox[0] + bbox[2]) / (height_size * a)
+        new_bbox[2] = (bbox[1] + bbox[3]) / (width_size * b)
         gt[0][idx] = torch.FloatTensor(new_bbox)
 
     return gt

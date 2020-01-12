@@ -9,7 +9,8 @@ import copy
 class Model_output_handler():
 
     def __init__(self, conf_threshold=0.35, suppress_threshold=0.5):
-        self.unnorm = UnNormalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
+        self.unnorm = UnNormalize(mean=[0.53462092, 0.52424837, 0.53687582],
+                                  std=[0.19282397, 0.18090153, 0.18164604])
         self.confidence_threshold = conf_threshold
         self.suppress_threshold = suppress_threshold
         self.anchors_hw, self.grid_sizes = create_anchors()
