@@ -19,6 +19,8 @@ def plot_anchor_gt(image, anchor, gt, cur_class, message="DA_MA", size=(320, 320
 
     # gt_id_2_color = {1: (200, 200, 0), 3: (150, 250, 150)}
     color_gt = (200, 200, 0)
+    gt_id_2_color = {1: (200, 200, 0), 3: (150, 250, 150)}
+    color_gt = gt_id_2_color[cur_class]
     cv2.rectangle(image, (gt[1], gt[0]),
                   (gt[3], gt[2]), color_gt, 2)
 
@@ -28,7 +30,7 @@ def plot_anchor_gt(image, anchor, gt, cur_class, message="DA_MA", size=(320, 320
 
 def plot_bounding_boxes(image, bounding_boxes, classes, bbox_type="pred", message='no_message', size=(500, 500)):
     """
-    Plots an array of bounding_boxes with their respective color
+    Plots an array of bounding_boxes with their respective color, returns the modified image
     """
     image = image.transpose(1, 2, 0)
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
@@ -52,15 +54,14 @@ def plot_bounding_boxes(image, bounding_boxes, classes, bbox_type="pred", messag
     classes = classes.reshape(-1)
 
     for (startX, startY, endX, endY), pred_class in zip(bounding_boxes, classes):
-        if pred_class not in id_2_color:
-            color = (0, 0, 255)
-        else:
-            color = id_2_color[pred_class]
+        color = id_2_color.get(pred_class, (0, 255, 0))
         cv2.rectangle(image, (startY, startX), (endY, endX), color, 2)
 
     # display the image
     cv2.imshow(message, image)
     cv2.waitKey(0)
+
+    return image
 
 
 def get_intersection(bbox1, bbox2):
