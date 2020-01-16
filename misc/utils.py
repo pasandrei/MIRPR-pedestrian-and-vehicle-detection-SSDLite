@@ -145,10 +145,8 @@ def evaluate_on_COCO_metrics(prediction_annotations):
     with open("fisierul.json", 'w') as f:
         json.dump(prediction_annotations, f)
 
-    graundtrutu = COCO(
-        '..\\..\\COCO\\annotations\\instances_val2017.json')
-    predictile = graundtrutu.loadRes(
-        'C:\\Users\\Andrei Popovici\\Documents\\GitHub\\drl_zice_ca_se_poate_schimba_DA_MA\\fisierul.json')
+    graundtrutu = COCO('..\\..\\COCO\\annotations\\instances_val2017.json')
+    predictile = graundtrutu.loadRes('fisierul.json')
 
     cocoevalu = COCOeval(graundtrutu, predictile, iouType='bbox')
 

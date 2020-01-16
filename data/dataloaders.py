@@ -8,7 +8,7 @@ import json
 
 def get_dataloaders(params):
     ''' creates and returns train and validation data loaders '''
-    #
+
     train_annotations_path = '..\\..\\COCO\\annotations\\instances_train2017.json'
     train_dataset = CocoDetection(root='..\\..\\COCO\\train2017',
                                        annFile=train_annotations_path,
