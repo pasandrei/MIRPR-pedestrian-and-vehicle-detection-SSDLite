@@ -21,10 +21,6 @@ def corners_to_center_hw(bbox):
     return torch.FloatTensor((center_x, center_y, height, width))
 
 
-def clamp_corners(bbox):
-    return torch.clamp(bbox, 0, 1)
-
-
 def intersect(box_a, box_b):
     # taken from fastai
     """ Returns the intersection of two boxes """
@@ -139,7 +135,6 @@ def create_anchors():
     grid_sizes = torch.cat(grid_sizes)
 
     anchor_corner = hw2corners(anchors[:, :2], anchors[:, 2:])
-    anchor_corner = clamp_corners(anchor_corner)
     for idx, anchor in enumerate(anchor_corner):
         anchors[idx] = corners_to_center_hw(anchor)
 
