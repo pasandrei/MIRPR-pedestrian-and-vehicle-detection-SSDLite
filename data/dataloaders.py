@@ -1,27 +1,27 @@
-import torchvision
+import json
+
 from torch.utils.data import Dataset, DataLoader
-import torchvision.transforms as transforms
 from data.dataset import CocoDetection
 from torch.utils.data.sampler import *
-import json
+from general_config import path_config
 
 
 def get_dataloaders(params):
     ''' creates and returns train and validation data loaders '''
 
-    train_dataloader = get_train_dataloader(params)
-    valid_dataloader = get_valid_dataloader(params)
+    train_dataloader = get_train_dataloader(batch_size=params.batch_size)
+    valid_dataloader = get_valid_dataloader(batch_size=params.batch_size)
 
     return train_dataloader, valid_dataloader
 
 
 def get_dataloaders_test(params):
-    return get_valid_dataloader
+    return get_valid_dataloader(batch_size=params.batch_size)
 
 
 def get_train_dataloader(batch_size):
-    train_annotations_path = 'C:\\Users\Andrei Popovici\Desktop\COCO\\annotations\\instances_train2017.json'
-    train_dataset = CocoDetection(root='C:\\Users\Andrei Popovici\Desktop\COCO\\train2017',
+    train_annotations_path = path_config.train_annotations_path
+    train_dataset = CocoDetection(root=path_config.train_images_folder,
                                   annFile=train_annotations_path,
                                   augmentation=True)
 
@@ -36,8 +36,8 @@ def get_train_dataloader(batch_size):
 
 
 def get_valid_dataloader(batch_size):
-    val_annotations_path = 'C:\\Users\Andrei Popovici\Desktop\COCO\\annotations\\instances_val2017.json'
-    validation_dataset = CocoDetection(root='C:\\Users\Andrei Popovici\Desktop\COCO\\val2017',
+    val_annotations_path = path_config.val_annotations_path
+    validation_dataset = CocoDetection(root=path_config.val_images_folder,
                                        annFile=val_annotations_path,
                                        augmentation=False)
 
