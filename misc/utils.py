@@ -1,7 +1,7 @@
 import numpy as np
 import cv2
 import json
-from general_config import classes_config
+from general_config import classes_config, path_config
 
 
 from pycocotools.cocoeval import COCOeval
@@ -145,7 +145,7 @@ def evaluate_on_COCO_metrics(prediction_annotations):
     with open("fisierul.json", 'w') as f:
         json.dump(prediction_annotations, f)
 
-    graundtrutu = COCO('..\\..\\COCO\\annotations\\instances_val2017.json')
+    graundtrutu = COCO(path_config.val_annotations_path)
     predictile = graundtrutu.loadRes('fisierul.json')
 
     cocoevalu = COCOeval(graundtrutu, predictile, iouType='bbox')
