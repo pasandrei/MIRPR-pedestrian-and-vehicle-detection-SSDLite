@@ -2,8 +2,7 @@ from collections import OrderedDict
 from math import sqrt
 
 zoom = {
-    38: [1.],
-    19: [1.],
+    20: [1.],
     10: [1.],
     5: [1.],
     3: [1.],
@@ -15,8 +14,7 @@ sqrt2 = sqrt(2)
 sqrt3 = sqrt(3)
 
 ratio = {
-    38: [(1., 1.), (1/sqrt2, 1*sqrt2), (1*sqrt2, 1/sqrt2), (1.3, 1.3)],
-    19: [(1., 1.), (1/sqrt2, 1*sqrt2), (1*sqrt2, 1/sqrt2), (1/sqrt3, 1*sqrt3), (1*sqrt3, 1/sqrt3), (1.3, 1.3)],
+    20: [(1., 1.), (1/sqrt2, 1*sqrt2), (1*sqrt2, 1/sqrt2), (1/sqrt3, 1*sqrt3), (1*sqrt3, 1/sqrt3), (1.3, 1.3)],
     10: [(1., 1.), (1/sqrt2, 1*sqrt2), (1*sqrt2, 1/sqrt2), (1/sqrt3, 1*sqrt3), (1*sqrt3, 1/sqrt3), (1.3, 1.3)],
     5: [(1., 1.), (1/sqrt2, 1*sqrt2), (1*sqrt2, 1/sqrt2), (1/sqrt3, 1*sqrt3), (1*sqrt3, 1/sqrt3), (1.3, 1.3)],
     3: [(1., 1.), (1/sqrt2, 1*sqrt2), (1*sqrt2, 1/sqrt2), (1.3, 1.3)],

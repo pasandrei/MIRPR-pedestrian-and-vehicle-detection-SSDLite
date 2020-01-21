@@ -4,6 +4,21 @@ import torch.nn as nn
 from architectures.backbones.MobileNet import ConvBNReLU, InvertedResidual, mobilenet_v2, _make_divisible
 
 
+class DepthWiseConv(nn.Module):
+    """
+    depth wise followed by point wise convolution
+    """
+
+    def __init__(self, in_planes, out_planes, stride=1, padding=-1):
+        super().__init__()
+        self.ds_conv = ConvBNReLU(in_planes, in_planes, kernel_size=3,
+                                  stride=stride, groups=in_planes, padding=padding)
+        self.pw_conv = ConvBNReLU(in_planes, out_planes, kernel_size=1)
+
+    def forward(self, x):
+        return self.pw_conv(self.ds_conv(x))
+
+
 class OutConv(nn.Module):
     def __init__(self, in_channels, n_classes, k):
         super().__init__()
@@ -33,37 +48,34 @@ class OutConv(nn.Module):
 
 class SSD_Head(nn.Module):
     """
-    Implements SDD netword as described in the paper https://arxiv.org/abs/1512.02325
-    Backbone is MobileNetV2
-    k_list - list of anchors per feature map cell for each grid size (k_list[0] - 20x20, k_list[1] - 10x10)
-    width_mult - multiplying constant for the backbone
-    """
+   Implements SDD netword as described in the paper https://arxiv.org/abs/1512.02325
+   Backbone is MobileNetV2
+   k_list - list of anchors per feature map cell for each grid size (k_list[0] - 20x20, k_list[1] - 10x10)
+   width_mult - multiplying constant for the backbone
+   """
+
     def __init__(self, n_classes, k_list, width_mult=1):
         super().__init__()
 
         self.out0 = None
         if k_list[0] != 0:
-        # intermediate lay 15 with os = 16, will be a 20x20 grid for 320x320 input, 576 is the expansion size of layer 15 in MobileNetV2
+            # intermediate lay 15 with os = 16, will be a 20x20 grid for 320x320 input, 576 is the expansion size of layer 15 in MobileNetV2
             self.out0 = OutConv(int(576 * width_mult), n_classes, k_list[0])
 
         # from now we use the 1280 output of the backbone, first grid 10x10
         self.out1 = OutConv(1280, n_classes, k_list[1])
 
         # construct second grid 5x5
-        self.inv2 = InvertedResidual(inp=1280, oup=512, stride=2, expand_ratio=0.2)
+        self.down_conv2 = DepthWiseConv(in_planes=1280, out_planes=512, stride=2)
         self.out2 = OutConv(512, n_classes, k_list[2])
 
         # third grid 3x3
-        self.inv3 = InvertedResidual(inp=512, oup=256, stride=2, expand_ratio=0.25)
+        self.down_conv3 = DepthWiseConv(in_planes=512, out_planes=256, padding=0)
         self.out3 = OutConv(256, n_classes, k_list[3])
 
-        # fourth grid 2x2
-        self.inv4 = InvertedResidual(inp=256, oup=256, stride=2, expand_ratio=0.25)
-        self.out4 = OutConv(256, n_classes, k_list[4])
-
         # last grid 1x1
-        self.inv5 = InvertedResidual(inp=256, oup=64, stride=2, expand_ratio=0.5)
-        self.out5 = OutConv(64, n_classes, k_list[5])
+        self.down_conv4 = DepthWiseConv(in_planes=256, out_planes=128, padding=0)
+        self.out4 = OutConv(128, n_classes, k_list[4])
 
         # weight initialization
         for m in self.modules():
@@ -83,23 +95,26 @@ class SSD_Head(nn.Module):
 
     def forward(self, x):
         lay15, x = self.backbone(x)
+        print(lay15.shape)
 
         _10bbox, _10class = self.out1(x)
+        print(x.shape)
 
-        x = self.inv2(x)
+        x = self.down_conv2(x)
         _5bbox, _5class = self.out2(x)
 
-        x = self.inv3(x)
+        print(x.shape)
+        x = self.down_conv3(x)
         _3bbox, _3class = self.out3(x)
 
-        x = self.inv4(x)
-        _2bbox, _2class = self.out4(x)
+        print(x.shape)
+        x = self.down_conv4(x)
+        _1bbox, _1class = self.out4(x)
 
-        x = self.inv5(x)
-        _1bbox, _1class = self.out5(x)
+        print(x.shape)
 
-        bbox_predictions = torch.cat([_10bbox, _5bbox, _3bbox, _2bbox, _1bbox], dim=1)
-        class_predictions = torch.cat([_10class, _5class, _3class, _2class, _1class], dim=1)
+        bbox_predictions = torch.cat([_10bbox, _5bbox, _3bbox, _1bbox], dim=1)
+        class_predictions = torch.cat([_10class, _5class, _3class, _1class], dim=1)
 
         if self.out0 is not None:
             _20bbox, _20class = self.out0(lay15)
