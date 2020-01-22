@@ -50,6 +50,9 @@ class CocoDetection(VisionDataset):
             # target[0] = tensor of bboxes of objects in image
             # target[1] = tensor of class ids in image
             target = prepare_gt(img, target)
+            
+            if len(target[0].shape) < 2:
+                continue
 
             width, height = img.size
 

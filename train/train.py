@@ -27,7 +27,8 @@ def train(model, optimizer, train_loader, model_evaluator, detection_loss, param
           params - json config
     trains model, saves best model by validation
     """
-    lr_decay_policy = retina_decay.Lr_decay(lr=params.learning_rate, start_epoch=start_epoch, params=params)
+    lr_decay_policy = retina_decay.Lr_decay(
+        lr=params.learning_rate, start_epoch=start_epoch, params=params)
     backbone_freezer = Backbone_Freezer(params)
     losses = [0] * 4
     one_tenth_of_loader = len(train_loader) // params.train_stats_step
@@ -47,7 +48,7 @@ def train(model, optimizer, train_loader, model_evaluator, detection_loss, param
         for batch_idx, (input_, label, _) in enumerate(train_loader):
             train_step(model, input_, label, optimizer, losses, detection_loss, params)
 
-            if batch_idx % one_tenth_of_loader == 0 and batch_idx > 0:
+            if (batch_idx + 1) % one_tenth_of_loader == 0:
                 print(datetime.datetime.now())
                 print_batch_stats(model, epoch, batch_idx, train_loader,
                                   losses, params)
@@ -57,7 +58,7 @@ def train(model, optimizer, train_loader, model_evaluator, detection_loss, param
 
         if (epoch + 1) % params.eval_step == 0:
             model_evaluator.complete_evaluate(model, optimizer, train_loader, losses, epoch)
-            losses[2], losses[3] = 0, 0
+            losses = [0] * 4
 
 
 def update_losses(losses, l_loss, c_loss):

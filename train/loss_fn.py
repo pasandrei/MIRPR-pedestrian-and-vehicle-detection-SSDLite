@@ -5,15 +5,17 @@ import random
 
 from train.helpers import *
 from misc.postprocessing import *
-
+from general_config import anchor_config, classes_config
 
 # inspired by fastai course
+
+
 class BCE_Loss(nn.Module):
     def __init__(self, n_classes, device):
         super().__init__()
         self.n_classes = n_classes
         self.device = device
-        self.id2idx = {1: 0, 3: 1}
+        self.id2idx = classes_config.training_ids2_idx
 
     def forward(self, pred, targ, norm_factor):
         '''

@@ -53,13 +53,12 @@ class Model_evaluator():
                 loc_loss_val += loc_loss.item()
                 class_loss_val += class_loss.item()
 
-                if batch_idx % one_tenth_of_loader == 0 and batch_idx > 0:
+                if (batch_idx + 1) % one_tenth_of_loader == 0:
                     print(datetime.datetime.now())
                     nr_images = (batch_idx + 1) * self.params.batch_size
-                    print("Average Loc Loss: ", loc_loss_val /
-                          nr_images)
-                    print("Average Class Loss: ", class_loss_val /
-                          nr_images, " until batch: ", batch_idx)
+                    print("Average Loc Loss: ", loc_loss_val / nr_images)
+                    print("Average Class Loss: ", class_loss_val / nr_images,
+                          " until batch: ", batch_idx)
 
             SAVE_PATH = 'misc/experiments/{}/model_checkpoint'.format(self.params.model_id)
 
@@ -115,15 +114,13 @@ class Model_evaluator():
                 loc_loss_val += loc_loss.item()
                 class_loss_val += class_loss.item()
 
-                if batch_idx % one_tenth_of_loader == 0 and batch_idx > 0:
+                if (batch_idx + 1) % one_tenth_of_loader == 0:
                     print(datetime.datetime.now())
                     nr_images = (batch_idx + 1) * self.params.batch_size
                     print("Average Loc Loss: ", loc_loss_val /
                           nr_images)
                     print("Average Class Loss: ", class_loss_val /
                           nr_images, " until batch: ", batch_idx)
-
-                    loc_loss_val, class_loss_val = 0, 0
 
             # map
             return evaluate_on_COCO_metrics(prediction_annotations)

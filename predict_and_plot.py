@@ -28,7 +28,7 @@ def model_output_pipeline(params_path, model_outputs=False, visualize_anchors=Fa
         print('Model loaded successfully')
         model.eval()
 
-    _, valid_loader = dataloaders.get_dataloaders(params)
+    valid_loader = dataloaders.get_dataloaders_test(params)
 
     with torch.no_grad():
         total_iou, total_maps = 0, np.array([0, 0, 0, 0, 0, 0])

@@ -42,8 +42,9 @@ def _make_divisible(v, divisor, min_value=None):
 
 
 class ConvBNReLU(nn.Sequential):
-    def __init__(self, in_planes, out_planes, kernel_size=3, stride=1, groups=1):
-        padding = (kernel_size - 1) // 2
+    def __init__(self, in_planes, out_planes, kernel_size=3, stride=1, groups=1, padding=-1):
+        if padding == -1:
+            padding = (kernel_size - 1) // 2
         super(ConvBNReLU, self).__init__(
             nn.Conv2d(in_planes, out_planes, kernel_size, stride,
                       padding, groups=groups, bias=False),
@@ -162,6 +163,8 @@ class MobileNetV2(nn.Module):
                 inter = x
                 x = layer.conv[1](x)
                 x = layer.conv[2](x)
+                # print("bn is back: ", layer.conv[3])
+                x = layer.conv[3](x)
             else:
                 x = layer(x)
         return inter, x

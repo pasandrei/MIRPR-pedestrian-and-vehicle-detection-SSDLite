@@ -1,6 +1,7 @@
-import os, shutil
+import os
+import shutil
 
-rootdir = '.'
+rootdir = 'C:\\Users\Andrei Popovici\Desktop\JAAD_stuff\JAAD-JAAD_2.0\images'
 
 for subdir, dirs, files in os.walk(rootdir):
     try:
