@@ -95,23 +95,17 @@ class SSD_Head(nn.Module):
 
     def forward(self, x):
         lay15, x = self.backbone(x)
-        print(lay15.shape)
 
         _10bbox, _10class = self.out1(x)
-        print(x.shape)
 
         x = self.down_conv2(x)
         _5bbox, _5class = self.out2(x)
 
-        print(x.shape)
         x = self.down_conv3(x)
         _3bbox, _3class = self.out3(x)
 
-        print(x.shape)
         x = self.down_conv4(x)
         _1bbox, _1class = self.out4(x)
-
-        print(x.shape)
 
         bbox_predictions = torch.cat([_10bbox, _5bbox, _3bbox, _1bbox], dim=1)
         class_predictions = torch.cat([_10class, _5class, _3class, _1class], dim=1)
