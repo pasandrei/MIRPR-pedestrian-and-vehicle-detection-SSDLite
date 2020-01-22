@@ -13,7 +13,7 @@ def print_batch_stats(model, epoch, batch_idx, train_loader, losses, params):
     # want to see per image stats
     one_tenth_of_loader = len(train_loader) // params.train_stats_step
     avg_factor = one_tenth_of_loader * params.batch_size
-    print('Loss past {} batches: Localization {} Classification {}'.format(
+    print('Loss in the past {}th of the batches: Localization {} Classification {}'.format(
         params.train_stats_step, losses[0] / avg_factor, losses[1] / avg_factor))
 
     mean_grads, max_grads, mean_weights, max_weights = gradient_weight_check(model)

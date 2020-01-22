@@ -1,6 +1,6 @@
 from pathlib import Path
 
-dataset_root = Path('C:\\Users\Andrei Popovici\Desktop\COCO')
+dataset_root = Path('C:/Users/Andrei Popovici/Desktop/COCO')
 
 train_annotations_path = dataset_root / 'annotations/instances_train2017.json'
 train_images_folder = dataset_root / 'train2017'
