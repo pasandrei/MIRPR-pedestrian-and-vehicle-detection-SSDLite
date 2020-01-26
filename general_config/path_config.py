@@ -7,3 +7,5 @@ train_images_folder = dataset_root / 'train2017'
 
 val_annotations_path = dataset_root / 'annotations/instances_val2017.json'
 val_images_folder = dataset_root / 'val2017'
+
+params_path = 'misc/experiments/ssdnet/params.json'
