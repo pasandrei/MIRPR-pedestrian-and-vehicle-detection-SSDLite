@@ -18,7 +18,6 @@ def layer_specific_adam(model, params):
 
 
 def layer_specific_sgd(model, params):
-    print("AMS grad is false")
     return optim.SGD([
         {'params': model.backbone.parameters(), 'lr': params.learning_rate * params.decay_rate},
         {'params': model.out0.parameters()},
