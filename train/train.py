@@ -58,7 +58,8 @@ def train(model, optimizer, train_loader, model_evaluator, detection_loss, param
 
         if (epoch + 1) % params.eval_step == 0:
             model_evaluator.complete_evaluate(model, optimizer, train_loader, losses, epoch)
-            losses = [0] * 4
+
+        losses = [0] * 4
 
 
 def update_losses(losses, l_loss, c_loss):

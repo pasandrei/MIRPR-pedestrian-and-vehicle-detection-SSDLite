@@ -5,7 +5,7 @@ import torch.optim as optim
 import numpy as np
 
 from train.config import Params
-from general_config import anchor_config
+from general_config import anchor_config, path_config
 from train.helpers import *
 from train import train
 from train.validate import Model_evaluator
@@ -19,13 +19,20 @@ from my_tests import jaad_test
 from jaad_data import inference
 
 
-def run(path='misc/experiments/ssdnet/params.json', resume=False, eval_only=False, cross_validate=False, jaad=False):
-    '''
-    args: path - string path to the json config file
-    trains model refered by that file, saves model and optimizer dict at the same location
-    '''
+def run(resume=False, eval_only=False, cross_validate=False, jaad=False, focal_loss=False,
+        hard_negative_mining=False):
+    """
+    Arguments:
+    resume - resume training
+    eval_only - only inference
+    cross_validate - cross validate for best nms thresold and positive confidence
+    jaad - inference on jaad videos
+    focal_loss - train with focal loss
+    hard_negative_mining - train with hard_negative_mining
+    """
+
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    params = Params(path)
+    params = Params(path_config.params_path)
 
     print("evaluation step: ", params.eval_step)
 
@@ -77,7 +84,8 @@ def run(path='misc/experiments/ssdnet/params.json', resume=False, eval_only=Fals
     anchors, grid_sizes = create_anchors()
     anchors, grid_sizes = anchors.to(device), grid_sizes.to(device)
 
-    detection_loss = Detection_Loss(anchors, grid_sizes, device, params)
+    detection_loss = Detection_Loss(anchors, grid_sizes, device, params, focal_loss=focal_loss,
+                                    hard_negative=hard_negative_mining)
     model_evaluator = Model_evaluator(valid_loader, detection_loss, writer=writer, params=params)
 
     if eval_only:

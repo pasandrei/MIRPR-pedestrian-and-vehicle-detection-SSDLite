@@ -1,23 +1,23 @@
 import torch
+import math
 from torch import nn
-import numpy as np
-import random
 
 from train.helpers import *
 from misc.postprocessing import *
-from general_config import anchor_config, classes_config
+from general_config import classes_config
 
 # inspired by fastai course
 
 
 class BCE_Loss(nn.Module):
-    def __init__(self, n_classes, device):
+    def __init__(self, n_classes, device, focal_loss):
         super().__init__()
         self.n_classes = n_classes
         self.device = device
         self.id2idx = classes_config.training_ids2_idx
+        self.focal_loss = focal_loss
 
-    def forward(self, pred, targ, norm_factor):
+    def forward(self, pred, targ):
         '''
         Arguments:
             pred - tensor of shape anchors x n_classes
@@ -26,8 +26,7 @@ class BCE_Loss(nn.Module):
         Explanation: computes weighted BCE loss between model prediction and target
             model predicts scores for each class, all 0s means background
 
-        Returns: total loss averaged by the numbers of mathced anchors (due to focall los, it is  presumed
-        backgrounds contribute little)
+        Returns: (weighted if focal) BCE loss
         '''
         t = []
         targ = targ.cpu().numpy()
@@ -38,9 +37,9 @@ class BCE_Loss(nn.Module):
             t.append(bg)
 
         t = torch.FloatTensor(t).to(self.device)
-        weight = self.get_weight(pred, t)
-        return torch.nn.functional.binary_cross_entropy_with_logits(pred, t, weight=weight,
-                                                                    size_average=None, reduce=None, reduction='sum') / norm_factor
+        weight = self.get_weight(pred, t) if self.focal_loss else None
+
+        return torch.nn.functional.binary_cross_entropy_with_logits(pred, t, weight=weight, reduction='none')
 
     def get_weight(self, x, t):
         # focal loss decreases loss for correctly classified (P>0.5) examples, relative to the missclassified ones
@@ -68,12 +67,13 @@ class Detection_Loss():
     grid_sizes - #anchors x 1 cuda tensor
     """
 
-    def __init__(self, anchors, grid_sizes, device, params):
+    def __init__(self, anchors, grid_sizes, device, params, focal_loss=False, hard_negative=False):
         self.anchors = anchors
         self.grid_sizes = grid_sizes
         self.device = device
         self.params = params
-        self.class_loss = BCE_Loss(params.n_classes, self.device)
+        self.hard_negative = hard_negative
+        self.class_loss = BCE_Loss(params.n_classes, self.device, focal_loss)
 
     def ssd_1_loss(self, pred_bbox, pred_class, gt_bbox, gt_class):
         """
@@ -98,9 +98,9 @@ class Detection_Loss():
         gt_bbox_for_matched_anchors, matched_gt_class_ids, pos_idx = map_to_ground_truth(
             overlaps, gt_bbox, gt_class, self.params)
 
-        loc_loss = ((pred_bbox[pos_idx] - gt_bbox_for_matched_anchors).abs()).mean()
+        loc_loss = self.localization_loss(pred_bbox, gt_bbox_for_matched_anchors, pos_idx)
+        class_loss = self.classification_loss(pred_class, matched_gt_class_ids, pos_idx)
 
-        class_loss = self.class_loss(pred_class, matched_gt_class_ids, pos_idx.shape[0])
         return loc_loss, class_loss
 
     def ssd_loss(self, pred, targ):
@@ -129,3 +129,48 @@ class Detection_Loss():
             classification_loss += c_loss
 
         return localization_loss, classification_loss
+
+    def hard_negative_mining(self, losses, ids_for_anchors, ratio=3):
+        """
+        Taken from https://github.com/qfgaohao/pytorch-ssd
+        """
+        losses = losses.sum(dim=1)
+        pos_mask = ids_for_anchors != 100
+        num_pos = pos_mask.sum()
+        num_neg = num_pos * ratio
+
+        losses[pos_mask] = -math.inf
+        _, indexes = losses.sort(descending=True)
+        _, orders = indexes.sort()
+        neg_mask = orders < num_neg
+        return pos_mask | neg_mask
+
+    def localization_loss(self, pred_bbox, gt_bbox_for_matched_anchors, pos_idx):
+        """
+        Arguments:
+        pred_bbox - [#obj x 4] tensor - model predictions
+        gt_bbox_for_matched_anchors - [#obj x 4] tensor - ground truth
+        pos_idx - indeces of non background predicting anchors
+
+        returns: l1 loss between predictions and ground truth divided by the number of matche anchors
+        """
+        matched_bbox = pred_bbox[pos_idx].float()
+        return torch.nn.functional.smooth_l1_loss(matched_bbox, gt_bbox_for_matched_anchors,
+                                                  reduction='sum') / pos_idx.shape[0]
+
+    def classification_loss(self, pred_class, matched_gt_class_ids, pos_idx):
+        """
+        Arguments:
+        pred_class - [#anchors x n_classes] tensor - confidence scores by each anchor
+        matched_gt_class_ids - [#anchors x 1] tensor - ground truth class ids
+        pos_idx - indeces of non background predicting anchors
+
+        returns: binary cross entropy between predicted scores and one hot ground truth vectors,
+        similarily normalized by the number of non background anchors
+        """
+        class_losses = self.class_loss(pred_class, matched_gt_class_ids)
+        if self.hard_negative:
+            loss = class_losses[self.hard_negative_mining(class_losses, matched_gt_class_ids)].sum()
+        else:
+            loss = class_losses.sum()
+        return loss / pos_idx.shape[0]
