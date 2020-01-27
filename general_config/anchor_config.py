@@ -14,11 +14,11 @@ sqrt2 = sqrt(2)
 sqrt3 = sqrt(3)
 
 ratio = {
-    20: [(1., 1.), (1/sqrt2, 1*sqrt2), (1*sqrt2, 1/sqrt2), (1/sqrt3, 1*sqrt3), (1*sqrt3, 1/sqrt3), (1.3, 1.3)],
-    10: [(1., 1.), (1/sqrt2, 1*sqrt2), (1*sqrt2, 1/sqrt2), (1/sqrt3, 1*sqrt3), (1*sqrt3, 1/sqrt3), (1.3, 1.3)],
-    5: [(1., 1.), (1/sqrt2, 1*sqrt2), (1*sqrt2, 1/sqrt2), (1/sqrt3, 1*sqrt3), (1*sqrt3, 1/sqrt3), (1.3, 1.3)],
-    3: [(1., 1.), (1/sqrt2, 1*sqrt2), (1*sqrt2, 1/sqrt2), (1.3, 1.3)],
-    1: [(1., 1.), (1/sqrt2, 1*sqrt2), (1*sqrt2, 1/sqrt2), (1.3, 1.3)]
+    20: [(2.85, 2.85), (2.85/sqrt2, 2.85*sqrt2), (2.85*sqrt2, 2.85/sqrt2), (2.85/sqrt3, 2.85*sqrt3), (2.85*sqrt3, 2.85/sqrt3), (4.22, 4.22)],
+    10: [(3.3, 3.3), (3.3/sqrt2, 3.3*sqrt2), (3.3*sqrt2, 3.3/sqrt2), (3.3/sqrt3, 3.3*sqrt3), (3.3*sqrt3, 3.3/sqrt3), (4.1, 4.1)],
+    5: [(2.55, 2.55), (2.55/sqrt2, 2.55*sqrt2), (2.55*sqrt2, 2.55/sqrt2), (2.55/sqrt3, 2.55*sqrt3), (2.55*sqrt3, 2.55/sqrt3), (3, 3)],
+    3: [(2.07, 2.07), (2.07/sqrt2, 2.07*sqrt2), (2.07*sqrt2, 2.07/sqrt2), (2.3, 2.3)],
+    1: [(0.87, 0.87), (0.87/sqrt2, 0.87*sqrt2), (0.87*sqrt2, 0.87/sqrt2), (0.95, 0.95)]
 }
 ratio = OrderedDict(ratio)
 
