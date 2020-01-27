@@ -165,7 +165,9 @@ def test_anchor_mapping(image, bbox_predictions, classification_predictions, gt_
              pos_idx=pos_idx,
              size=image_info[1],
              image=image,
-             anchors=anchors_wh)
+             anchors=anchors_wh,
+             gt_bbox_for_matched_anchors=gt_bbox_for_matched_anchors,
+             matched_gt_class_ids=matched_gt_class_ids)
 
     return inspect_anchors(image=image, anchors=anchors_wh, gt_bbox_for_matched_anchors=gt_bbox_for_matched_anchors,
                            gt_classes_for_matched_anchors=matched_gt_class_ids, pos_idx=pos_idx, size=image_info[
@@ -181,7 +183,9 @@ def test(raw_bbox=None, raw_class_values=None, raw_class_ids=None,
          indeces_kept_by_nms=None,
          pos_idx=None, size=(320, 320),
          image=None, anchors=None,
-         one_by_one=False):
+         one_by_one=False,
+         gt_bbox_for_matched_anchors=None,
+         matched_gt_class_ids=None):
     '''
     what we have:
     - raw bbox and class - all the model predictions (not filtered, not sorted, no nms) (values-confidences, ids-actual class ids)
@@ -204,37 +208,41 @@ def test(raw_bbox=None, raw_class_values=None, raw_class_ids=None,
     plot_bounding_boxes(image=image, bounding_boxes=gt_bbox, classes=gt_class,
                         bbox_type="gt", message="Ground truth", size=size)
 
-    print("Matched ANCHORS WITH THEIR RESPECTIVE OFFSET PREDICTIONS: ",
-          matched_anchors, matched_anchors.shape)
-    print("Matched Pred BBOXES: ", matched_bbox, matched_bbox.shape)
-    print('CONFIDENCES FOR PREDICTED BBOXES that matched anchors: ', matched_conf)
+    print("MATCHED GT BBOXES: ", gt_bbox_for_matched_anchors, gt_bbox_for_matched_anchors.shape)
+    plot_bounding_boxes(image=image, bounding_boxes=gt_bbox_for_matched_anchors, classes=matched_gt_class_ids,
+                        bbox_type="gt", message="Matched Ground truth", size=size)
 
-    if one_by_one:
-        for i in range(len(raw_bbox)):
-            cur_anchor_bbox = anchors[i]
-            cur_pred_bbox = raw_bbox[i]
-            cur_id = np.array([1])
-            plot_bounding_boxes(image=image, bounding_boxes=cur_anchor_bbox,
-                                classes=cur_id, bbox_type="anchor", message="ANCHOR", size=size)
-            plot_bounding_boxes(image=image, bounding_boxes=cur_pred_bbox, classes=cur_id,
-                                bbox_type="pred", message="PRED FROM ANCHOR", size=size)
-            # print('Confidence for this pair of anchor/pred: ',
-            #       matched_conf[i], size)
-    else:
-        plot_bounding_boxes(image=image, bounding_boxes=matched_anchors,
-                            classes=matched_ids, bbox_type="anchor", message="Anchors", size=size)
-        plot_bounding_boxes(image=image, bounding_boxes=matched_bbox, classes=matched_ids,
-                            bbox_type="pred", message="Cheated Predictions", size=size)
-
-    print("THIS IS PRED BBOX KEPT BY CONFIDENCE", pred_bbox, pred_bbox.shape)
-    print("These are confidences for model outputs: ", highest_confidence_for_predictions)
-
-    plot_bounding_boxes(image=image, bounding_boxes=pred_bbox, classes=pred_class,
-                        bbox_type="pred", message="Pre NMS Predictions", size=size)
-
-    post_nms_predictions = pred_bbox[indeces_kept_by_nms]
-    post_nms_classes = pred_class[indeces_kept_by_nms]
-    plot_bounding_boxes(image=image, bounding_boxes=post_nms_predictions,
-                        classes=post_nms_classes, bbox_type="pred", message="Post NMS Predictions", size=size)
-    print("THIS IS POST NMS PREDICTIONS", post_nms_predictions,
-          post_nms_predictions.shape)
+    # print("Matched ANCHORS WITH THEIR RESPECTIVE OFFSET PREDICTIONS: ",
+    #       matched_anchors, matched_anchors.shape)
+    # print("Matched Pred BBOXES: ", matched_bbox, matched_bbox.shape)
+    # print('CONFIDENCES FOR PREDICTED BBOXES that matched anchors: ', matched_conf)
+    #
+    # if one_by_one:
+    #     for i in range(len(raw_bbox)):
+    #         cur_anchor_bbox = anchors[i]
+    #         cur_pred_bbox = raw_bbox[i]
+    #         cur_id = np.array([1])
+    #         plot_bounding_boxes(image=image, bounding_boxes=cur_anchor_bbox,
+    #                             classes=cur_id, bbox_type="anchor", message="ANCHOR", size=size)
+    #         plot_bounding_boxes(image=image, bounding_boxes=cur_pred_bbox, classes=cur_id,
+    #                             bbox_type="pred", message="PRED FROM ANCHOR", size=size)
+    #         # print('Confidence for this pair of anchor/pred: ',
+    #         #       matched_conf[i], size)
+    # else:
+    #     plot_bounding_boxes(image=image, bounding_boxes=matched_anchors,
+    #                         classes=matched_ids, bbox_type="anchor", message="Anchors", size=size)
+    #     plot_bounding_boxes(image=image, bounding_boxes=matched_bbox, classes=matched_ids,
+    #                         bbox_type="pred", message="Cheated Predictions", size=size)
+    #
+    # print("THIS IS PRED BBOX KEPT BY CONFIDENCE", pred_bbox, pred_bbox.shape)
+    # print("These are confidences for model outputs: ", highest_confidence_for_predictions)
+    #
+    # plot_bounding_boxes(image=image, bounding_boxes=pred_bbox, classes=pred_class,
+    #                     bbox_type="pred", message="Pre NMS Predictions", size=size)
+    #
+    # post_nms_predictions = pred_bbox[indeces_kept_by_nms]
+    # post_nms_classes = pred_class[indeces_kept_by_nms]
+    # plot_bounding_boxes(image=image, bounding_boxes=post_nms_predictions,
+    #                     classes=post_nms_classes, bbox_type="pred", message="Post NMS Predictions", size=size)
+    # print("THIS IS POST NMS PREDICTIONS", post_nms_predictions,
+    #       post_nms_predictions.shape)
