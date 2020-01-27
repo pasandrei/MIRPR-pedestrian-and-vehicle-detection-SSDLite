@@ -11,18 +11,18 @@ from pycocotools.coco import COCO
 def plot_anchor_gt(image, anchor, gt, cur_class, message="DA_MA", size=(320, 320)):
     image = image.transpose(1, 2, 0)
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    image = cv2.resize(image, dsize=(size[1], size[0]))
+    image = cv2.resize(image, dsize=(size[0], size[1]))
 
     color_anchor = (0, 0, 255)
-    cv2.rectangle(image, (anchor[1], anchor[0]),
-                  (anchor[3], anchor[2]), color_anchor, 2)
+    cv2.rectangle(image, (int(anchor[0]-anchor[2]/2), int(anchor[1]-anchor[3]/2)),
+                  (int(anchor[0] + anchor[2]/2), int(anchor[1] + anchor[3]/2)), color_anchor, 2)
 
     # gt_id_2_color = {1: (200, 200, 0), 3: (150, 250, 150)}
     color_gt = (200, 200, 0)
     gt_id_2_color = {1: (200, 200, 0), 3: (150, 250, 150)}
     color_gt = gt_id_2_color[cur_class]
-    cv2.rectangle(image, (gt[1], gt[0]),
-                  (gt[3], gt[2]), color_gt, 2)
+    cv2.rectangle(image, (int(gt[0]-gt[2]/2), int(gt[1]-gt[3]/2)),
+                  (int(gt[0] + gt[2]/2), int(gt[1] + gt[3]/2)), color_gt, 2)
 
     cv2.imshow(message, image)
     cv2.waitKey(0)
@@ -34,7 +34,7 @@ def plot_bounding_boxes(image, bounding_boxes, classes, bbox_type="pred", messag
     """
     image = image.transpose(1, 2, 0)
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    image = cv2.resize(image, dsize=(size[1], size[0]))
+    image = cv2.resize(image, dsize=(size[0], size[1]))
 
     # light blue gt is human, light green is vehicle
     gt_id_2_color = {1: (200, 200, 0), 3: (150, 250, 150)}
@@ -53,9 +53,10 @@ def plot_bounding_boxes(image, bounding_boxes, classes, bbox_type="pred", messag
         bounding_boxes = bounding_boxes.reshape(1, -1)
     classes = classes.reshape(-1)
 
-    for (startX, startY, endX, endY), pred_class in zip(bounding_boxes, classes):
+    for (startX, startY, width, height), pred_class in zip(bounding_boxes, classes):
         color = id_2_color.get(pred_class, (0, 255, 0))
-        cv2.rectangle(image, (startY, startX), (endY, endX), color, 2)
+        cv2.rectangle(image, (int(startX-width/2), int(startY-height/2)),
+                      (int(startX+width/2), int(startY+height/2)), color, 2)
 
     # display the image
     cv2.imshow(message, image)
@@ -99,15 +100,11 @@ def get_IoU(bbox1, bbox2):
 
 
 def corners_to_wh(prediction_bboxes):
-    for index in range(prediction_bboxes.shape[0]):
-        prediction_bboxes[index][0], prediction_bboxes[index][1] = prediction_bboxes[index][1], prediction_bboxes[index][0]
-        prediction_bboxes[index][2], prediction_bboxes[index][3] = prediction_bboxes[index][3], prediction_bboxes[index][2]
-
-        width = prediction_bboxes[index][2] - prediction_bboxes[index][0]
-        height = prediction_bboxes[index][3] - prediction_bboxes[index][1]
-
-        prediction_bboxes[index][2] = width
-        prediction_bboxes[index][3] = height
+    """
+    (x_left, y_left, x_right, y_right) --> (x_left, y_left, width, height)
+    """
+    prediction_bboxes[:, 2] = prediction_bboxes[:, 2] - prediction_bboxes[:, 0]
+    prediction_bboxes[:, 3] = prediction_bboxes[:, 3] - prediction_bboxes[:, 1]
 
     return prediction_bboxes
 

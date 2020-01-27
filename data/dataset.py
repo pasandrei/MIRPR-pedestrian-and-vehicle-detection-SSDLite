@@ -50,7 +50,7 @@ class CocoDetection(VisionDataset):
             # target[0] = tensor of bboxes of objects in image
             # target[1] = tensor of class ids in image
             target = prepare_gt(img, target)
-            
+
             if len(target[0].shape) < 2:
                 continue
 
@@ -68,7 +68,7 @@ class CocoDetection(VisionDataset):
             imgs.append(img)
             targets_bboxes.append(target[0])
             targets_classes.append(target[1])
-            image_info.append((img_id, (height, width)))
+            image_info.append((img_id, (width, height)))
 
         # B x C x H x W
         batch_images = torch.stack(imgs)
@@ -97,10 +97,5 @@ class CocoDetection(VisionDataset):
         return img, target
 
     def flip_gt_bboxes(self, image_bboxes):
-        image_bboxes[:, 1] = 1 - image_bboxes[:, 1]
-        image_bboxes[:, 3] = 1 - image_bboxes[:, 3]
-
-        # don't forget to also swap second and fourth columns to keep format
-        temp = copy.deepcopy(image_bboxes[:, 1])
-        image_bboxes[:, 1] = image_bboxes[:, 3]
-        image_bboxes[:, 3] = temp
+        # only mirror on x axis
+        image_bboxes[:, 0] = 1 - image_bboxes[:, 0]
