@@ -14,9 +14,9 @@ class Lr_decay:
         self.current_step += 1
 
         if self.current_step == self.params.first_decay:
-            # don't want to decay backbone here as it starts at a lower lr
+            # don't want to decay backbone here as it starts at a lower lr, if it is frozen
             for idx, param_gr in enumerate(optimizer.param_groups):
-                if idx == 0:
+                if idx == 0 and self.params.freeze_backbone:
                     continue
                 param_gr['lr'] *= self.params.decay_rate
 
