@@ -33,6 +33,7 @@ class BCE_Loss(nn.Module):
         if self.focal_loss:
             one_hot = torch.zeros((class_idx.shape[0], self.n_classes))
             one_hot[:, class_idx] = 1
+            one_hot = one_hot.to("cuda:0" if torch.cuda.is_available() else "cpu")
             weight = self.get_weight(pred, one_hot)
             return torch.nn.functional.binary_cross_entropy_with_logits(pred, one_hot, weight=weight, reduction='none')
 
@@ -63,6 +64,7 @@ class BCE_Loss(nn.Module):
         for k, v in self.id2idx.items():
             class_idx[class_ids == k] = v
 
+        class_idx = class_idx.to("cuda:0" if torch.cuda.is_available() else "cpu")
         return class_idx
 
 
