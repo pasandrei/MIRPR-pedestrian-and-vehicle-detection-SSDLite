@@ -110,8 +110,8 @@ class CocoDetection(VisionDataset):
         col_2_ok = gt_bbox[:, 1] > 0
 
         # width and height must be strictly greater than zero
-        col_3_ok = gt_bbox[:, 0] > eps
-        col_4_ok = gt_bbox[:, 1] > eps
+        col_3_ok = gt_bbox[:, 2] > eps
+        col_4_ok = gt_bbox[:, 3] > eps
 
         # rows to keep
         ok = col_1_ok * col_2_ok * col_3_ok * col_4_ok
