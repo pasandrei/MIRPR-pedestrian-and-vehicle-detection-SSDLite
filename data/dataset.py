@@ -102,6 +102,9 @@ class CocoDetection(VisionDataset):
         image_bboxes[:, 0] = 1 - image_bboxes[:, 0]
 
     def check_bbox_validity(self, target):
+        if target[0].nelement() == 0:
+            return
+
         eps = 0.00001
         gt_bbox = target[0]
 
