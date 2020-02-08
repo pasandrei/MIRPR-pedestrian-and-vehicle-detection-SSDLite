@@ -89,10 +89,10 @@ class CocoDetection(VisionDataset):
             self.flip_gt_bboxes(target[0])
 
         # color jitter
-        img = F.adjust_brightness(img, random.uniform(0.85, 1.15))
-        img = F.adjust_contrast(img, random.uniform(0.85, 1.15))
-        img = F.adjust_saturation(img, random.uniform(0.85, 1.15))
-        img = F.adjust_hue(img, random.uniform(-0.08, 0.08))
+        img = F.adjust_brightness(img, random.uniform(0.8, 1.2))
+        img = F.adjust_contrast(img, random.uniform(0.8, 1.2))
+        img = F.adjust_saturation(img, random.uniform(0.8, 1.2))
+        img = F.adjust_hue(img, random.uniform(-0.05, 0.05))
 
         return img, target
 
