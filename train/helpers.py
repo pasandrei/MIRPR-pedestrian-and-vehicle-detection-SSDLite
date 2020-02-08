@@ -55,7 +55,8 @@ def map_to_ground_truth(overlaps, gt_bbox, gt_class, params):
     prior_to_gt_overlap[gt_to_prior_idx] = 1.99
 
     idx = torch.arange(0, gt_to_prior_idx.size(0), dtype=torch.int64)
-    # idx = idx.to("cuda:0")
+    if overlaps.is_cuda:
+        idx = idx.to("cuda:0")
     prior_to_gt_idx[gt_to_prior_idx[idx]] = idx
 
     # for each prior, get the actual id of the class it should predict, unmatched anchors (low IOU) should predict background
