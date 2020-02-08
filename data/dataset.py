@@ -50,8 +50,9 @@ class CocoDetection(VisionDataset):
             # target[0] = tensor of bboxes of objects in image
             # target[1] = tensor of class ids in image
             target = prepare_gt(img, target)
+            self.check_bbox_validity(target)
 
-            if len(target[0].shape) < 2:
+            if target[0].nelement() == 0:
                 continue
 
             width, height = img.size
@@ -99,3 +100,20 @@ class CocoDetection(VisionDataset):
     def flip_gt_bboxes(self, image_bboxes):
         # only mirror on x axis
         image_bboxes[:, 0] = 1 - image_bboxes[:, 0]
+
+    def check_bbox_validity(self, target):
+        eps = 0.00001
+        gt_bbox = target[0]
+
+        # x and y must be positive
+        col_1_ok = gt_bbox[:, 0] > 0
+        col_2_ok = gt_bbox[:, 1] > 0
+
+        # width and height must be strictly greater than zero
+        col_3_ok = gt_bbox[:, 0] > eps
+        col_4_ok = gt_bbox[:, 1] > eps
+
+        # rows to keep
+        ok = col_1_ok * col_2_ok * col_3_ok * col_4_ok
+        target[0] = target[0][ok]
+        target[1] = target[1][ok]
