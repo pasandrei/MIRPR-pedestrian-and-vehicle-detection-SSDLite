@@ -103,8 +103,6 @@ class Detection_Loss():
         loc_loss = self.localization_loss(pred_bbox, offsets, pos_idx)
         class_loss = self.classification_loss(pred_class, matched_gt_class_ids, pos_idx)
 
-        self.check_for_inf(loc_loss, class_loss, offsets, gt_bbox, gt_class)
-
         return loc_loss, class_loss
 
     def ssd_loss(self, pred, targ):
@@ -191,16 +189,3 @@ class Detection_Loss():
         off_xy = self.scale_xy*(gt_bbox[:, :2] - matched_anchors[:, :2])/matched_anchors[:, 2:]
         off_wh = self.scale_wh*(gt_bbox[:, 2:]/matched_anchors[:, 2:]).log()
         return torch.cat((off_xy, off_wh), dim=1).contiguous()
-
-    def check_for_inf(self, loc_loss, class_loss, offsets, gt_bbox, gt_class):
-        def print_status(msg, loss):
-            print(msg)
-            print("LOSS", loss)
-            print("OFFSETS: ", offsets)
-            print("GT_BBOX", gt_bbox)
-            print("GT_CLASS", gt_class)
-
-        if torch.isinf(loc_loss) or torch.isnan(loc_loss):
-            print_status("Something wrong with localization", loc_loss)
-        elif torch.isinf(class_loss) or torch.isnan(class_loss):
-            print_status("Something wrong with classification", class_loss)

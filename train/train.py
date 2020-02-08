@@ -16,8 +16,8 @@ def train_step(model, input_, label, optimizer, losses, detection_loss, params):
     loss = l_loss + c_loss
 
     update_losses(losses, l_loss.item(), c_loss.item())
-    # loss.backward()
-    # optimizer.step()
+    loss.backward()
+    optimizer.step()
 
 
 def train(model, optimizer, train_loader, model_evaluator, detection_loss, params, start_epoch=0):
