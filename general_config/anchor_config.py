@@ -28,5 +28,3 @@ k_list = [len(v_zoom) * len(v_ratio) for (_, v_zoom), (_, v_ratio)
 
 total_anchors = sum([len(v_zoom) * len(v_ratio) * k_zoom**2 for (k_zoom, v_zoom), (_, v_ratio)
                      in zip(zoom.items(), ratio.items())])
-
-print("total_anchors: ", total_anchors)

@@ -1,6 +1,5 @@
 import numpy as np
 import cv2
-from train.helpers import activations_to_bboxes
 from misc.utils import *
 
 # postprocess
