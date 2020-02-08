@@ -50,8 +50,9 @@ class CocoDetection(VisionDataset):
             # target[0] = tensor of bboxes of objects in image
             # target[1] = tensor of class ids in image
             target = prepare_gt(img, target)
-            
-            if len(target[0].shape) < 2:
+            self.check_bbox_validity(target)
+
+            if target[0].nelement() == 0:
                 continue
 
             width, height = img.size
@@ -68,7 +69,7 @@ class CocoDetection(VisionDataset):
             imgs.append(img)
             targets_bboxes.append(target[0])
             targets_classes.append(target[1])
-            image_info.append((img_id, (height, width)))
+            image_info.append((img_id, (width, height)))
 
         # B x C x H x W
         batch_images = torch.stack(imgs)
@@ -89,18 +90,30 @@ class CocoDetection(VisionDataset):
             self.flip_gt_bboxes(target[0])
 
         # color jitter
-        img = F.adjust_brightness(img, random.uniform(0.85, 1.15))
-        img = F.adjust_contrast(img, random.uniform(0.85, 1.15))
-        img = F.adjust_saturation(img, random.uniform(0.85, 1.15))
-        img = F.adjust_hue(img, random.uniform(-0.08, 0.08))
+        img = F.adjust_brightness(img, random.uniform(0.8, 1.2))
+        img = F.adjust_contrast(img, random.uniform(0.8, 1.2))
+        img = F.adjust_saturation(img, random.uniform(0.8, 1.2))
+        img = F.adjust_hue(img, random.uniform(-0.05, 0.05))
 
         return img, target
 
     def flip_gt_bboxes(self, image_bboxes):
-        image_bboxes[:, 1] = 1 - image_bboxes[:, 1]
-        image_bboxes[:, 3] = 1 - image_bboxes[:, 3]
+        # only mirror on x axis
+        image_bboxes[:, 0] = 1 - image_bboxes[:, 0]
 
-        # don't forget to also swap second and fourth columns to keep format
-        temp = copy.deepcopy(image_bboxes[:, 1])
-        image_bboxes[:, 1] = image_bboxes[:, 3]
-        image_bboxes[:, 3] = temp
+    def check_bbox_validity(self, target):
+        eps = 0.00001
+        gt_bbox = target[0]
+
+        # x and y must be positive
+        col_1_ok = gt_bbox[:, 0] > 0
+        col_2_ok = gt_bbox[:, 1] > 0
+
+        # width and height must be strictly greater than zero
+        col_3_ok = gt_bbox[:, 2] > eps
+        col_4_ok = gt_bbox[:, 3] > eps
+
+        # rows to keep
+        ok = col_1_ok * col_2_ok * col_3_ok * col_4_ok
+        target[0] = target[0][ok]
+        target[1] = target[1][ok]

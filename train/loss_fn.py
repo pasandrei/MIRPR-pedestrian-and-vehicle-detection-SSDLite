@@ -3,7 +3,6 @@ import math
 from torch import nn
 
 from train.helpers import *
-from misc.postprocessing import *
 from general_config import classes_config
 
 # inspired by fastai course
@@ -75,6 +74,9 @@ class Detection_Loss():
         self.hard_negative = hard_negative
         self.class_loss = BCE_Loss(params.n_classes, self.device, focal_loss)
 
+        self.scale_xy = 10
+        self.scale_wh = 5
+
     def ssd_1_loss(self, pred_bbox, pred_class, gt_bbox, gt_class):
         """
         Arguments:
@@ -88,17 +90,17 @@ class Detection_Loss():
         the matching phase is carried out
         localization (L1) and classification (BCE) loss are being computed and returned
         """
-        # make network outputs same as gt bbox format
-        pred_bbox = activations_to_bboxes(pred_bbox, self.anchors, self.grid_sizes)
-
         # compute IOU for obj x anchor
-        overlaps = jaccard(gt_bbox, hw2corners(self.anchors[:, :2], self.anchors[:, 2:]))
+        overlaps = jaccard(wh2corners(gt_bbox[:, :2], gt_bbox[:, 2:]), wh2corners(
+            self.anchors[:, :2], self.anchors[:, 2:]))
 
         # map each anchor to the highest IOU obj, gt_idx - ids of mapped objects
         gt_bbox_for_matched_anchors, matched_gt_class_ids, pos_idx = map_to_ground_truth(
             overlaps, gt_bbox, gt_class, self.params)
 
-        loc_loss = self.localization_loss(pred_bbox, gt_bbox_for_matched_anchors, pos_idx)
+        offsets = self.prepare_localization_offsets(gt_bbox_for_matched_anchors, pos_idx)
+
+        loc_loss = self.localization_loss(pred_bbox, offsets, pos_idx)
         class_loss = self.classification_loss(pred_class, matched_gt_class_ids, pos_idx)
 
         return loc_loss, class_loss
@@ -145,17 +147,17 @@ class Detection_Loss():
         neg_mask = orders < num_neg
         return pos_mask | neg_mask
 
-    def localization_loss(self, pred_bbox, gt_bbox_for_matched_anchors, pos_idx):
+    def localization_loss(self, pred_bbox, offsets, pos_idx):
         """
         Arguments:
         pred_bbox - [#obj x 4] tensor - model predictions
-        gt_bbox_for_matched_anchors - [#obj x 4] tensor - ground truth
+        offsets - [#obj x 4] tensor - ground truth
         pos_idx - indeces of non background predicting anchors
 
         returns: l1 loss between predictions and ground truth divided by the number of matche anchors
         """
         matched_bbox = pred_bbox[pos_idx].float()
-        return torch.nn.functional.smooth_l1_loss(matched_bbox, gt_bbox_for_matched_anchors,
+        return torch.nn.functional.smooth_l1_loss(matched_bbox, offsets,
                                                   reduction='sum') / pos_idx.shape[0]
 
     def classification_loss(self, pred_class, matched_gt_class_ids, pos_idx):
@@ -174,3 +176,16 @@ class Detection_Loss():
         else:
             loss = class_losses.sum()
         return loss / pos_idx.shape[0]
+
+    def prepare_localization_offsets(self, gt_bbox, pos_idx):
+        """
+        Arguments:
+        - gt_bbox - [#matches_anchors x 4] tensor - matched ground truth bounding boxes
+        - pos_idx - indeces of non background predicting anchors
+
+        returns - offsets
+        """
+        matched_anchors = self.anchors[pos_idx]
+        off_xy = self.scale_xy*(gt_bbox[:, :2] - matched_anchors[:, :2])/matched_anchors[:, 2:]
+        off_wh = self.scale_wh*(gt_bbox[:, 2:]/matched_anchors[:, 2:]).log()
+        return torch.cat((off_xy, off_wh), dim=1).contiguous()

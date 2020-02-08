@@ -83,6 +83,7 @@ class Model_evaluator():
                     'optimizer_state_dict': optimizer.state_dict(),
                 }, SAVE_PATH2)
                 self.params.loss = val_loss
+                self.params.save('misc/experiments/ssdnet/params.json')
                 print('Model saved succesfully by loss')
 
             # tensorboard

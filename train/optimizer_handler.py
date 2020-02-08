@@ -5,7 +5,7 @@ import torch.optim as optim
 def layer_specific_adam(model, params):
     print("AMS grad is false")
     return optim.Adam([
-        {'params': model.backbone.parameters(), 'lr': params.learning_rate * params.decay_rate * 0.2},
+        {'params': model.backbone.parameters(), 'lr': params.learning_rate * params.decay_rate},
         {'params': model.out0.parameters()},
         {'params': model.out1.parameters()},
         {'params': model.out2.parameters()},

@@ -12,8 +12,10 @@ class Model_output_handler():
         self.unnorm = UnNormalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
         self.confidence_threshold = conf_threshold
         self.suppress_threshold = suppress_threshold
-        self.anchors_hw, self.grid_sizes = create_anchors()
-        self.corner_anchors = hw2corners(self.anchors_hw[:, :2], self.anchors_hw[:, 2:])
+        self.anchors_wh, self.grid_sizes = create_anchors()
+
+        self.scale_xy = 10
+        self.scale_wh = 5
 
     def process_outputs(self, bbox_predictions, classification_predictions, image_info):
         """
@@ -24,10 +26,11 @@ class Model_output_handler():
         prediction_bboxes, predicted_classes, highest_confidence_for_predictions, _ = self._get_sorted_predictions(
             bbox_predictions, classification_predictions, image_info)
 
+        # convert to corners for nms
+        prediction_bboxes = wh2corners_numpy(prediction_bboxes[:, :2], prediction_bboxes[:, 2:])
         indeces_kept_by_nms = nms(prediction_bboxes, predicted_classes, self.suppress_threshold)
 
         # new structure: array of bbox, class, confidence
-        # for some reason, bboxes should be WH format
         prediction_bboxes = corners_to_wh(prediction_bboxes)
         complete_outputs = np.concatenate(
             (prediction_bboxes, predicted_classes, highest_confidence_for_predictions), axis=1)
@@ -97,18 +100,23 @@ class Model_output_handler():
 
         return predicted_idxs, highest_confidence_for_predictions
 
-    def _convert_bboxes_to_workable_data(self, prediction_bboxes, size):
-        height, width = size
+    def _convert_offsets_to_bboxes(self, prediction_bboxes, size):
         prediction_bboxes = prediction_bboxes.cpu()
-        prediction_bboxes = activations_to_bboxes(
-            prediction_bboxes, self.anchors_hw, self.grid_sizes)
+
+        prediction_bboxes[:, :2] = (1/self.scale_xy)*prediction_bboxes[:, :2]
+        prediction_bboxes[:, 2:] = (1/self.scale_wh)*prediction_bboxes[:, 2:]
+
+        prediction_bboxes[:, :2] = prediction_bboxes[:, :2] * \
+            self.anchors_wh[:, 2:] + self.anchors_wh[:, :2]
+        prediction_bboxes[:, 2:] = prediction_bboxes[:, 2:].exp() * self.anchors_wh[:, 2:]
+
         return self._rescale_bboxes(prediction_bboxes, size)
 
     def _convert_confidences_to_workable_data(self, prediction_confidences):
         return prediction_confidences.sigmoid().cpu().numpy()
 
     def _convert_output_to_workable_data(self, model_output_bboxes, model_output_confidences, size):
-        prediction_bboxes = self._convert_bboxes_to_workable_data(
+        prediction_bboxes = self._convert_offsets_to_bboxes(
             model_output_bboxes, size)
         prediction_confidences = self._convert_confidences_to_workable_data(
             model_output_confidences)
@@ -116,15 +124,16 @@ class Model_output_handler():
 
     def _rescale_bboxes(self, bboxes, size):
         """
-        Args: array of bboxes in corner format
-        returns: bboxes upscaled by height and width as numpy array on cpu
+        Arguments:
+        bboxes - bboxes to be upscaled
+        size - original size of the image used for upscaling
         """
-        height, width = size
+        width, height = size
         scale_bboxes = copy.deepcopy(bboxes)
-        scale_bboxes[:, 0] *= height
-        scale_bboxes[:, 2] *= height
-        scale_bboxes[:, 1] *= width
-        scale_bboxes[:, 3] *= width
+        scale_bboxes[:, 0] *= width
+        scale_bboxes[:, 2] *= width
+        scale_bboxes[:, 1] *= height
+        scale_bboxes[:, 3] *= height
         return (scale_bboxes.cpu().numpy()).astype(int)
 
 
