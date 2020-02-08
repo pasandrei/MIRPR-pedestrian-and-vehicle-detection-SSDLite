@@ -19,26 +19,24 @@ class BCE_Loss(nn.Module):
     def forward(self, pred, targ):
         '''
         Arguments:
-            pred - tensor of shape anchors x n_classes
-            targ - tensor of shape anchors
+            pred - tensor of shape batch x anchors x n_classes
+            targ - tensor of shape anchors*batch
 
-        Explanation: computes weighted BCE loss between model prediction and target
-            model predicts scores for each class, all 0s means background
+        Explanation: computes softmax loss between model prediction and target
+            model predicts scores for each class, 0 is background class
 
-        Returns: (weighted if focal) BCE loss
+        Returns: (weighted if focal) softmax loss
         '''
-        t = []
-        targ = targ.cpu().numpy()
-        for clas_id in targ:
-            bg = [0] * self.n_classes
-            if clas_id != 100:
-                bg[self.id2idx[clas_id]] = 1
-            t.append(bg)
+        pred = pred.view(-1, self.n_classes)
+        class_idx = self.map_id_to_idx(targ)
 
-        t = torch.FloatTensor(t).to(self.device)
-        weight = self.get_weight(pred, t) if self.focal_loss else None
+        if self.focal_loss:
+            one_hot = torch.zeros((class_idx.shape[0], self.n_classes))
+            one_hot[:, class_idx] = 1
+            weight = self.get_weight(pred, one_hot)
+            return torch.nn.functional.binary_cross_entropy_with_logits(pred, one_hot, weight=weight, reduction='none')
 
-        return torch.nn.functional.binary_cross_entropy_with_logits(pred, t, weight=weight, reduction='none')
+        return torch.nn.functional.cross_entropy(pred, class_idx, reduction='none')
 
     def get_weight(self, x, t):
         # focal loss decreases loss for correctly classified (P>0.5) examples, relative to the missclassified ones
@@ -55,6 +53,17 @@ class BCE_Loss(nn.Module):
         # these two combined strongly encourage the network to predict a high value when
         # there is indeed a positive example
         return w * ((1-pt).pow(gamma))
+
+    def map_id_to_idx(self, class_ids):
+        """
+        maps the tensor of class ids to indeces
+        creates 1 hot ground truth vectors with them
+        """
+        class_idx = torch.zeros(class_ids.shape, dtype=int)
+        for k, v in self.id2idx.items():
+            class_idx[class_ids == k] = v
+
+        return class_idx
 
 
 class Detection_Loss():
@@ -77,18 +86,20 @@ class Detection_Loss():
         self.scale_xy = 10
         self.scale_wh = 5
 
-    def ssd_1_loss(self, pred_bbox, pred_class, gt_bbox, gt_class):
+    def match(self, pred_bbox, gt_bbox, gt_class):
         """
         Arguments:
             pred_bbox - #anchors x 4 cuda tensor - predicted bboxes for current image
-            pred_class - #anchors x 2 cuda tensor - predicted class confidences for cur img
             gt_bbox - #obj x 4 cuda tensor - GT bboxes for objects in the cur img
             gt_class - #obj x 1 cuda tensor - class IDs for objects in cur img
 
         Explanation:
-        model outputs offsets are converted to the final bbox predictions
-        the matching phase is carried out
-        localization (L1) and classification (BCE) loss are being computed and returned
+        argmax matching
+
+        Returns:
+        gt bboxes for each anchor (that mapped to an object)
+        the tensor of class ids that each anchor has to predict
+        indeces of object predicting anchors
         """
         # compute IOU for obj x anchor
         overlaps = jaccard(wh2corners(gt_bbox[:, :2], gt_bbox[:, 2:]), wh2corners(
@@ -98,12 +109,7 @@ class Detection_Loss():
         gt_bbox_for_matched_anchors, matched_gt_class_ids, pos_idx = map_to_ground_truth(
             overlaps, gt_bbox, gt_class, self.params)
 
-        offsets = self.prepare_localization_offsets(gt_bbox_for_matched_anchors, pos_idx)
-
-        loc_loss = self.localization_loss(pred_bbox, offsets, pos_idx)
-        class_loss = self.classification_loss(pred_class, matched_gt_class_ids, pos_idx)
-
-        return loc_loss, class_loss
+        return gt_bbox_for_matched_anchors, matched_gt_class_ids, pos_idx
 
     def ssd_loss(self, pred, targ):
         """
@@ -112,23 +118,36 @@ class Detection_Loss():
             targ - ground truth - two tensors of dim B x #obj x 4 and B x #obj in a list
 
         Explanation:
-        Loss will be calculated per image in the batch
-        anchors will be mappend to overlapping GT bboxes higher than a threshold
-        feature map cells corresponding to those anchors will have to predict those gt bboxes (loc loss)
-        all feature map cells hape to predict a confidence (class loss)
+        Matching is done per image
+        loss is calculated per batch
 
         Return: loc and class loss per whole batch
         """
-
-        localization_loss, classification_loss = 0., 0.
+        batch_gt_bbox, batch_anchor_bbox, batch_pred_bbox, batch_class_ids = [], [], [], []
 
         for idx in range(pred[0].shape[0]):
-            pred_bbox, pred_class = pred[0][idx], pred[1][idx]
+            pred_bbox = pred[0][idx]
             gt_bbox, gt_class = targ[0][idx].to(self.device), targ[1][idx].to(self.device)
 
-            l_loss, c_loss = self.ssd_1_loss(pred_bbox, pred_class, gt_bbox, gt_class)
-            localization_loss += l_loss
-            classification_loss += c_loss
+            gt_bbox_for_anchors, class_ids_for_anchors, pos_idx = self.match(
+                pred_bbox, gt_bbox, gt_class)
+
+            batch_gt_bbox.append(gt_bbox_for_anchors)
+            batch_anchor_bbox.append(self.anchors[pos_idx])
+            batch_pred_bbox.append(self.anchors[pos_idx])
+            batch_class_ids.append(class_ids_for_anchors)
+
+        # now we have everything in the batch
+        batch_gt_bbox = torch.cat(batch_gt_bbox, dim=0)
+        batch_anchor_bbox = torch.cat(batch_anchor_bbox, dim=0)
+        batch_pred_bbox = torch.cat(batch_pred_bbox, dim=0)
+        batch_class_ids = torch.cat(batch_class_ids, dim=0)
+
+        # compute offsets
+        offsets = self.prepare_localization_offsets(batch_gt_bbox, batch_anchor_bbox)
+
+        localization_loss = self.localization_loss(batch_pred_bbox, offsets)
+        classification_loss = self.classification_loss(pred[1], batch_class_ids)
 
         return localization_loss, classification_loss
 
@@ -147,27 +166,24 @@ class Detection_Loss():
         neg_mask = orders < num_neg
         return pos_mask | neg_mask
 
-    def localization_loss(self, pred_bbox, offsets, pos_idx):
+    def localization_loss(self, pred_bbox, offsets):
         """
         Arguments:
-        pred_bbox - [#obj x 4] tensor - model predictions
-        offsets - [#obj x 4] tensor - ground truth
-        pos_idx - indeces of non background predicting anchors
+        pred_bbox - [#matches x 4] tensor - model predictions
+        offsets - [#matches x 4] tensor - ground truth
 
-        returns: l1 loss between predictions and ground truth divided by the number of matche anchors
+        returns: l1 loss between predictions and ground truth divided by the number of matched anchors
         """
-        matched_bbox = pred_bbox[pos_idx].float()
-        return torch.nn.functional.smooth_l1_loss(matched_bbox, offsets,
-                                                  reduction='sum') / pos_idx.shape[0]
+        return torch.nn.functional.smooth_l1_loss(pred_bbox, offsets,
+                                                  reduction='sum') / pred_bbox.shape[0]
 
-    def classification_loss(self, pred_class, matched_gt_class_ids, pos_idx):
+    def classification_loss(self, pred_class, matched_gt_class_ids):
         """
         Arguments:
         pred_class - [#anchors x n_classes] tensor - confidence scores by each anchor
         matched_gt_class_ids - [#anchors x 1] tensor - ground truth class ids
-        pos_idx - indeces of non background predicting anchors
 
-        returns: binary cross entropy between predicted scores and one hot ground truth vectors,
+        returns: softmax between predicted scores and one hot ground truth vectors,
         similarily normalized by the number of non background anchors
         """
         class_losses = self.class_loss(pred_class, matched_gt_class_ids)
@@ -175,17 +191,17 @@ class Detection_Loss():
             loss = class_losses[self.hard_negative_mining(class_losses, matched_gt_class_ids)].sum()
         else:
             loss = class_losses.sum()
-        return loss / pos_idx.shape[0]
+        return loss / pred_class.shape[0]
 
-    def prepare_localization_offsets(self, gt_bbox, pos_idx):
+    def prepare_localization_offsets(self, gt_bbox, matched_anchors):
         """
         Arguments:
-        - gt_bbox - [#matches_anchors x 4] tensor - matched ground truth bounding boxes
-        - pos_idx - indeces of non background predicting anchors
+        - gt_bbox - [#matches x 4] tensor - matched ground truth bounding boxes
+        - matched_anchors - anchors from which these predictions are made
 
         returns - offsets
         """
-        matched_anchors = self.anchors[pos_idx]
-        off_xy = self.scale_xy*(gt_bbox[:, :2] - matched_anchors[:, :2])/matched_anchors[:, 2:]
+        off_xy = self.scale_xy*(gt_bbox[:, :2] -
+                                matched_anchors[:, :2])/matched_anchors[:, 2:]
         off_wh = self.scale_wh*(gt_bbox[:, 2:]/matched_anchors[:, 2:]).log()
         return torch.cat((off_xy, off_wh), dim=1).contiguous()
