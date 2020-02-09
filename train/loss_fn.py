@@ -33,7 +33,8 @@ class BCE_Loss(nn.Module):
         if self.focal_loss:
             one_hot = torch.zeros((class_idx.shape[0], self.n_classes))
             one_hot = one_hot.to("cuda:0" if torch.cuda.is_available() else "cpu")
-            # one_hot[:, class_idx] = 1
+            one_hot[torch.arange(class_idx.shape[0]), class_idx] = 1
+
             weight = self.get_weight(pred, one_hot)
             return torch.nn.functional.binary_cross_entropy_with_logits(pred, one_hot, weight=weight, reduction='none')
         else:
@@ -128,12 +129,14 @@ class Detection_Loss():
         batch_gt_bbox, batch_anchor_bbox, batch_pred_bbox, batch_class_ids = [], [], [], []
 
         for idx in range(pred[0].shape[0]):
+            pred_bbox = pred[0][idx]
+
             gt_bbox, gt_class = targ[0][idx].to(self.device), targ[1][idx].to(self.device)
             gt_bbox_for_anchors, class_ids_for_anchors, pos_idx = self.match(gt_bbox, gt_class)
 
             batch_gt_bbox.append(gt_bbox_for_anchors)
             batch_anchor_bbox.append(self.anchors[pos_idx])
-            batch_pred_bbox.append(self.anchors[pos_idx])
+            batch_pred_bbox.append(pred_bbox[pos_idx])
             batch_class_ids.append(class_ids_for_anchors)
 
         # now we have everything in the batch
