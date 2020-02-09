@@ -32,12 +32,13 @@ class BCE_Loss(nn.Module):
 
         if self.focal_loss:
             one_hot = torch.zeros((class_idx.shape[0], self.n_classes))
-            one_hot[:, class_idx] = 1
             one_hot = one_hot.to("cuda:0" if torch.cuda.is_available() else "cpu")
+            one_hot[:, class_idx] = 1
             weight = self.get_weight(pred, one_hot)
             return torch.nn.functional.binary_cross_entropy_with_logits(pred, one_hot, weight=weight, reduction='none')
-
-        return torch.nn.functional.cross_entropy(pred, class_idx, reduction='none')
+        else:
+            raise NotImplementedError
+            # return torch.nn.functional.cross_entropy(pred, class_idx, reduction='none')
 
     def get_weight(self, x, t):
         # focal loss decreases loss for correctly classified (P>0.5) examples, relative to the missclassified ones
@@ -88,12 +89,11 @@ class Detection_Loss():
         self.scale_xy = 10
         self.scale_wh = 5
 
-    def match(self, pred_bbox, gt_bbox, gt_class):
+    def match(self, gt_bbox, gt_class):
         """
         Arguments:
-            pred_bbox - #anchors x 4 cuda tensor - predicted bboxes for current image
-            gt_bbox - #obj x 4 cuda tensor - GT bboxes for objects in the cur img
-            gt_class - #obj x 1 cuda tensor - class IDs for objects in cur img
+            gt_bbox - #obj x 4 tensor - GT bboxes for objects in the cur img
+            gt_class - #obj x 1 tensor - class IDs for objects in cur img
 
         Explanation:
         argmax matching
@@ -104,8 +104,9 @@ class Detection_Loss():
         indeces of object predicting anchors
         """
         # compute IOU for obj x anchor
+        anchors = self.anchors.cpu()
         overlaps = jaccard(wh2corners(gt_bbox[:, :2], gt_bbox[:, 2:]), wh2corners(
-            self.anchors[:, :2], self.anchors[:, 2:]))
+            anchors[:, :2], anchors[:, 2:]))
 
         # map each anchor to the highest IOU obj, gt_idx - ids of mapped objects
         gt_bbox_for_matched_anchors, matched_gt_class_ids, pos_idx = map_to_ground_truth(
@@ -129,7 +130,7 @@ class Detection_Loss():
 
         for idx in range(pred[0].shape[0]):
             pred_bbox = pred[0][idx]
-            gt_bbox, gt_class = targ[0][idx].to(self.device), targ[1][idx].to(self.device)
+            gt_bbox, gt_class = targ[0][idx], targ[1][idx]
 
             gt_bbox_for_anchors, class_ids_for_anchors, pos_idx = self.match(
                 pred_bbox, gt_bbox, gt_class)
