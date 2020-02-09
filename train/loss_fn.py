@@ -31,9 +31,12 @@ class BCE_Loss(nn.Module):
         class_idx = self.map_id_to_idx(targ)
 
         if self.focal_loss:
-            one_hot = torch.zeros((class_idx.shape[0], self.n_classes))
+            one_hot = torch.zeros((class_idx.shape[0], self.n_classes+1))
             one_hot = one_hot.to("cuda:0" if torch.cuda.is_available() else "cpu")
             one_hot[torch.arange(class_idx.shape[0]), class_idx] = 1
+
+            # remove background column
+            one_hot = one_hot[:, :-1]
 
             weight = self.get_weight(pred, one_hot)
             return torch.nn.functional.binary_cross_entropy_with_logits(pred, one_hot, weight=weight, reduction='none')
@@ -60,7 +63,6 @@ class BCE_Loss(nn.Module):
     def map_id_to_idx(self, class_ids):
         """
         maps the tensor of class ids to indeces
-        creates 1 hot ground truth vectors with them
         """
         class_idx = torch.zeros(class_ids.shape, dtype=int)
         for k, v in self.id2idx.items():
@@ -148,8 +150,11 @@ class Detection_Loss():
         # compute offsets
         offsets = self.prepare_localization_offsets(batch_gt_bbox, batch_anchor_bbox)
 
-        localization_loss = self.localization_loss(batch_pred_bbox, offsets)
-        classification_loss = self.classification_loss(pred[1], batch_class_ids)
+        # total matches
+        norm_factor = batch_gt_bbox.shape[0]
+
+        localization_loss = self.localization_loss(batch_pred_bbox, offsets, norm_factor)
+        classification_loss = self.classification_loss(pred[1], batch_class_ids, norm_factor)
 
         return localization_loss, classification_loss
 
@@ -168,7 +173,7 @@ class Detection_Loss():
         neg_mask = orders < num_neg
         return pos_mask | neg_mask
 
-    def localization_loss(self, pred_bbox, offsets):
+    def localization_loss(self, pred_bbox, offsets, norm_factor):
         """
         Arguments:
         pred_bbox - [#matches x 4] tensor - model predictions
@@ -177,9 +182,9 @@ class Detection_Loss():
         returns: l1 loss between predictions and ground truth divided by the number of matched anchors
         """
         return torch.nn.functional.smooth_l1_loss(pred_bbox, offsets,
-                                                  reduction='sum') / pred_bbox.shape[0]
+                                                  reduction='sum') / norm_factor
 
-    def classification_loss(self, pred_class, matched_gt_class_ids):
+    def classification_loss(self, pred_class, matched_gt_class_ids, norm_factor):
         """
         Arguments:
         pred_class - [#anchors x n_classes] tensor - confidence scores by each anchor
@@ -193,7 +198,7 @@ class Detection_Loss():
             loss = class_losses[self.hard_negative_mining(class_losses, matched_gt_class_ids)].sum()
         else:
             loss = class_losses.sum()
-        return loss / pred_class.shape[0]
+        return loss / norm_factor
 
     def prepare_localization_offsets(self, gt_bbox, matched_anchors):
         """
