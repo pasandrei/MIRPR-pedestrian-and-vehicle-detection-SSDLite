@@ -135,6 +135,10 @@ class Detection_Loss():
             gt_bbox_for_anchors, class_ids_for_anchors, pos_idx = self.match(
                 pred_bbox, gt_bbox, gt_class)
 
+            gt_bbox_for_anchors = gt_bbox_for_anchors.to(self.device)
+            class_ids_for_anchors = class_ids_for_anchors.to(self.device)
+            pos_idx = pos_idx.to(self.device)
+
             batch_gt_bbox.append(gt_bbox_for_anchors)
             batch_anchor_bbox.append(self.anchors[pos_idx])
             batch_pred_bbox.append(self.anchors[pos_idx])
