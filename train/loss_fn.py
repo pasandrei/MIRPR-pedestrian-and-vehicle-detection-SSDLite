@@ -33,7 +33,7 @@ class BCE_Loss(nn.Module):
         if self.focal_loss:
             one_hot = torch.zeros((class_idx.shape[0], self.n_classes))
             one_hot = one_hot.to("cuda:0" if torch.cuda.is_available() else "cpu")
-            one_hot[:, class_idx] = 1
+            # one_hot[:, class_idx] = 1
             weight = self.get_weight(pred, one_hot)
             return torch.nn.functional.binary_cross_entropy_with_logits(pred, one_hot, weight=weight, reduction='none')
         else:
@@ -104,9 +104,8 @@ class Detection_Loss():
         indeces of object predicting anchors
         """
         # compute IOU for obj x anchor
-        anchors = self.anchors.cpu()
         overlaps = jaccard(wh2corners(gt_bbox[:, :2], gt_bbox[:, 2:]), wh2corners(
-            anchors[:, :2], anchors[:, 2:]))
+            self.anchors[:, :2], self.anchors[:, 2:]))
 
         # map each anchor to the highest IOU obj, gt_idx - ids of mapped objects
         gt_bbox_for_matched_anchors, matched_gt_class_ids, pos_idx = map_to_ground_truth(
@@ -129,15 +128,8 @@ class Detection_Loss():
         batch_gt_bbox, batch_anchor_bbox, batch_pred_bbox, batch_class_ids = [], [], [], []
 
         for idx in range(pred[0].shape[0]):
-            pred_bbox = pred[0][idx]
-            gt_bbox, gt_class = targ[0][idx], targ[1][idx]
-
-            gt_bbox_for_anchors, class_ids_for_anchors, pos_idx = self.match(
-                pred_bbox, gt_bbox, gt_class)
-
-            gt_bbox_for_anchors = gt_bbox_for_anchors.to(self.device)
-            class_ids_for_anchors = class_ids_for_anchors.to(self.device)
-            pos_idx = pos_idx.to(self.device)
+            gt_bbox, gt_class = targ[0][idx].to(self.device), targ[1][idx].to(self.device)
+            gt_bbox_for_anchors, class_ids_for_anchors, pos_idx = self.match(gt_bbox, gt_class)
 
             batch_gt_bbox.append(gt_bbox_for_anchors)
             batch_anchor_bbox.append(self.anchors[pos_idx])
