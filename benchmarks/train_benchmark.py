@@ -2,25 +2,60 @@ from train.helpers import *
 from train.lr_policies import constant_decay, retina_decay
 from train.backbone_freezer import Backbone_Freezer
 from misc.print_stats import *
+from collections import namedtuple
 
 import datetime
 import time
 
 
 def train_step(model, input_, label, optimizer, losses, detection_loss, params):
-    # print(datetime.datetime.now())
     input_ = input_.to(detection_loss.device)
 
     optimizer.zero_grad()
-    now = time.time()
+
+    # =================
+    # START INFERENCE
+
+    time_before_inference = time.time()
+
     output = model(input_)
-    print(time.time() - now)
+
+    time_after_inference = time.time()
+    inference_duration = time_after_inference - time_before_inference
+    print("Forward propagation time: {}".format(inference_duration))
+
+    # END INFERENCE
+    # =================
+
+    # =================
+    # START BACKPROPAGATION
+
+    time_before_backprop = time.time()
+
     l_loss, c_loss = detection_loss.ssd_loss(output, label)
     loss = l_loss + c_loss
 
     update_losses(losses, l_loss.item(), c_loss.item())
     loss.backward()
+
+    time_after_backprop = time.time()
+    backprop_duration = time_after_backprop - time_before_backprop
+
+    print("Backward propagation time: {}".format(backprop_duration))
+
+    # END BACKPROPAGATION
+    # =================
+
+    a = time.time()
     optimizer.step()
+    b = time.time()
+    optimizer_duration = b-a
+
+    print("Optimizer step time: ", b-a)
+
+    Times = namedtuple('Times', ['inference_time', 'backprop_time', 'optimizer_time'])
+    t = Times(inference_time=inference_duration, backprop_time=backprop_duration, optimizer_time=optimizer_duration)
+    return t
 
 
 def train(model, optimizer, train_loader, model_evaluator, detection_loss, params, start_epoch=0):
@@ -33,7 +68,9 @@ def train(model, optimizer, train_loader, model_evaluator, detection_loss, param
 
     losses = [0] * 4
 
-    print(datetime.datetime.now())
+    a= time.time()
+    b=time.time()
+    print("{:.20f}".format(b-a))
 
     model.train()
 
@@ -43,13 +80,14 @@ def train(model, optimizer, train_loader, model_evaluator, detection_loss, param
           sum(p.numel() for pg in optimizer.param_groups for p in pg['params'] if p.requires_grad))
 
     for batch_idx, (input_, label, _) in enumerate(train_loader):
+        print("Batch id: ", batch_idx)
         now1 = time.time()
-        print(batch_idx)
-        train_step(model, input_, label, optimizer, losses, detection_loss, params)
-        # if batch_idx == 3:
+        t = train_step(model, input_, label, optimizer, losses, detection_loss, params)
         now2 = time.time()
 
-        print(now2-now1)
+        print("=================")
+        print(t)
+        print("Total time: {}\n\n".format(now2-now1))
 
     later = time.time()
     print(later - now)
