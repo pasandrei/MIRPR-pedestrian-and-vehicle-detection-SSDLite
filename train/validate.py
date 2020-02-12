@@ -13,8 +13,7 @@ class Model_evaluator():
     def __init__(self, valid_loader, detection_loss, writer=None, params=None):
         self.valid_loader = valid_loader
         self.detection_loss = detection_loss
-        self.output_handler = Model_output_handler(
-            conf_threshold=params.conf_threshold, suppress_threshold=params.suppress_threshold)
+        self.output_handler = Model_output_handler(params)
         self.writer = writer
         self.params = params
 

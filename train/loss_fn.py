@@ -1,6 +1,7 @@
 import torch
 import math
 from torch import nn
+import copy
 
 from train.helpers import *
 from general_config import classes_config
@@ -8,13 +9,14 @@ from general_config import classes_config
 # inspired by fastai course
 
 
-class BCE_Loss(nn.Module):
-    def __init__(self, n_classes, device, focal_loss):
+class Classification_Loss(nn.Module):
+    def __init__(self, n_classes, device, params):
         super().__init__()
         self.n_classes = n_classes
         self.device = device
         self.id2idx = classes_config.training_ids2_idx
-        self.focal_loss = focal_loss
+        self.loss_type = params.loss_type
+        self.focal_loss = params.use_focal_loss
 
     def forward(self, pred, targ):
         '''
@@ -25,12 +27,12 @@ class BCE_Loss(nn.Module):
         Explanation: computes softmax loss between model prediction and target
             model predicts scores for each class, 0 is background class
 
-        Returns: (weighted if focal) softmax loss
+        Returns: softmax loss or (weighted if focal) BCE loss
         '''
         pred = pred.view(-1, self.n_classes)
         class_idx = self.map_id_to_idx(targ)
 
-        if self.focal_loss:
+        if self.loss_type == "BCE":
             one_hot = torch.zeros((class_idx.shape[0], self.n_classes+1))
             one_hot = one_hot.to("cuda:0" if torch.cuda.is_available() else "cpu")
             one_hot[torch.arange(class_idx.shape[0]), class_idx] = 1
@@ -38,11 +40,10 @@ class BCE_Loss(nn.Module):
             # remove background column
             one_hot = one_hot[:, :-1]
 
-            weight = self.get_weight(pred, one_hot)
+            weight = self.get_weight(pred, one_hot) if self.focal_loss else None
             return torch.nn.functional.binary_cross_entropy_with_logits(pred, one_hot, weight=weight, reduction='none')
         else:
-            raise NotImplementedError
-            # return torch.nn.functional.cross_entropy(pred, class_idx, reduction='none')
+            return torch.nn.functional.cross_entropy(pred, class_idx, reduction='none')
 
     def get_weight(self, x, t):
         # focal loss decreases loss for correctly classified (P>0.5) examples, relative to the missclassified ones
@@ -54,7 +55,7 @@ class BCE_Loss(nn.Module):
         pt = p*t + (1-p)*(1-t)
 
         # counter positive/negative examples imbalance by assigning higher relative values to positives=1
-        w = alpha*t + (1-alpha)*(1-t).to(self.device)
+        w = alpha*t + (1-alpha)*(1-t)
 
         # these two combined strongly encourage the network to predict a high value when
         # there is indeed a positive example
@@ -81,13 +82,13 @@ class Detection_Loss():
     grid_sizes - #anchors x 1 cuda tensor
     """
 
-    def __init__(self, anchors, grid_sizes, device, params, focal_loss=False, hard_negative=False):
+    def __init__(self, anchors, grid_sizes, device, params):
         self.anchors = anchors
         self.grid_sizes = grid_sizes
         self.device = device
         self.params = params
-        self.hard_negative = hard_negative
-        self.class_loss = BCE_Loss(params.n_classes, self.device, focal_loss)
+        self.hard_negative = params.use_hard_negative_mining
+        self.class_loss = Classification_Loss(params.n_classes, self.device, self.params)
 
         self.scale_xy = 10
         self.scale_wh = 5
@@ -162,13 +163,16 @@ class Detection_Loss():
         """
         Taken from https://github.com/qfgaohao/pytorch-ssd
         """
-        losses = losses.sum(dim=1)
+        losses_ = copy.deepcopy(losses.detach().cpu())
+        if self.params.loss_type == "BCE":
+            losses_ = losses_.sum(dim=1)
+
         pos_mask = ids_for_anchors != 100
         num_pos = pos_mask.sum()
         num_neg = num_pos * ratio
 
-        losses[pos_mask] = -math.inf
-        _, indexes = losses.sort(descending=True)
+        losses_[pos_mask] = -math.inf
+        _, indexes = losses_.sort(descending=True)
         _, orders = indexes.sort()
         neg_mask = orders < num_neg
         return pos_mask | neg_mask
@@ -198,6 +202,7 @@ class Detection_Loss():
             loss = class_losses[self.hard_negative_mining(class_losses, matched_gt_class_ids)].sum()
         else:
             loss = class_losses.sum()
+
         return loss / norm_factor
 
     def prepare_localization_offsets(self, gt_bbox, matched_anchors):

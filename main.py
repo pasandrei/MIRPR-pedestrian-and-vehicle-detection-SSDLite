@@ -31,6 +31,8 @@ def run(resume=False, eval_only=False, cross_validate=False, jaad=False, focal_l
     hard_negative_mining - train with hard_negative_mining
     """
 
+    torch.manual_seed(2)
+
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     params = Params(path_config.params_path)
 
@@ -63,8 +65,7 @@ def run(resume=False, eval_only=False, cross_validate=False, jaad=False, focal_l
         print('Model loaded successfully')
 
     if jaad:
-        handler = Model_output_handler(
-            conf_threshold=params.conf_threshold, suppress_threshold=params.suppress_threshold)
+        handler = Model_output_handler(params)
         inference.jaad_inference(model, handler)
         return
 
@@ -84,8 +85,7 @@ def run(resume=False, eval_only=False, cross_validate=False, jaad=False, focal_l
     anchors, grid_sizes = create_anchors()
     anchors, grid_sizes = anchors.to(device), grid_sizes.to(device)
 
-    detection_loss = Detection_Loss(anchors, grid_sizes, device, params, focal_loss=focal_loss,
-                                    hard_negative=hard_negative_mining)
+    detection_loss = Detection_Loss(anchors, grid_sizes, device, params)
     model_evaluator = Model_evaluator(valid_loader, detection_loss, writer=writer, params=params)
 
     if eval_only:

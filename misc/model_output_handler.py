@@ -8,10 +8,11 @@ import copy
 
 class Model_output_handler():
 
-    def __init__(self, conf_threshold=0.35, suppress_threshold=0.5):
+    def __init__(self, params):
+        self.params = params
         self.unnorm = UnNormalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
-        self.confidence_threshold = conf_threshold
-        self.suppress_threshold = suppress_threshold
+        self.confidence_threshold = params.conf_threshold
+        self.suppress_threshold = params.suppress_threshold
         self.anchors_wh, self.grid_sizes = create_anchors()
 
         self.scale_xy = 10
@@ -113,7 +114,12 @@ class Model_output_handler():
         return self._rescale_bboxes(prediction_bboxes, size)
 
     def _convert_confidences_to_workable_data(self, prediction_confidences):
-        return prediction_confidences.sigmoid().cpu().numpy()
+        if self.params.loss_type == "BCE":
+            return prediction_confidences.sigmoid().cpu().numpy()
+        else:
+            prediction_confidences = torch.nn.functional.softmax(prediction_confidences, dim=1)
+            # want actual object probabilities, so cut the background column
+            return prediction_confidences[:, :-1]
 
     def _convert_output_to_workable_data(self, model_output_bboxes, model_output_confidences, size):
         prediction_bboxes = self._convert_offsets_to_bboxes(
