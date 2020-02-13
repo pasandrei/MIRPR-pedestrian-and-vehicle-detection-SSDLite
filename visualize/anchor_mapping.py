@@ -122,8 +122,7 @@ def test_anchor_mapping(image, bbox_predictions, classification_predictions, gt_
         - predicted bboxes higher than a threshold, sorted by predicted confidence, at right scale
         - gt bboxes for the image, at right scale
     """
-    output_handler = Model_output_handler(
-        conf_threshold=params.conf_threshold, suppress_threshold=params.suppress_threshold)
+    output_handler = Model_output_handler(params)
 
     anchors_wh = output_handler.anchors_wh
     overlaps = jaccard(wh2corners(gt_bbox[:, :2], gt_bbox[:, 2:]), wh2corners(
