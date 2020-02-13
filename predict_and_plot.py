@@ -1,17 +1,12 @@
-from misc.postprocessing import nms, plot_bounding_boxes
-from train.helpers import *
+import numpy as np
+import torch
+
 from train.config import Params
 from general_config import anchor_config
 from data import dataloaders
 from architectures.models import SSDNet
 from visualize import anchor_mapping
-from misc.model_output_handler import *
-
-import cv2
-import numpy as np
-
-import torch
-import torch.nn as nn
+from utils.training import load_model
 
 
 def model_output_pipeline(params_path, model_outputs=False, visualize_anchors=False, visualize_anchor_gt_pair=False):
@@ -23,9 +18,7 @@ def model_output_pipeline(params_path, model_outputs=False, visualize_anchors=Fa
     model.to(device)
 
     if model_outputs:
-        checkpoint = torch.load('misc/experiments/{}/model_checkpoint'.format(params.model_id))
-        model.load_state_dict(checkpoint['model_state_dict'])
-        print('Model loaded successfully')
+        model, _, _ = load_model(model, params)
         model.eval()
 
     valid_loader = dataloaders.get_dataloaders_test(params)

@@ -1,11 +1,9 @@
 import torch
 import datetime
-import json
 
-from pycocotools.cocoeval import COCOeval
-from pycocotools.coco import COCO
-from misc.model_output_handler import *
-from misc.utils import *
+from misc.model_output_handler import Model_output_handler
+from utils.postprocessing import *
+from utils.training import *
 
 
 class Model_evaluator():

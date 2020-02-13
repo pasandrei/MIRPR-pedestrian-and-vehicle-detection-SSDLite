@@ -3,8 +3,10 @@ import math
 from torch import nn
 import copy
 
-from train.helpers import *
 from general_config import classes_config
+from utils.box_computations import *
+from utils.training import *
+from utils.preprocessing import *
 
 # inspired by fastai course
 
@@ -82,9 +84,9 @@ class Detection_Loss():
     grid_sizes - #anchors x 1 cuda tensor
     """
 
-    def __init__(self, anchors, grid_sizes, device, params):
-        self.anchors = anchors
-        self.grid_sizes = grid_sizes
+    def __init__(self, device, params):
+        self.anchors, self.grid_sizes = create_anchors()
+        self.anchors, self.grid_sizes = self.anchors.to(device), self.grid_sizes.to(device)
         self.device = device
         self.params = params
         self.hard_negative = params.use_hard_negative_mining

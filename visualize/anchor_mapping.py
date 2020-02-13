@@ -1,13 +1,13 @@
-import torch
-from torch import nn
 import numpy as np
 import random
 
-from train.helpers import *
-from misc import postprocessing
-from misc.utils import *
-from misc.model_output_handler import *
+from misc.model_output_handler import Model_output_handler
 from general_config import anchor_config
+
+from utils.postprocessing import *
+from utils.preprocessing import *
+from utils.box_computations import *
+from utils.training import *
 
 
 def visualize_anchor_sets(image, anchor_grid, grid_size, k, size, zoom, ratio):
@@ -135,9 +135,9 @@ def test_anchor_mapping(image, bbox_predictions, classification_predictions, gt_
     gt_bbox_for_matched_anchors, matched_gt_class_ids, pos_idx = map_to_ground_truth(
         overlaps, gt_bbox, gt_class, params)
 
-    indeces_kept_by_nms = postprocessing.nms(wh2corners_numpy(prediction_bboxes[:, :2], prediction_bboxes[:, 2:]),
-                                             predicted_classes,
-                                             output_handler.suppress_threshold)
+    indeces_kept_by_nms = nms(wh2corners_numpy(prediction_bboxes[:, :2], prediction_bboxes[:, 2:]),
+                              predicted_classes,
+                              output_handler.suppress_threshold)
 
     # get things in the right format
     image = output_handler._unnorm_scale_image(image)
