@@ -27,6 +27,7 @@ def run(model_id="ssdnet", train_model=False, load_model=False, eval_only=False,
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     params = Params(path_config.params_path.format(model_id))
+    stats = Params(path_config.stats_path.format(model_id))
 
     show_training_info(params)
 
@@ -45,7 +46,8 @@ def run(model_id="ssdnet", train_model=False, load_model=False, eval_only=False,
     writer = SummaryWriter(filename_suffix=params.model_id)
 
     detection_loss = Detection_Loss(device, params)
-    model_evaluator = Model_evaluator(valid_loader, detection_loss, writer=writer, params=params)
+    model_evaluator = Model_evaluator(valid_loader, detection_loss,
+                                      writer=writer, params=params, stats=stats)
 
     start_epoch = 0
     if load_model:

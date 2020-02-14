@@ -8,12 +8,13 @@ from utils.training import *
 
 class Model_evaluator():
 
-    def __init__(self, valid_loader, detection_loss, writer=None, params=None):
+    def __init__(self, valid_loader, detection_loss, writer=None, params=None, stats=None):
         self.valid_loader = valid_loader
         self.detection_loss = detection_loss
         self.output_handler = Model_output_handler(params)
         self.writer = writer
         self.params = params
+        self.stats = stats
 
     def complete_evaluate(self, model, optimizer, train_loader, losses=[0, 0, 0, 0], epoch=0):
         '''
@@ -60,15 +61,15 @@ class Model_evaluator():
             mAP = evaluate_on_COCO_metrics(prediction_annotations)
 
             val_loss = (class_loss_val + loc_loss_val) / val_set_size
-            if self.params.mAP < mAP:
-                self.params.mAP = mAP
+            if self.stats.mAP < mAP:
+                self.stats.mAP = mAP
                 msg = 'Model saved succesfully'
-                save_model(epoch, model, optimizer, self.params, msg=msg)
+                save_model(epoch, model, optimizer, self.params, self.stats, msg=msg)
 
-            if self.params.loss > val_loss:
-                self.params.loss = val_loss
+            if self.stats.loss > val_loss:
+                self.stats.loss = val_loss
                 msg = 'Model saved succesfully by loss'
-                save_model(epoch, model, optimizer, self.params, msg=msg, by_loss=True)
+                save_model(epoch, model, optimizer, self.params, self.stats, msg=msg, by_loss=True)
 
             # tensorboard
             loc_loss_val, class_loss_val = loc_loss_val / val_set_size, class_loss_val / val_set_size
