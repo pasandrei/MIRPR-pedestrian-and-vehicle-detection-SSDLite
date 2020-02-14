@@ -14,6 +14,8 @@ def layer_specific_adam(model, params):
         {'params': model.down_conv3.parameters()},
         {'params': model.out4.parameters()},
         {'params': model.down_conv4.parameters()},
+        {'params': model.out5.parameters()},
+        {'params': model.down_conv5.parameters()},
     ], lr=params.learning_rate, weight_decay=params.weight_decay, amsgrad=False)
 
 
@@ -28,6 +30,8 @@ def layer_specific_sgd(model, params):
         {'params': model.down_conv3.parameters()},
         {'params': model.out4.parameters()},
         {'params': model.down_conv2.parameters()},
+        {'params': model.out5.parameters()},
+        {'params': model.down_conv5.parameters()},
     ], lr=params.learning_rate, weight_decay=params.weight_decay, momentum=0.9)
 
 

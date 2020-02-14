@@ -9,7 +9,7 @@ class DepthWiseConv(nn.Module):
     depth wise followed by point wise convolution
     """
 
-    def __init__(self, in_planes, out_planes, stride=1, padding=-1):
+    def __init__(self, in_planes, out_planes, stride=1, padding=0):
         super().__init__()
         self.ds_conv = ConvBNReLU(in_planes, in_planes, kernel_size=3,
                                   stride=stride, groups=in_planes, padding=padding)
@@ -73,9 +73,13 @@ class SSD_Head(nn.Module):
         self.down_conv3 = DepthWiseConv(in_planes=512, out_planes=256, padding=0)
         self.out3 = OutConv(256, n_classes, k_list[3])
 
+        # fourth grid 2x2
+        self.down_conv4 = DepthWiseConv(in_planes=256, out_planes=256, stride=2, padding=1)
+        self.out4 = OutConv(256, n_classes, k_list[4])
+
         # last grid 1x1
-        self.down_conv4 = DepthWiseConv(in_planes=256, out_planes=128, padding=0)
-        self.out4 = OutConv(128, n_classes, k_list[4])
+        self.down_conv5 = DepthWiseConv(in_planes=256, out_planes=128, padding=0)
+        self.out5 = OutConv(128, n_classes, k_list[5])
 
         # weight initialization
         for m in self.modules():
@@ -105,10 +109,13 @@ class SSD_Head(nn.Module):
         _3bbox, _3class = self.out3(x)
 
         x = self.down_conv4(x)
-        _1bbox, _1class = self.out4(x)
+        _2bbox, _2class = self.out4(x)
 
-        bbox_predictions = torch.cat([_10bbox, _5bbox, _3bbox, _1bbox], dim=1)
-        class_predictions = torch.cat([_10class, _5class, _3class, _1class], dim=1)
+        x = self.down_conv5(x)
+        _1bbox, _1class = self.out5(x)
+
+        bbox_predictions = torch.cat([_10bbox, _5bbox, _3bbox, _2bbox, _1bbox], dim=1)
+        class_predictions = torch.cat([_10class, _5class, _3class, _2class, _1class], dim=1)
 
         if self.out0 is not None:
             _20bbox, _20class = self.out0(lay15)
