@@ -18,7 +18,7 @@
     "freeze_backbone": 1,
     "train_stats_step": 10,
     "eval_step": 1,
-    "input_height": 320,
-    "input_width": 320,
+    "input_height": 300,
+    "input_width": 300,
     "warm_up": 0
 }
