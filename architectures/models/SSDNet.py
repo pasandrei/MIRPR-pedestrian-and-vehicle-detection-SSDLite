@@ -78,7 +78,7 @@ class SSD_Head(nn.Module):
         self.out4 = OutConv(256, n_classes, k_list[4])
 
         # last grid 1x1
-        self.down_conv5 = DepthWiseConv(in_planes=256, out_planes=128, padding=0)
+        self.down_conv5 = DepthWiseConv(in_planes=256, out_planes=128, padding=1)
         self.out5 = OutConv(128, n_classes, k_list[5])
 
         # weight initialization
