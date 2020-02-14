@@ -1,11 +1,90 @@
 import numpy as np
 import cv2
+
 import json
 from general_config import classes_config, path_config
 
 
 from pycocotools.cocoeval import COCOeval
 from pycocotools.coco import COCO
+
+
+def nms(bounding_boxes, predicted_classes, threshold=0.5):
+    """
+    args:
+        bounding_boxes: nr_bboxes x 4 sorted by confidence
+        threshold: bboxes with IoU above threshold will be removed
+
+    returns:
+        final_model_predictions: nr_bboxes x 4
+
+    bounding_boxes MUST be sorted
+    """
+    bounding_boxes = bounding_boxes[:200]
+    predicted_classes = predicted_classes[:200]
+
+    indices = np.array(range(bounding_boxes.shape[0]))
+    final_model_predictions = []
+    while indices.shape[0] != 0:
+        prediction = bounding_boxes[indices[0]]
+        final_model_predictions.append(indices[0])
+
+        to_keep = []
+        for index in range(indices.shape[0]):
+            IoU = get_IoU(prediction, bounding_boxes[indices[index]])
+
+            if IoU < threshold or (predicted_classes[indices[0]] != predicted_classes[indices[index]]):
+                to_keep.append(index)
+
+        indices = indices[to_keep]
+
+    return final_model_predictions
+
+
+def after_nms(prediction_bboxes, predicted_confidences):
+    """
+    return final model preditctions
+    """
+    kept_after_nms = nms(prediction_bboxes)
+
+    post_nms_bboxes = prediction_bboxes[kept_after_nms]
+    post_nms_confidences = predicted_confidences[kept_after_nms]
+
+    return post_nms_bboxes, post_nms_confidences
+
+
+def get_intersection(bbox1, bbox2):
+    x1 = max(bbox1[0], bbox2[0])
+    y1 = max(bbox1[1], bbox2[1])
+    x2 = min(bbox1[2], bbox2[2])
+    y2 = min(bbox1[3], bbox2[3])
+
+    return np.array([x1, y1, x2, y2])
+
+
+def get_bbox_area(bbox):
+    width = bbox[2] - bbox[0]
+    height = bbox[3] - bbox[1]
+
+    if width < 0 or height < 0:
+        return 0
+
+    return width*height
+
+
+def get_IoU(bbox1, bbox2):
+    bbox1_x1, bbox1_y1, bbox1_x2, bbox1_y2 = bbox1
+    bbox2_x1, bbox2_y1, bbox2_x2, bbox2_y2 = bbox2
+
+    intersection = get_intersection(bbox1, bbox2)
+    intersection_area = get_bbox_area(intersection)
+
+    union_area = get_bbox_area(bbox1) + get_bbox_area(bbox2) - intersection_area
+
+    if union_area == 0:
+        return -1
+
+    return intersection_area/union_area
 
 
 def plot_anchor_gt(image, anchor, gt, cur_class, message="DA_MA", size=(320, 320)):
@@ -63,57 +142,6 @@ def plot_bounding_boxes(image, bounding_boxes, classes, bbox_type="pred", messag
     cv2.waitKey(0)
 
     return image
-
-
-def get_intersection(bbox1, bbox2):
-    x1 = max(bbox1[0], bbox2[0])
-    y1 = max(bbox1[1], bbox2[1])
-    x2 = min(bbox1[2], bbox2[2])
-    y2 = min(bbox1[3], bbox2[3])
-
-    return np.array([x1, y1, x2, y2])
-
-
-def get_bbox_area(bbox):
-    width = bbox[2] - bbox[0]
-    height = bbox[3] - bbox[1]
-
-    if width < 0 or height < 0:
-        return 0
-
-    return width*height
-
-
-def get_IoU(bbox1, bbox2):
-    bbox1_x1, bbox1_y1, bbox1_x2, bbox1_y2 = bbox1
-    bbox2_x1, bbox2_y1, bbox2_x2, bbox2_y2 = bbox2
-
-    intersection = get_intersection(bbox1, bbox2)
-    intersection_area = get_bbox_area(intersection)
-
-    union_area = get_bbox_area(bbox1) + get_bbox_area(bbox2) - intersection_area
-
-    if union_area == 0:
-        return -1
-
-    return intersection_area/union_area
-
-
-def corners_to_wh(prediction_bboxes):
-    """
-    (x_left, y_left, x_right, y_right) --> (x_left, y_left, width, height)
-    """
-    prediction_bboxes[:, 2] = prediction_bboxes[:, 2] - prediction_bboxes[:, 0]
-    prediction_bboxes[:, 3] = prediction_bboxes[:, 3] - prediction_bboxes[:, 1]
-
-    return prediction_bboxes
-
-
-def update_tensorboard_graphs(writer, loc_loss_train, class_loss_train, loc_loss_val, class_loss_val, epoch):
-    writer.add_scalar('Localization Loss/train', loc_loss_train, epoch)
-    writer.add_scalar('Classification Loss/train', class_loss_train, epoch)
-    writer.add_scalar('Localization Loss/val', loc_loss_val, epoch)
-    writer.add_scalar('Classification Loss/val', class_loss_val, epoch)
 
 
 def prepare_outputs_for_COCOeval(output, image_info, prediction_annotations, prediction_id, output_handler):

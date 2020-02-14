@@ -23,7 +23,3 @@ class Lr_decay:
         if self.current_step == self.params.second_decay:
             for param_gr in optimizer.param_groups:
                 param_gr['lr'] *= self.params.decay_rate
-
-        if self.current_step == self.params.third_decay:
-            for param_gr in optimizer.param_groups:
-                param_gr['lr'] *= self.params.decay_rate
