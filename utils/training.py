@@ -7,6 +7,7 @@ from data import dataloaders
 from architectures.models import SSDNet
 from general_config import anchor_config
 from train.optimizer_handler import *
+from general_config import path_config
 
 
 def map_to_ground_truth(overlaps, gt_bbox, gt_class, params):
@@ -46,30 +47,12 @@ def map_to_ground_truth(overlaps, gt_bbox, gt_class, params):
     return gt_bbox_for_matched_anchors, matched_gt_class_ids, pos_idx
 
 
-def update_tensorboard_graphs(writer, loc_loss_train, class_loss_train, loc_loss_val, class_loss_val, epoch):
+def update_tensorboard_graphs(writer, loc_loss_train, class_loss_train, loc_loss_val, class_loss_val, mAP, epoch):
     writer.add_scalar('Localization Loss/train', loc_loss_train, epoch)
     writer.add_scalar('Classification Loss/train', class_loss_train, epoch)
     writer.add_scalar('Localization Loss/val', loc_loss_val, epoch)
     writer.add_scalar('Classification Loss/val', class_loss_val, epoch)
-
-
-def print_batch_stats(model, epoch, batch_idx, train_loader, losses, params):
-    '''
-    prints statistics about the recently seen batches
-    '''
-    print('Epoch: {} of {}'.format(epoch, params.n_epochs))
-    print('Batch: {} of {}'.format(batch_idx, len(train_loader)))
-
-    # want to see per image stats
-    one_tenth_of_loader = len(train_loader) // params.train_stats_step
-    avg_factor = one_tenth_of_loader * params.batch_size
-    print('Loss in the past {}th of the batches: Localization {} Classification {}'.format(
-        params.train_stats_step, losses[0] / avg_factor, losses[1] / avg_factor))
-
-    mean_grads, max_grads, mean_weights, max_weights = gradient_weight_check(model)
-
-    print('Mean and max gradients over whole network: ', mean_grads, max_grads)
-    print('Mean and max weights over whole network: ', mean_weights, max_weights)
+    writer.add_scalar('mAP', mAP, epoch)
 
 
 def gradient_weight_check(model):
@@ -81,7 +64,7 @@ def gradient_weight_check(model):
 
     # try to understand comp graph better for why inter variables don't have grad retained and what this means for this stat
     for n, p in model.named_parameters():
-        if (p.requires_grad) and (type(p.grad) != type(None)):
+        if (p.requires_grad) and not isinstance(p.grad, None):
             avg_grads.append(p.grad.abs().mean())
             max_grads.append(p.grad.abs().max())
             avg_weigths.append(p.abs().mean())
@@ -128,28 +111,26 @@ def plot_grad_flow(model):
                 Line2D([0], [0], color="k", lw=4)], ['max-gradient', 'mean-gradient', 'zero-gradient'])
 
 
-def model_optimizer_setup(device, params):
+def model_setup(device, params):
     if params.model_id == 'ssdnet':
-        model = SSDNet.SSD_Head(n_classes=params.n_classes, k_list=anchor_config.k_list)
+        n_classes = params.n_classes if params.loss_type == "BCE" else params.n_classes + 1
+        model = SSDNet.SSD_Head(n_classes=n_classes, k_list=anchor_config.k_list)
     model.to(device)
 
+    return model
+
+
+def optimizer_setup(model, device, params):
     if params.optimizer == 'adam':
         optimizer = layer_specific_adam(model, params)
     elif params.optimizer == 'sgd':
         optimizer = optim.SGD(model.parameters(), lr=params.learning_rate,
                               weight_decay=params.weight_decay, momentum=0.9)
-
-    return model, optimizer
+    return optimizer
 
 
 def prepare_datasets(params):
     train_loader, valid_loader = dataloaders.get_dataloaders(params)
-
-    print('Train size: ', len(train_loader), len(
-        train_loader.dataset), len(train_loader.sampler.sampler))
-    print('Val size: ', len(valid_loader), len(
-        valid_loader.dataset), len(valid_loader.sampler.sampler))
-
     return train_loader, valid_loader
 
 
@@ -162,3 +143,16 @@ def load_model(model, params, optimizer=None):
     print('Model loaded successfully')
 
     return model, optimizer, start_epoch
+
+
+def save_model(epoch, model, optimizer, params, save_path, msg=None, by_loss=False):
+    torch.save({
+        'epoch': epoch,
+        'model_state_dict': model.state_dict(),
+        'optimizer_state_dict': optimizer.state_dict(),
+    }, save_path)
+    save_path = path_config.model_save_path
+    if by_loss:
+        save_path = path_config.model_save_path_loss
+    params.save(save_path.format(params.model_id))
+    print(msg)

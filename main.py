@@ -14,7 +14,7 @@ from utils.prints import *
 from utils.training import *
 
 
-def run(train_model=False, load_model=False, eval_only=False, cross_validate=False, jaad=False):
+def run(model_id="ssdnet", train_model=False, load_model=False, eval_only=False, cross_validate=False, jaad=False):
     """
     Arguments:
     train_model - training
@@ -26,17 +26,22 @@ def run(train_model=False, load_model=False, eval_only=False, cross_validate=Fal
     torch.manual_seed(2)
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    params = Params(path_config.params_path)
+    params = Params(path_config.params_path.format(model_id))
+
+    show_training_info(params)
 
     train_loader, valid_loader = prepare_datasets(params)
-    model, optimizer = model_optimizer_setup(device, params)
+    print_dataset_stats(train_loader, valid_loader)
+
+    model = model_setup(device, params)
+    optimizer = optimizer_setup(model, device, params)
 
     if jaad:
         model, _, _ = load_model(model, optimizer, params)
         handler = Model_output_handler(params)
         inference.jaad_inference(model, handler)
 
-    # tensorboard,
+    # tensorboard
     writer = SummaryWriter(filename_suffix=params.model_id)
 
     detection_loss = Detection_Loss(device, params)
@@ -45,6 +50,8 @@ def run(train_model=False, load_model=False, eval_only=False, cross_validate=Fal
     start_epoch = 0
     if load_model:
         model, optimizer, start_epoch = load_model(model, optimizer, params)
+
+    print_trained_parameters_count(model, optimizer)
 
     if eval_only:
         model_evaluator.complete_evaluate(model, optimizer, train_loader)

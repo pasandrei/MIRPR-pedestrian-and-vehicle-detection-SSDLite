@@ -57,36 +57,23 @@ class Model_evaluator():
                     print("Average Class Loss: ", class_loss_val / nr_images,
                           " until batch: ", batch_idx)
 
-            SAVE_PATH = 'misc/experiments/{}/model_checkpoint'.format(self.params.model_id)
-
             mAP = evaluate_on_COCO_metrics(prediction_annotations)
 
             val_loss = (class_loss_val + loc_loss_val) / val_set_size
             if self.params.mAP < mAP:
-                torch.save({
-                    'epoch': epoch,
-                    'model_state_dict': model.state_dict(),
-                    'optimizer_state_dict': optimizer.state_dict(),
-                }, SAVE_PATH)
                 self.params.mAP = mAP
-                self.params.save('misc/experiments/ssdnet/params.json')
-                print('Model saved succesfully')
+                msg = 'Model saved succesfully'
+                save_model(epoch, model, optimizer, self.params, msg=msg)
 
-            SAVE_PATH2 = 'misc/experiments/{}/model_checkpoint2'.format(self.params.model_id)
             if self.params.loss > val_loss:
-                torch.save({
-                    'epoch': epoch,
-                    'model_state_dict': model.state_dict(),
-                    'optimizer_state_dict': optimizer.state_dict(),
-                }, SAVE_PATH2)
                 self.params.loss = val_loss
-                self.params.save('misc/experiments/ssdnet/params.json')
-                print('Model saved succesfully by loss')
+                msg = 'Model saved succesfully by loss'
+                save_model(epoch, model, optimizer, self.params, msg=msg, by_loss=True)
 
             # tensorboard
             loc_loss_val, class_loss_val = loc_loss_val / val_set_size, class_loss_val / val_set_size
             update_tensorboard_graphs(self.writer, loc_loss_train, class_loss_train,
-                                      loc_loss_val, class_loss_val, epoch)
+                                      loc_loss_val, class_loss_val, mAP, epoch)
 
         print('Validation finished')
 

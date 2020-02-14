@@ -12,9 +12,8 @@ from utils.preprocessing import *
 
 
 class Classification_Loss(nn.Module):
-    def __init__(self, n_classes, device, params):
+    def __init__(self, device, params):
         super().__init__()
-        self.n_classes = n_classes
         self.device = device
         self.id2idx = classes_config.training_ids2_idx
         self.loss_type = params.loss_type
@@ -31,11 +30,12 @@ class Classification_Loss(nn.Module):
 
         Returns: softmax loss or (weighted if focal) BCE loss
         '''
-        pred = pred.view(-1, self.n_classes)
+        n_classes = pred.shape[2]
+        pred = pred.view(-1, n_classes)
         class_idx = self.map_id_to_idx(targ)
 
         if self.loss_type == "BCE":
-            one_hot = torch.zeros((class_idx.shape[0], self.n_classes+1))
+            one_hot = torch.zeros((class_idx.shape[0], n_classes+1))
             one_hot = one_hot.to("cuda:0" if torch.cuda.is_available() else "cpu")
             one_hot[torch.arange(class_idx.shape[0]), class_idx] = 1
 
@@ -90,7 +90,7 @@ class Detection_Loss():
         self.device = device
         self.params = params
         self.hard_negative = params.use_hard_negative_mining
-        self.class_loss = Classification_Loss(params.n_classes, self.device, self.params)
+        self.class_loss = Classification_Loss(self.device, self.params)
 
         self.scale_xy = 10
         self.scale_wh = 5
@@ -165,7 +165,7 @@ class Detection_Loss():
         """
         Taken from https://github.com/qfgaohao/pytorch-ssd
         """
-        losses_ = copy.deepcopy(losses.detach().cpu())
+        losses_ = copy.deepcopy(losses.detach())
         if self.params.loss_type == "BCE":
             losses_ = losses_.sum(dim=1)
 

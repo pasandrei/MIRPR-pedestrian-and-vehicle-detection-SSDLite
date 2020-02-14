@@ -120,7 +120,7 @@ class Model_output_handler():
         else:
             prediction_confidences = torch.nn.functional.softmax(prediction_confidences, dim=1)
             # want actual object probabilities, so cut the background column
-            return prediction_confidences[:, :-1]
+            return prediction_confidences[:, :-1].cpu().numpy()
 
     def _convert_output_to_workable_data(self, model_output_bboxes, model_output_confidences, size):
         prediction_bboxes = self._convert_offsets_to_bboxes(

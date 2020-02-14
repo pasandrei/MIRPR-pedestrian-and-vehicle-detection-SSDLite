@@ -1,6 +1,7 @@
 from train.lr_policies import retina_decay
 from train.backbone_freezer import Backbone_Freezer
 from utils.training import *
+from utils.prints import print_batch_stats
 
 import datetime
 

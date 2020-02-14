@@ -6,7 +6,7 @@ from general_config import anchor_config
 from data import dataloaders
 from architectures.models import SSDNet
 from visualize import anchor_mapping
-from utils.training import load_model
+from utils.training import load_model, model_setup
 
 
 def model_output_pipeline(params_path, model_outputs=False, visualize_anchors=False, visualize_anchor_gt_pair=False):
@@ -14,7 +14,7 @@ def model_output_pipeline(params_path, model_outputs=False, visualize_anchors=Fa
     params = Params(params_path)
 
     if params.model_id == 'ssdnet':
-        model = SSDNet.SSD_Head(params.n_classes, anchor_config.k_list)
+        model = model_setup(device, params)
     model.to(device)
 
     if model_outputs:
@@ -30,8 +30,9 @@ def model_output_pipeline(params_path, model_outputs=False, visualize_anchors=Fa
                 batch_images = batch_images.to(device)
                 predictions = model(batch_images)
             else:
+                n_classes = params.n_classes if params.loss_type == "BCE" else params.n_classes + 1
                 predictions = [torch.randn(params.batch_size, anchor_config.total_anchors, 4),
-                               torch.randn(params.batch_size, anchor_config.total_anchors, params.n_classes)]
+                               torch.randn(params.batch_size, anchor_config.total_anchors, n_classes)]
 
             for idx in range(len(batch_images)):
                 iou, maps = anchor_mapping.test_anchor_mapping(
