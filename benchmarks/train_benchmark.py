@@ -2,7 +2,7 @@ from train.helpers import *
 from train.lr_policies import constant_decay, retina_decay
 from train.backbone_freezer import Backbone_Freezer
 from misc.print_stats import *
-from collections import namedtuple
+from recordtype import recordtype
 
 import datetime
 import time
@@ -51,11 +51,12 @@ def train_step(model, input_, label, optimizer, losses, detection_loss, params):
     b = time.time()
     optimizer_duration = b-a
 
-    print("Optimizer step time: ", b-a)
+    print("Optimizer step time: ", optimizer_duration)
 
-    Times = namedtuple('Times', ['inference_time', 'backprop_time', 'optimizer_time'])
-    t = Times(inference_time=inference_duration, backprop_time=backprop_duration, optimizer_time=optimizer_duration)
-    return t
+    Times = recordtype('Times', ['inference_time', 'backprop_time', 'optimizer_time'])
+    batch_time = Times(inference_time=inference_duration,
+                       backprop_time=backprop_duration, optimizer_time=optimizer_duration)
+    return batch_time
 
 
 def train(model, optimizer, train_loader, model_evaluator, detection_loss, params, start_epoch=0):
@@ -68,8 +69,8 @@ def train(model, optimizer, train_loader, model_evaluator, detection_loss, param
 
     losses = [0] * 4
 
-    a= time.time()
-    b=time.time()
+    a = time.time()
+    b = time.time()
     print("{:.20f}".format(b-a))
 
     model.train()
@@ -79,19 +80,26 @@ def train(model, optimizer, train_loader, model_evaluator, detection_loss, param
     print("Total number of parameters trained this epoch: ",
           sum(p.numel() for pg in optimizer.param_groups for p in pg['params'] if p.requires_grad))
 
+    Times = recordtype('average_time', ['inference_time', 'backprop_time', 'optimizer_time'])
+    total = Times(inference_time=0, backprop_time=0, optimizer_time=0)
+
+    WARM_UP = 2
+    nr_batches = len(train_loader)
+    counted_batches = nr_batches - WARM_UP
     for batch_idx, (input_, label, _) in enumerate(train_loader):
         print("Batch id: ", batch_idx)
         now1 = time.time()
-        t = train_step(model, input_, label, optimizer, losses, detection_loss, params)
+        batch_time = train_step(model, input_, label, optimizer, losses, detection_loss, params)
         now2 = time.time()
 
         print("=================")
-        print(t)
+        if batch_idx >= WARM_UP:
+            total.inference_time += batch_time.inference_time / counted_batches
+            total.backprop_time += batch_time.backprop_time / counted_batches
+            total.optimizer_time += batch_time.optimizer_time / counted_batches
         print("Total time: {}\n\n".format(now2-now1))
 
-    later = time.time()
-    print(later - now)
-    # print((later - now2)*4/3)
+    print(total)
 
 
 def update_losses(losses, l_loss, c_loss):
