@@ -64,7 +64,7 @@ def gradient_weight_check(model):
 
     # try to understand comp graph better for why inter variables don't have grad retained and what this means for this stat
     for n, p in model.named_parameters():
-        if (p.requires_grad) and not isinstance(p.grad, None):
+        if (p.requires_grad) and not isinstance(p.grad, type(None)):
             avg_grads.append(p.grad.abs().mean())
             max_grads.append(p.grad.abs().max())
             avg_weigths.append(p.abs().mean())
@@ -74,8 +74,6 @@ def gradient_weight_check(model):
     avg_weigths, max_weigths = torch.FloatTensor(avg_weigths), torch.FloatTensor(max_weigths)
 
     return torch.mean(avg_grads), torch.mean(max_grads), torch.mean(avg_weigths), torch.mean(max_weigths)
-
-# print stats
 
 
 def plot_grad_flow(model):
@@ -122,10 +120,16 @@ def model_setup(device, params):
 
 def optimizer_setup(model, device, params):
     if params.optimizer == 'adam':
-        optimizer = layer_specific_adam(model, params)
+        if params.freeze_backbone:
+            optimizer = layer_specific_adam(model, params)
+        else:
+            optimizer = plain_adam(model, params)
     elif params.optimizer == 'sgd':
-        optimizer = optim.SGD(model.parameters(), lr=params.learning_rate,
-                              weight_decay=params.weight_decay, momentum=0.9)
+        if params.freeze_backbone:
+            optimizer = layer_specific_sgd(model, params)
+        else:
+            optimizer = plain_sgd(model, params)
+
     return optimizer
 
 
@@ -145,14 +149,16 @@ def load_model(model, params, optimizer=None):
     return model, optimizer, start_epoch
 
 
-def save_model(epoch, model, optimizer, params, save_path, msg=None, by_loss=False):
+def save_model(epoch, model, optimizer, params, stats, msg=None, by_loss=False):
+    model_path = path_config.model_path
+    if by_loss:
+        model_path = path_config.model_path_loss
     torch.save({
         'epoch': epoch,
         'model_state_dict': model.state_dict(),
         'optimizer_state_dict': optimizer.state_dict(),
-    }, save_path)
-    save_path = path_config.model_save_path
-    if by_loss:
-        save_path = path_config.model_save_path_loss
-    params.save(save_path.format(params.model_id))
+    }, model_path.format(params.model_id))
+    params.save(path_config.params_path.format(params.model_id))
+    stats.save(path_config.stats_path.format(params.model_id))
+
     print(msg)

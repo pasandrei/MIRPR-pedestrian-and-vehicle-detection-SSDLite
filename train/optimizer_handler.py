@@ -1,4 +1,3 @@
-import torch
 import torch.optim as optim
 
 
@@ -27,9 +26,14 @@ def layer_specific_sgd(model, params):
         {'params': model.out3.parameters()},
         {'params': model.down_conv3.parameters()},
         {'params': model.out4.parameters()},
-        {'params': model.down_conv2.parameters()},
+        {'params': model.down_conv4.parameters()},
     ], lr=params.learning_rate, weight_decay=params.weight_decay, momentum=0.9)
 
 
 def plain_adam(model, params):
     return optim.Adam(model.parameters(), lr=params.learning_rate, weight_decay=params.weight_decay)
+
+
+def plain_sgd(model, params):
+    return optim.SGD(model.parameters(), lr=params.learning_rate,
+                     weight_decay=params.weight_decay, momentum=0.9)

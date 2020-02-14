@@ -55,7 +55,7 @@ def train(model, optimizer, train_loader, model_evaluator, detection_loss, param
                 for pg in optimizer.param_groups:
                     print('Current learning_rate:', pg['lr'])
 
-            if epoch == 0:
+            if epoch == 0 and params.warm_up:
                 warm_up(train_loader, optimizer, params)
 
         if (epoch + 1) % params.eval_step == 0:

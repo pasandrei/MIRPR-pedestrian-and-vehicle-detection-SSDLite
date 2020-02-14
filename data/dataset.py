@@ -25,12 +25,13 @@ class CocoDetection(VisionDataset):
     We are using the COCO API on top of which we build our custom data processing
     """
 
-    def __init__(self, root, annFile, transform=None, target_transform=None, transforms=None, augmentation=True):
+    def __init__(self, root, annFile, transform=None, target_transform=None, transforms=None, augmentation=True, params=None):
         super().__init__(root, transforms, transform, target_transform)
         from pycocotools.coco import COCO
         self.coco = COCO(annFile)
         self.ids = list(sorted(self.coco.imgs.keys()))
         self.augmentation = augmentation
+        self.params = params
 
     def __getitem__(self, batched_indices):
         """
@@ -56,7 +57,8 @@ class CocoDetection(VisionDataset):
 
             width, height = img.size
 
-            img = F.resize(img, size=(320, 320), interpolation=2)
+            img = F.resize(img, size=(self.params.input_width,
+                                      self.params.input_height), interpolation=2)
             if self.augmentation:
                 img, target = self.augment_data(img, target)
 
