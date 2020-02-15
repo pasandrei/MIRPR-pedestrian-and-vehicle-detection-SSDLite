@@ -9,12 +9,12 @@ from utils.postprocessing import nms
 
 class Model_output_handler():
 
-    def __init__(self, params, device):
+    def __init__(self, params):
         self.params = params
         self.unnorm = UnNormalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
         self.confidence_threshold = params.conf_threshold
         self.suppress_threshold = params.suppress_threshold
-        self.anchors = dboxes300_coco(device)
+        self.anchors = dboxes300_coco()
 
         self.scale_xy = 10
         self.scale_wh = 5

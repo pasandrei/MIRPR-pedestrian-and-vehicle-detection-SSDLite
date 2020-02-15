@@ -13,16 +13,15 @@ from utils.training import model_setup
 
 
 def run_training(model_id="ssdnet", benchmark_train=False, benchmark_inference=False, verbose=False):
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     params = Params(path_config.params_path.format(model_id))
 
-    model = model_setup(device, params)
+    model = model_setup(params)
 
     optimizer = plain_adam(model, params)
 
     train_loader, valid_loader = dataloaders.get_dataloaders(params)
 
-    detection_loss = Detection_Loss(device, params)
+    detection_loss = Detection_Loss(params)
 
     if benchmark_train:
         model_evaluator = None
