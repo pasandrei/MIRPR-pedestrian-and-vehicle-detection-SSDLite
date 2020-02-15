@@ -85,8 +85,8 @@ class Detection_Loss():
     """
 
     def __init__(self, device, params):
-        self.anchors, self.grid_sizes = create_anchors()
-        self.anchors, self.grid_sizes = self.anchors.to(device), self.grid_sizes.to(device)
+        self.anchors = dboxes300_coco(device)
+        # self.anchors = self.anchors.to(device)
         self.device = device
         self.params = params
         self.hard_negative = params.use_hard_negative_mining
@@ -110,8 +110,7 @@ class Detection_Loss():
         indeces of object predicting anchors
         """
         # compute IOU for obj x anchor
-        overlaps = jaccard(wh2corners(gt_bbox[:, :2], gt_bbox[:, 2:]), wh2corners(
-            self.anchors[:, :2], self.anchors[:, 2:]))
+        overlaps = jaccard(wh2corners(gt_bbox[:, :2], gt_bbox[:, 2:]), self.anchors("ltrb"))
 
         # map each anchor to the highest IOU obj, gt_idx - ids of mapped objects
         gt_bbox_for_matched_anchors, matched_gt_class_ids, pos_idx = map_to_ground_truth(
@@ -140,7 +139,7 @@ class Detection_Loss():
             gt_bbox_for_anchors, class_ids_for_anchors, pos_idx = self.match(gt_bbox, gt_class)
 
             batch_gt_bbox.append(gt_bbox_for_anchors)
-            batch_anchor_bbox.append(self.anchors[pos_idx])
+            batch_anchor_bbox.append(self.anchors("xywh")[pos_idx])
             batch_pred_bbox.append(pred_bbox[pos_idx])
             batch_class_ids.append(class_ids_for_anchors)
 

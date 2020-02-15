@@ -8,7 +8,7 @@ from benchmarks import train_benchmark, inference_benchmark
 from data import dataloaders
 from train.optimizer_handler import plain_adam
 from train.loss_fn import Detection_Loss
-from utils.preprocessing import create_anchors
+from utils.preprocessing import dboxes300_coco
 from utils.training import model_setup
 
 
@@ -21,9 +21,6 @@ def run_training(model_id="ssdnet", benchmark_train=False, benchmark_inference=F
     optimizer = plain_adam(model, params)
 
     train_loader, valid_loader = dataloaders.get_dataloaders(params)
-
-    anchors, grid_sizes = create_anchors()
-    anchors, grid_sizes = anchors.to(device), grid_sizes.to(device)
 
     detection_loss = Detection_Loss(device, params)
 

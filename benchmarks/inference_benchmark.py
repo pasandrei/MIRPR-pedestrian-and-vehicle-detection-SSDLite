@@ -7,10 +7,10 @@ from misc.model_output_handler import Model_output_handler
 
 class Model_evaluator():
 
-    def __init__(self, valid_loader, detection_loss, writer=None, params=None):
+    def __init__(self, device, valid_loader, detection_loss, writer=None, params=None):
         self.valid_loader = valid_loader
         self.detection_loss = detection_loss
-        self.output_handler = Model_output_handler(params)
+        self.output_handler = Model_output_handler(params, device)
         self.writer = writer
         self.params = params
 
