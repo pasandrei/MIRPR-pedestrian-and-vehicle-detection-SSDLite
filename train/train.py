@@ -1,13 +1,12 @@
-from train.helpers import *
-from train.lr_policies import constant_decay, retina_decay
+from train.lr_policies import retina_decay
 from train.backbone_freezer import Backbone_Freezer
-from misc.print_stats import *
+from utils.training import *
+from utils.prints import print_batch_stats
 
 import datetime
 
 
 def train_step(model, input_, label, optimizer, losses, detection_loss, params):
-    # print(datetime.datetime.now())
     input_ = input_.to(detection_loss.device)
 
     optimizer.zero_grad()
@@ -56,7 +55,7 @@ def train(model, optimizer, train_loader, model_evaluator, detection_loss, param
                 for pg in optimizer.param_groups:
                     print('Current learning_rate:', pg['lr'])
 
-            if epoch == 0:
+            if epoch == 0 and params.warm_up:
                 warm_up(train_loader, optimizer, params)
 
         if (epoch + 1) % params.eval_step == 0:
