@@ -25,7 +25,6 @@ def run(model_id="ssdnet", train_model=False, load_checkpoint=False, eval_only=F
     """
     torch.manual_seed(2)
 
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     params = Params(path_config.params_path.format(model_id))
     stats = Params(path_config.stats_path.format(model_id))
 
@@ -34,8 +33,8 @@ def run(model_id="ssdnet", train_model=False, load_checkpoint=False, eval_only=F
     train_loader, valid_loader = prepare_datasets(params)
     print_dataset_stats(train_loader, valid_loader)
 
-    model = model_setup(device, params)
-    optimizer = optimizer_setup(model, device, params)
+    model = model_setup(params)
+    optimizer = optimizer_setup(model, params)
 
     if jaad:
         model, _, _ = load_model(model, params, optimizer)
@@ -45,7 +44,7 @@ def run(model_id="ssdnet", train_model=False, load_checkpoint=False, eval_only=F
     # tensorboard
     writer = SummaryWriter(filename_suffix=params.model_id)
 
-    detection_loss = Detection_Loss(device, params)
+    detection_loss = Detection_Loss(params)
     model_evaluator = Model_evaluator(valid_loader, detection_loss,
                                       writer=writer, params=params, stats=stats)
 

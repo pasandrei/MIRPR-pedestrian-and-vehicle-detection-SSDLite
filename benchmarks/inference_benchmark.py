@@ -3,14 +3,15 @@ import time
 
 from utils.postprocessing import prepare_outputs_for_COCOeval
 from misc.model_output_handler import Model_output_handler
+from general_config.config import device
 
 
 class Model_evaluator():
 
-    def __init__(self, device, valid_loader, detection_loss, writer=None, params=None):
+    def __init__(self, valid_loader, detection_loss, writer=None, params=None):
         self.valid_loader = valid_loader
         self.detection_loss = detection_loss
-        self.output_handler = Model_output_handler(params, device)
+        self.output_handler = Model_output_handler(params)
         self.writer = writer
         self.params = params
 
@@ -32,7 +33,7 @@ class Model_evaluator():
             for batch_idx, (input_, label, image_info) in enumerate(self.valid_loader):
                 if verbose:
                     print("Batch id: ", batch_idx)
-                input_ = input_.to(self.detection_loss.device)
+                input_ = input_.to(device)
 
                 time_before_inference = time.time()
                 output = model(input_)

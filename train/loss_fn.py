@@ -7,14 +7,14 @@ from general_config import classes_config
 from utils.box_computations import *
 from utils.training import *
 from utils.preprocessing import *
+from general_config.config import device
 
 # inspired by fastai course
 
 
 class Classification_Loss(nn.Module):
-    def __init__(self, device, params):
+    def __init__(self, params):
         super().__init__()
-        self.device = device
         self.id2idx = classes_config.training_ids2_idx
         self.loss_type = params.loss_type
         self.focal_loss = params.use_focal_loss
@@ -84,13 +84,12 @@ class Detection_Loss():
     grid_sizes - #anchors x 1 cuda tensor
     """
 
-    def __init__(self, device, params):
-        self.anchors = dboxes300_coco(device)
+    def __init__(self, params):
+        self.anchors = dboxes300_coco()
         # self.anchors = self.anchors.to(device)
-        self.device = device
         self.params = params
         self.hard_negative = params.use_hard_negative_mining
-        self.class_loss = Classification_Loss(self.device, self.params)
+        self.class_loss = Classification_Loss(self.params)
 
         self.scale_xy = 10
         self.scale_wh = 5
@@ -135,7 +134,7 @@ class Detection_Loss():
         for idx in range(pred[0].shape[0]):
             pred_bbox = pred[0][idx]
 
-            gt_bbox, gt_class = targ[0][idx].to(self.device), targ[1][idx].to(self.device)
+            gt_bbox, gt_class = targ[0][idx].to(device), targ[1][idx].to(device)
             gt_bbox_for_anchors, class_ids_for_anchors, pos_idx = self.match(gt_bbox, gt_class)
 
             batch_gt_bbox.append(gt_bbox_for_anchors)

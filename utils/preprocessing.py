@@ -2,12 +2,12 @@ import torch
 import numpy as np
 import itertools
 
-from general_config import anchor_config
 from math import sqrt
+from general_config.config import device
 
 
 class DefaultBoxes(object):
-    def __init__(self, device, fig_size, feat_size, steps, scales, aspect_ratios, scale_xy=0.1, scale_wh=0.2):
+    def __init__(self, fig_size, feat_size, steps, scales, aspect_ratios, scale_xy=0.1, scale_wh=0.2):
         self.feat_size = feat_size
         self.fig_size = fig_size
 
@@ -68,14 +68,14 @@ class DefaultBoxes(object):
             return self.dboxes
 
 
-def dboxes300_coco(device):
+def dboxes300_coco():
     fig_size = 300
     feat_size = [38, 19, 10, 5, 3, 1]
     steps = [8, 16, 32, 64, 100, 300]
     # use the scales here: https://github.com/amdegroot/ssd.pytorch/blob/master/data/config.py
     scales = [21, 45, 99, 153, 207, 261, 315]
     aspect_ratios = [[2], [2, 3], [2, 3], [2, 3], [2], [2]]
-    dboxes = DefaultBoxes(device, fig_size, feat_size, steps, scales, aspect_ratios)
+    dboxes = DefaultBoxes(fig_size, feat_size, steps, scales, aspect_ratios)
     return dboxes
 
 

@@ -2,12 +2,13 @@ from train.lr_policies import retina_decay
 from train.backbone_freezer import Backbone_Freezer
 from utils.training import *
 from utils.prints import print_batch_stats
+from general_config.config import device
 
 import datetime
 
 
 def train_step(model, input_, label, optimizer, losses, detection_loss, params):
-    input_ = input_.to(detection_loss.device)
+    input_ = input_.to(device)
 
     optimizer.zero_grad()
     output = model(input_)

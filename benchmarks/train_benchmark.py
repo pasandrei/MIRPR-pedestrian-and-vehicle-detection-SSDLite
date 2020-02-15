@@ -1,10 +1,11 @@
 from recordtype import recordtype
+from general_config.config import device
 
 import time
 
 
 def train_step(model, input_, label, optimizer, losses, detection_loss, params, verbose):
-    input_ = input_.to(detection_loss.device)
+    input_ = input_.to(device)
 
     optimizer.zero_grad()
 
