@@ -14,11 +14,11 @@ from utils.prints import *
 from utils.training import *
 
 
-def run(model_id="ssdnet", train_model=False, load_model=False, eval_only=False, cross_validate=False, jaad=False):
+def run(model_id="ssdnet", train_model=False, load_checkpoint=False, eval_only=False, cross_validate=False, jaad=False):
     """
     Arguments:
     train_model - training
-    load_model - load a pretrained model
+    load_checkpoint - load a pretrained model
     eval_only - only inference
     cross_validate - cross validate for best nms thresold and positive confidence
     jaad - inference on jaad videos
@@ -38,7 +38,7 @@ def run(model_id="ssdnet", train_model=False, load_model=False, eval_only=False,
     optimizer = optimizer_setup(model, device, params)
 
     if jaad:
-        model, _, _ = load_model(model, optimizer, params)
+        model, _, _ = load_model(model, params, optimizer)
         handler = Model_output_handler(params)
         inference.jaad_inference(model, handler)
 
@@ -50,8 +50,8 @@ def run(model_id="ssdnet", train_model=False, load_model=False, eval_only=False,
                                       writer=writer, params=params, stats=stats)
 
     start_epoch = 0
-    if load_model:
-        model, optimizer, start_epoch = load_model(model, optimizer, params)
+    if load_checkpoint:
+        model, optimizer, start_epoch = load_model(model, params, optimizer)
 
     print_trained_parameters_count(model, optimizer)
 

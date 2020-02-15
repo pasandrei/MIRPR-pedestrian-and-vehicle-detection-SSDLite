@@ -9,9 +9,9 @@ class DepthWiseConv(nn.Module):
     depth wise followed by point wise convolution
     """
 
-    def __init__(self, in_planes, out_planes, stride=1, padding=0):
+    def __init__(self, in_planes, out_planes, kernel_size=3, stride=1, padding=0):
         super().__init__()
-        self.ds_conv = ConvBNReLU(in_planes, in_planes, kernel_size=3,
+        self.ds_conv = ConvBNReLU(in_planes, in_planes, kernel_size=kernel_size,
                                   stride=stride, groups=in_planes, padding=padding)
         self.pw_conv = ConvBNReLU(in_planes, out_planes, kernel_size=1)
 
@@ -66,19 +66,19 @@ class SSD_Head(nn.Module):
         self.out1 = OutConv(1280, n_classes, k_list[1])
 
         # construct second grid 5x5
-        self.down_conv2 = DepthWiseConv(in_planes=1280, out_planes=512, stride=2)
+        self.down_conv2 = DepthWiseConv(in_planes=1280, out_planes=512, stride=2, padding=1)
         self.out2 = OutConv(512, n_classes, k_list[2])
 
         # third grid 3x3
-        self.down_conv3 = DepthWiseConv(in_planes=512, out_planes=256, padding=0)
+        self.down_conv3 = DepthWiseConv(in_planes=512, out_planes=256)
         self.out3 = OutConv(256, n_classes, k_list[3])
 
         # fourth grid 2x2
-        self.down_conv4 = DepthWiseConv(in_planes=256, out_planes=256, stride=2, padding=1)
+        self.down_conv4 = DepthWiseConv(in_planes=256, out_planes=256, kernel_size=2)
         self.out4 = OutConv(256, n_classes, k_list[4])
 
         # last grid 1x1
-        self.down_conv5 = DepthWiseConv(in_planes=256, out_planes=128, padding=1)
+        self.down_conv5 = DepthWiseConv(in_planes=256, out_planes=128, kernel_size=2)
         self.out5 = OutConv(128, n_classes, k_list[5])
 
         # weight initialization
