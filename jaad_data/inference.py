@@ -3,11 +3,10 @@ from PIL import Image
 import os
 import cv2
 import copy
-import numpy as np
 import torch
 
-from misc import postprocessing
-from misc.utils import *
+from utils.postprocessing import *
+
 
 rootdir = 'C:\\Users\Andrei Popovici\Desktop\JAAD_stuff\JAAD-JAAD_2.0\images'
 
@@ -70,8 +69,8 @@ def feed_to_model(model, img, output_handler):
         prediction_bboxes, predicted_classes, _, _ = output_handler._get_sorted_predictions(
             predictions[0][0], predictions[1][0], (0, (init_size[0], init_size[1])))
 
-        indeces_kept_by_nms = postprocessing.nms(prediction_bboxes, predicted_classes,
-                                                 output_handler.suppress_threshold)
+        indeces_kept_by_nms = nms(prediction_bboxes, predicted_classes,
+                                  output_handler.suppress_threshold)
 
         final_bbox = prediction_bboxes[indeces_kept_by_nms]
         final_class = predicted_classes[indeces_kept_by_nms]
