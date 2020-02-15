@@ -7,16 +7,16 @@ from train.validate import Model_evaluator
 from benchmarks import train_benchmark, inference_benchmark
 from data import dataloaders
 from train.optimizer_handler import plain_adam
-from train.helpers import *
 from train.loss_fn import Detection_Loss
+from utils.preprocessing import create_anchors
+from utils.training import model_setup
 
 
-def run_training(benchmark_on_train=False, benchmark_on_inference=False):
+def run_training(model_id="ssdnet", benchmark_train=False, benchmark_inference=False, verbose=False):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    params = Params(path_config.params_path)
+    params = Params(path_config.params_path.format(model_id))
 
-    model = SSDNet.SSD_Head(n_classes=params.n_classes, k_list=anchor_config.k_list)
-    model.to(device)
+    model = model_setup(device, params)
 
     optimizer = plain_adam(model, params)
 
@@ -25,16 +25,15 @@ def run_training(benchmark_on_train=False, benchmark_on_inference=False):
     anchors, grid_sizes = create_anchors()
     anchors, grid_sizes = anchors.to(device), grid_sizes.to(device)
 
-    detection_loss = Detection_Loss(anchors, grid_sizes, device, params, focal_loss=True,
-                                    hard_negative=False)
+    detection_loss = Detection_Loss(device, params)
 
-    if benchmark_on_train:
+    if benchmark_train:
         model_evaluator = None
         train_benchmark.train(model, optimizer, train_loader, model_evaluator,
-                              detection_loss, params)
-    if benchmark_on_inference:
+                              detection_loss, params, verbose)
+    if benchmark_inference:
         model_evaluator = inference_benchmark.Model_evaluator(
             valid_loader, detection_loss, writer=None, params=params)
-        model_evaluator.complete_evaluate(model, optimizer, train_loader)
+        model_evaluator.complete_evaluate(model, optimizer, train_loader, verbose)
 
 # run_training()

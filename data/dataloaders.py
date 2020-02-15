@@ -12,7 +12,7 @@ def get_dataloaders(params):
     train_dataloader = get_train_dataloader(params)
     valid_dataloader = get_valid_dataloader(params)
 
-    return valid_dataloader, valid_dataloader
+    return train_dataloader, valid_dataloader
 
 
 def get_dataloaders_test(params):
