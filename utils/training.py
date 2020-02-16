@@ -3,7 +3,7 @@ import numpy as np
 
 from data import dataloaders
 
-from architectures.models import SSDNet
+from architectures.models import SSDNet, resnet_ssd
 from general_config import anchor_config
 from train.optimizer_handler import *
 from general_config import path_config
@@ -72,9 +72,11 @@ def plot_grad_flow(model):
 
 
 def model_setup(device, params):
+    n_classes = params.n_classes if params.loss_type == "BCE" else params.n_classes + 1
     if params.model_id == 'ssdnet':
-        n_classes = params.n_classes if params.loss_type == "BCE" else params.n_classes + 1
         model = SSDNet.SSD_Head(n_classes=n_classes, k_list=anchor_config.k_list)
+    elif params.model_id == 'resnetssd':
+        model = resnet_ssd.SSD300(n_classes=n_classes)
     model.to(device)
 
     return model

@@ -40,12 +40,12 @@ class ResNet(nn.Module):
 
 
 class SSD300(nn.Module):
-    def __init__(self, backbone=ResNet('resnet50')):
+    def __init__(self, backbone=ResNet('resnet50'), n_classes=81):
         super().__init__()
 
         self.feature_extractor = backbone
 
-        self.label_num = 81  # number of COCO classes
+        self.label_num = n_classes  # number of COCO classes
         self._build_additional_features(self.feature_extractor.out_channels)
         self.num_defaults = [4, 6, 6, 6, 4, 4]
         self.loc = []
