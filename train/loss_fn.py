@@ -100,7 +100,7 @@ class Detection_Loss():
         self.scale_xy = 10
         self.scale_wh = 5
 
-        self.anchors_batch = self.anchors.unsqueeze(dim=0)
+        self.anchors_batch = self.anchors.unsqueeze(dim=0).to(self.device)
 
     def ssd_loss(self, pred, targ):
         """

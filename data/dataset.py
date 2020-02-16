@@ -33,7 +33,6 @@ class CocoDetection(VisionDataset):
         self.augmentation = augmentation
         self.params = params
         self.anchors, _ = create_anchors()
-        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     def __getitem__(self, batched_indices):
         """
@@ -78,11 +77,11 @@ class CocoDetection(VisionDataset):
             image_info.append((img_id, (width, height)))
 
         # B x C x H x W
-        batch_images = torch.stack(imgs).to(self.device)
+        batch_images = torch.stack(imgs)
 
         # B x #anchors x 4 and 1 respectively
-        batch_bboxes = torch.stack(targets_bboxes).to(self.device)
-        batch_class_ids = torch.stack(targets_classes).to(self.device)
+        batch_bboxes = torch.stack(targets_bboxes)
+        batch_class_ids = torch.stack(targets_classes)
 
         label = (batch_bboxes, batch_class_ids)
 
