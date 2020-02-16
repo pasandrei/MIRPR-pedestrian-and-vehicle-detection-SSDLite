@@ -7,8 +7,6 @@ import datetime
 
 
 def train_step(model, input_, label, optimizer, losses, detection_loss, params):
-    input_ = input_.to(detection_loss.device)
-
     optimizer.zero_grad()
     output = model(input_)
     l_loss, c_loss = detection_loss.ssd_loss(output, label)
