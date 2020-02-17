@@ -6,6 +6,7 @@ import copy
 import torch
 
 from utils.postprocessing import *
+from general_config.config import device
 
 
 rootdir = 'C:\\Users\Andrei Popovici\Desktop\JAAD_stuff\JAAD-JAAD_2.0\images'
@@ -63,7 +64,7 @@ def feed_to_model(model, img, output_handler):
         # add batch channel
         img = img.view((1, img.shape[0], img.shape[1], img.shape[2]))
 
-        img = img.to(torch.device("cuda:0" if torch.cuda.is_available() else "cpu"))
+        img = img.to(device)
         predictions = model(img)
 
         prediction_bboxes, predicted_classes, _, _ = output_handler._get_sorted_predictions(

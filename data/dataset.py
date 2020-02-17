@@ -5,7 +5,7 @@ import torchvision.transforms.functional as F
 import random
 from data.vision_dataset import VisionDataset
 from PIL import Image
-
+from general_config.anchor_config import default_boxes
 from utils.preprocessing import *
 
 
@@ -32,7 +32,9 @@ class CocoDetection(VisionDataset):
         self.ids = list(sorted(self.coco.imgs.keys()))
         self.augmentation = augmentation
         self.params = params
-        self.anchors, _ = create_anchors()
+
+        self.anchors_ltrb = default_boxes(order='ltrb')
+        self.anchors_xywh = default_boxes(order='xywh')
 
     def __getitem__(self, batched_indices):
         """
@@ -69,7 +71,8 @@ class CocoDetection(VisionDataset):
                               std=[0.229, 0.224, 0.225])
 
             # #anchors x 4 and #anchors x 1
-            gt_bbox, gt_class = match(self.anchors, target[0], target[1], self.params)
+            gt_bbox, gt_class = match(self.anchors_ltrb, self.anchors_xywh,
+                                      target[0], target[1], self.params)
 
             imgs.append(img)
             targets_bboxes.append(gt_bbox)

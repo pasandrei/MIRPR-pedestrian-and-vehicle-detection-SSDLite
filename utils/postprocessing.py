@@ -99,7 +99,7 @@ def plot_anchor_gt(image, anchor, gt, cur_class, message="DA_MA", size=(320, 320
     # gt_id_2_color = {1: (200, 200, 0), 3: (150, 250, 150)}
     color_gt = (200, 200, 0)
     gt_id_2_color = {1: (200, 200, 0), 3: (150, 250, 150)}
-    color_gt = gt_id_2_color[cur_class]
+    color_gt = gt_id_2_color.get(cur_class, color_gt)
     cv2.rectangle(image, (int(gt[0]-gt[2]/2), int(gt[1]-gt[3]/2)),
                   (int(gt[0] + gt[2]/2), int(gt[1] + gt[3]/2)), color_gt, 2)
 

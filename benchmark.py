@@ -2,30 +2,25 @@ import torch
 
 from architectures.models import SSDNet
 from train.config import Params
-from general_config import anchor_config, path_config
+from general_config import path_config
 from train.validate import Model_evaluator
 from benchmarks import train_benchmark, inference_benchmark
 from data import dataloaders
 from train.optimizer_handler import plain_adam
 from train.loss_fn import Detection_Loss
-from utils.preprocessing import create_anchors
 from utils.training import model_setup
 
 
 def run_training(model_id="ssdnet", benchmark_train=False, benchmark_inference=False, verbose=False):
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     params = Params(path_config.params_path.format(model_id))
 
-    model = model_setup(device, params)
+    model = model_setup(params)
 
     optimizer = plain_adam(model, params)
 
     train_loader, valid_loader = dataloaders.get_dataloaders(params)
 
-    anchors, grid_sizes = create_anchors()
-    anchors, grid_sizes = anchors.to(device), grid_sizes.to(device)
-
-    detection_loss = Detection_Loss(device, params)
+    detection_loss = Detection_Loss(params)
 
     if benchmark_train:
         model_evaluator = None

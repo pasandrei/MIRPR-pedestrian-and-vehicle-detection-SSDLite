@@ -7,14 +7,15 @@ from general_config import classes_config
 from utils.box_computations import *
 from utils.training import *
 from utils.preprocessing import *
+from general_config.config import device
+from general_config.anchor_config import default_boxes
 
 # inspired by fastai course
 
 
 class Classification_Loss(nn.Module):
-    def __init__(self, device, params):
+    def __init__(self, params):
         super().__init__()
-        self.device = device
         self.id2idx = classes_config.training_ids2_idx
         self.loss_type = params.loss_type
         self.focal_loss = params.use_focal_loss
@@ -89,18 +90,18 @@ class Detection_Loss():
     grid_sizes - #anchors x 1 cuda tensor
     """
 
-    def __init__(self, device, params):
-        self.anchors, self.grid_sizes = create_anchors()
-        self.anchors, self.grid_sizes = self.anchors.to(device), self.grid_sizes.to(device)
-        self.device = device
+    def __init__(self, params):
+        self.anchors_xywh = default_boxes(order="xywh")
+        self.anchors_xywh = self.anchors_xywh.to(device)
+
         self.params = params
         self.hard_negative = params.use_hard_negative_mining
-        self.class_loss = Classification_Loss(self.device, self.params)
+        self.class_loss = Classification_Loss(self.params)
 
         self.scale_xy = 10
         self.scale_wh = 5
 
-        self.anchors_batch = self.anchors.unsqueeze(dim=0).to(self.device)
+        self.anchors_batch = self.anchors_xywh.unsqueeze(dim=0).to(device)
 
     def ssd_loss(self, pred, targ):
         """

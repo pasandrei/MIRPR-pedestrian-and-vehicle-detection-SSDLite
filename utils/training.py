@@ -7,6 +7,7 @@ from architectures.models import SSDNet, resnet_ssd
 from general_config import anchor_config
 from train.optimizer_handler import *
 from general_config import path_config
+from general_config.config import device
 
 
 def update_tensorboard_graphs(writer, loc_loss_train, class_loss_train, loc_loss_val, class_loss_val, mAP, epoch):
@@ -71,7 +72,7 @@ def plot_grad_flow(model):
                 Line2D([0], [0], color="k", lw=4)], ['max-gradient', 'mean-gradient', 'zero-gradient'])
 
 
-def model_setup(device, params):
+def model_setup(params):
     n_classes = params.n_classes if params.loss_type == "BCE" else params.n_classes + 1
     if params.model_id == 'ssdnet':
         model = SSDNet.SSD_Head(n_classes=n_classes, k_list=anchor_config.k_list)
@@ -82,7 +83,7 @@ def model_setup(device, params):
     return model
 
 
-def optimizer_setup(model, device, params):
+def optimizer_setup(model, params):
     if params.optimizer == 'adam':
         if params.freeze_backbone:
             optimizer = layer_specific_adam(model, params)

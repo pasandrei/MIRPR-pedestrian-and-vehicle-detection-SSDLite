@@ -4,6 +4,7 @@ import datetime
 from misc.model_output_handler import Model_output_handler
 from utils.postprocessing import *
 from utils.training import *
+from general_config.config import device
 
 
 class Model_evaluator():
@@ -41,9 +42,9 @@ class Model_evaluator():
 
             print(datetime.datetime.now())
             for batch_idx, (input_, label, image_info) in enumerate(self.valid_loader):
-                input_ = input_.to(self.detection_loss.device)
-                label[0] = label[0].to(self.detection_loss.device)
-                label[1] = label[1].to(self.detection_loss.device)
+                input_ = input_.to(device)
+                label[0] = label[0].to(device)
+                label[1] = label[1].to(device)
                 output = model(input_)
 
                 prediction_annotations, prediction_id = prepare_outputs_for_COCOeval(
@@ -92,7 +93,7 @@ class Model_evaluator():
             prediction_annotations = []
             prediction_id = 0
             for batch_idx, (input_, label, image_info) in enumerate(self.valid_loader):
-                input_ = input_.to(self.detection_loss.device)
+                input_ = input_.to(device)
                 output = model(input_)
 
                 prediction_annotations, prediction_id = prepare_outputs_for_COCOeval(

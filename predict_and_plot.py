@@ -7,14 +7,14 @@ from data import dataloaders
 from architectures.models import SSDNet
 from visualize import anchor_mapping
 from utils.training import load_model, model_setup
+from general_config.config import device
 
 
-def model_output_pipeline(model_id="ssdnet", model_outputs=False, visualize_anchors=False, visualize_anchor_gt_pair=False):
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    params = Params(path_config.params_path.format(model_id))
+def model_output_pipeline(params_path, model_outputs=False, visualize_anchors=False, visualize_anchor_gt_pair=False):
+    params = Params(params_path)
 
     if params.model_id == 'ssdnet':
-        model = model_setup(device, params)
+        model = model_setup(params)
     model.to(device)
 
     if model_outputs:
