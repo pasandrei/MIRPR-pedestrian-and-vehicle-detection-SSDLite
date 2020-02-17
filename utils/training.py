@@ -1,50 +1,12 @@
 import torch
 import numpy as np
-import torch.optim as optim
 
 from data import dataloaders
 
-from architectures.models import SSDNet
+from architectures.models import SSDNet, resnet_ssd
 from general_config import anchor_config
 from train.optimizer_handler import *
 from general_config import path_config
-
-
-def map_to_ground_truth(overlaps, gt_bbox, gt_class, params):
-    # taken from fastai
-    """ maps priors to max IOU obj
-   returns:
-   - gt_bbox_for_matched_anchors: tensor of size matched_priors x 4 - essentially assigning GT bboxes to corresponding highest IOU priors
-   - matched_gt_class_ids: tensor of size priors - where each value of the tensor indicates the class id that the priors feature map cell should predict
-    """
-
-    # for each object, what is the prior of maximum overlap
-    gt_to_prior_overlap, gt_to_prior_idx = overlaps.max(1)
-
-    # for each prior, what is the object of maximum overlap
-    prior_to_gt_overlap, prior_to_gt_idx = overlaps.max(0)
-
-    # for priors of max overlap, set a high value to make sure they match
-    prior_to_gt_overlap[gt_to_prior_idx] = 1.99
-
-    idx = torch.arange(0, gt_to_prior_idx.size(0), dtype=torch.int64)
-    if overlaps.is_cuda:
-        idx = idx.to("cuda:0")
-    prior_to_gt_idx[gt_to_prior_idx[idx]] = idx
-
-    # for each prior, get the actual id of the class it should predict, unmatched anchors (low IOU) should predict background
-    matched_gt_class_ids = gt_class[prior_to_gt_idx]
-    pos = prior_to_gt_overlap > params.mapping_threshold
-    matched_gt_class_ids[~pos] = 100  # background code
-
-    # for each matched prior, get the bbox it should predict
-    raw_matched_bbox = gt_bbox[prior_to_gt_idx]
-    pos_idx = torch.nonzero(pos)[:, 0]
-    # which of those max values are actually precise enough?
-    gt_bbox_for_matched_anchors = raw_matched_bbox[pos_idx]
-
-    # so now we have the GT represented with priors
-    return gt_bbox_for_matched_anchors, matched_gt_class_ids, pos_idx
 
 
 def update_tensorboard_graphs(writer, loc_loss_train, class_loss_train, loc_loss_val, class_loss_val, mAP, epoch):
@@ -110,9 +72,11 @@ def plot_grad_flow(model):
 
 
 def model_setup(device, params):
+    n_classes = params.n_classes if params.loss_type == "BCE" else params.n_classes + 1
     if params.model_id == 'ssdnet':
-        n_classes = params.n_classes if params.loss_type == "BCE" else params.n_classes + 1
         model = SSDNet.SSD_Head(n_classes=n_classes, k_list=anchor_config.k_list)
+    elif params.model_id == 'resnetssd':
+        model = resnet_ssd.SSD300(n_classes=n_classes)
     model.to(device)
 
     return model
