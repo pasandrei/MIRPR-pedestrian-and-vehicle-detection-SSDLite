@@ -5,6 +5,71 @@ import itertools
 from math import sqrt
 
 
+def map_to_ground_truth(overlaps, gt_bbox, gt_class, params):
+    # taken from fastai
+    """ maps priors to max IOU obj
+   returns:
+   - gt_bbox_for_matched_anchors: tensor of size matched_priors x 4 - essentially assigning GT bboxes to corresponding highest IOU priors
+   - matched_gt_class_ids: tensor of size priors - where each value of the tensor indicates the class id that the priors feature map cell should predict
+    """
+
+    # for each object, what is the prior of maximum overlap
+    gt_to_prior_overlap, gt_to_prior_idx = overlaps.max(1)
+
+    # for each prior, what is the object of maximum overlap
+    prior_to_gt_overlap, prior_to_gt_idx = overlaps.max(0)
+
+    # for priors of max overlap, set a high value to make sure they match
+    prior_to_gt_overlap[gt_to_prior_idx] = 1.99
+
+    idx = torch.arange(0, gt_to_prior_idx.size(0), dtype=torch.int64)
+    if overlaps.is_cuda:
+        idx = idx.to("cuda:0")
+    prior_to_gt_idx[gt_to_prior_idx[idx]] = idx
+
+    # for each prior, get the actual id of the class it should predict, unmatched anchors (low IOU) should predict background
+    matched_gt_class_ids = gt_class[prior_to_gt_idx]
+    pos = prior_to_gt_overlap > params.mapping_threshold
+    matched_gt_class_ids[~pos] = 100  # background code
+
+    # for each matched prior, get the bbox it should predict
+    raw_matched_bbox = gt_bbox[prior_to_gt_idx]
+    pos_idx = torch.nonzero(pos)[:, 0]
+    # which of those max values are actually precise enough?
+    gt_bbox_for_matched_anchors = raw_matched_bbox[pos_idx]
+
+    # so now we have the GT represented with priors
+    return gt_bbox_for_matched_anchors, matched_gt_class_ids, pos_idx
+
+
+def match(anchors, gt_bbox, gt_class, params):
+    """
+    Arguments:
+        gt_bbox - #obj x 4 tensor - GT bboxes for objects in the cur img
+        gt_class - #obj x 1 tensor - class IDs for objects in cur img
+
+    Explanation:
+    argmax matching
+
+    Returns:
+    #anchors x 4 tensor -> ground truth bbox for each anchor
+    #anchor x 1 tensor -> ground truth label for each anchor (anchors with label 100 predict bg)
+    """
+    # compute IOU for obj x anchor
+    overlaps = jaccard(wh2corners(gt_bbox[:, :2], gt_bbox[:, 2:]), wh2corners(
+        anchors[:, :2], anchors[:, 2:]))
+
+    # map each anchor to the highest IOU obj, gt_idx - ids of mapped objects
+    gt_bbox_for_matched_anchors, matched_gt_class_ids, pos_idx = map_to_ground_truth(
+        overlaps, gt_bbox, gt_class, params)
+
+    gt_bbox_out = copy.deepcopy(anchors)
+    gt_bbox_out[pos_idx, :] = gt_bbox_for_matched_anchors
+
+    return gt_bbox_out, matched_gt_class_ids
+
+
+
 class DefaultBoxes(object):
     def __init__(self, fig_size, feat_size, steps, scales, aspect_ratios, scale_xy=0.1, scale_wh=0.2):
         self.feat_size = feat_size

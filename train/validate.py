@@ -43,6 +43,8 @@ class Model_evaluator():
             print(datetime.datetime.now())
             for batch_idx, (input_, label, image_info) in enumerate(self.valid_loader):
                 input_ = input_.to(device)
+                label[0] = label[0].to(device)
+                label[1] = label[1].to(device)
                 output = model(input_)
 
                 prediction_annotations, prediction_id = prepare_outputs_for_COCOeval(

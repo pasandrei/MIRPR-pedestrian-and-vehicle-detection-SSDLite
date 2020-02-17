@@ -32,6 +32,7 @@ class CocoDetection(VisionDataset):
         self.ids = list(sorted(self.coco.imgs.keys()))
         self.augmentation = augmentation
         self.params = params
+        self.anchors, _ = create_anchors()
 
     def __getitem__(self, batched_indices):
         """
@@ -67,19 +68,24 @@ class CocoDetection(VisionDataset):
             img = F.normalize(img, mean=[0.485, 0.456, 0.406],
                               std=[0.229, 0.224, 0.225])
 
+            # #anchors x 4 and #anchors x 1
+            gt_bbox, gt_class = match(self.anchors, target[0], target[1], self.params)
+
             imgs.append(img)
-            targets_bboxes.append(target[0])
-            targets_classes.append(target[1])
+            targets_bboxes.append(gt_bbox)
+            targets_classes.append(gt_class)
             image_info.append((img_id, (width, height)))
 
         # B x C x H x W
         batch_images = torch.stack(imgs)
 
-        # batch_targets[0] = list of bboxes tensors for each image
-        # batch_targets[1] = list of class id tensors for each image
-        batch_targets = [targets_bboxes, targets_classes]
+        # B x #anchors x 4 and 1 respectively
+        batch_bboxes = torch.stack(targets_bboxes)
+        batch_class_ids = torch.stack(targets_classes)
 
-        return batch_images, batch_targets, image_info
+        label = (batch_bboxes, batch_class_ids)
+
+        return batch_images, label, image_info
 
     def __len__(self):
         return len(self.ids)
