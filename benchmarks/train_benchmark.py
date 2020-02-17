@@ -6,6 +6,8 @@ import time
 
 def train_step(model, input_, label, optimizer, losses, detection_loss, params, verbose):
     input_ = input_.to(device)
+    label[0] = label[0].to(device)
+    label[1] = label[1].to(device)
 
     optimizer.zero_grad()
 

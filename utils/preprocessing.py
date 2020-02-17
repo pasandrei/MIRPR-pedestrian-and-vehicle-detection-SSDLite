@@ -1,8 +1,10 @@
 import torch
 import numpy as np
 import itertools
+import copy
 
 from math import sqrt
+from utils.box_computations import jaccard, wh2corners
 
 
 def map_to_ground_truth(overlaps, gt_bbox, gt_class, params):
@@ -42,7 +44,7 @@ def map_to_ground_truth(overlaps, gt_bbox, gt_class, params):
     return gt_bbox_for_matched_anchors, matched_gt_class_ids, pos_idx
 
 
-def match(anchors, gt_bbox, gt_class, params):
+def match(anchors_ltrb, anchors_xywh, gt_bbox, gt_class, params):
     """
     Arguments:
         gt_bbox - #obj x 4 tensor - GT bboxes for objects in the cur img
@@ -56,18 +58,16 @@ def match(anchors, gt_bbox, gt_class, params):
     #anchor x 1 tensor -> ground truth label for each anchor (anchors with label 100 predict bg)
     """
     # compute IOU for obj x anchor
-    overlaps = jaccard(wh2corners(gt_bbox[:, :2], gt_bbox[:, 2:]), wh2corners(
-        anchors[:, :2], anchors[:, 2:]))
+    overlaps = jaccard(wh2corners(gt_bbox[:, :2], gt_bbox[:, 2:]), anchors_ltrb)
 
     # map each anchor to the highest IOU obj, gt_idx - ids of mapped objects
     gt_bbox_for_matched_anchors, matched_gt_class_ids, pos_idx = map_to_ground_truth(
         overlaps, gt_bbox, gt_class, params)
 
-    gt_bbox_out = copy.deepcopy(anchors)
+    gt_bbox_out = copy.deepcopy(anchors_xywh)
     gt_bbox_out[pos_idx, :] = gt_bbox_for_matched_anchors
 
     return gt_bbox_out, matched_gt_class_ids
-
 
 
 class DefaultBoxes(object):

@@ -94,9 +94,6 @@ class Detection_Loss():
         self.anchors_xywh = default_boxes(order="xywh")
         self.anchors_xywh = self.anchors_xywh.to(device)
 
-        self.anchors_ltrb = default_boxes(order="ltrb")
-        self.anchors_ltrb = self.anchors_ltrb.to(device)
-
         self.params = params
         self.hard_negative = params.use_hard_negative_mining
         self.class_loss = Classification_Loss(self.params)
@@ -104,7 +101,7 @@ class Detection_Loss():
         self.scale_xy = 10
         self.scale_wh = 5
 
-        self.anchors_batch = self.anchors.unsqueeze(dim=0).to(self.device)
+        self.anchors_batch = self.anchors_xywh.unsqueeze(dim=0).to(device)
 
     def ssd_loss(self, pred, targ):
         """
