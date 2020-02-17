@@ -2,13 +2,12 @@ import torch
 
 from architectures.models import SSDNet
 from train.config import Params
-from general_config import anchor_config, path_config
+from general_config import path_config
 from train.validate import Model_evaluator
 from benchmarks import train_benchmark, inference_benchmark
 from data import dataloaders
 from train.optimizer_handler import plain_adam
 from train.loss_fn import Detection_Loss
-from utils.preprocessing import dboxes300_coco
 from utils.training import model_setup
 
 

@@ -2,7 +2,7 @@ import torch
 import numpy as np
 import copy
 
-from utils.preprocessing import dboxes300_coco
+from general_config.anchor_config import default_boxes
 from utils.box_computations import wh2corners_numpy, corners_to_wh
 from utils.postprocessing import nms
 
@@ -14,7 +14,9 @@ class Model_output_handler():
         self.unnorm = UnNormalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
         self.confidence_threshold = params.conf_threshold
         self.suppress_threshold = params.suppress_threshold
-        self.anchors = dboxes300_coco()
+
+        self.anchors_xywh = default_boxes(order="xywh")
+        self.anchors_xywh = self.anchors_xywh.to('cpu')
 
         self.scale_xy = 10
         self.scale_wh = 5
@@ -108,10 +110,9 @@ class Model_output_handler():
         prediction_bboxes[:, :2] = (1/self.scale_xy)*prediction_bboxes[:, :2]
         prediction_bboxes[:, 2:] = (1/self.scale_wh)*prediction_bboxes[:, 2:]
 
-        prediction_bboxes[:, :2] = prediction_bboxes[:, :2] * \
-            self.anchors(order="xywh")[:, 2:] + self.anchors(order="xywh")[:, :2]
-        prediction_bboxes[:, 2:] = prediction_bboxes[:,
-                                                     2:].exp() * self.anchors(order="xywh")[:, 2:]
+        prediction_bboxes[:, :2] = prediction_bboxes[:, :2] * self.anchors_xywh[:, 2:] + \
+            self.anchors_xywh[:, :2]
+        prediction_bboxes[:, 2:] = prediction_bboxes[:, 2:].exp() * self.anchors_xywh[:, 2:]
 
         return self._rescale_bboxes(prediction_bboxes, size)
 

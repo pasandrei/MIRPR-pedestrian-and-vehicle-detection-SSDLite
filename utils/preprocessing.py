@@ -3,7 +3,6 @@ import numpy as np
 import itertools
 
 from math import sqrt
-from general_config.config import device
 
 
 class DefaultBoxes(object):
@@ -36,13 +35,11 @@ class DefaultBoxes(object):
                 all_sizes.append((h, w))
             for i, j in itertools.product(range(sfeat), repeat=2):
                 for w, h in all_sizes:
-                    cx, cy = (i+0.5)/fk[idx], (j+0.5)/fk[idx]
+                    cx, cy = (j+0.5)/fk[idx], (i+0.5)/fk[idx]
                     self.default_boxes.append((cx, cy, w, h))
 
         self.dboxes = torch.tensor(self.default_boxes)
         self.dboxes.clamp_(min=0, max=1)
-
-        self.dboxes.to(device)
 
         # For IoU calculation
         self.dboxes_ltrb = self.dboxes.clone()
@@ -50,8 +47,6 @@ class DefaultBoxes(object):
         self.dboxes_ltrb[:, 1] = self.dboxes[:, 1] - 0.5 * self.dboxes[:, 3]
         self.dboxes_ltrb[:, 2] = self.dboxes[:, 0] + 0.5 * self.dboxes[:, 2]
         self.dboxes_ltrb[:, 3] = self.dboxes[:, 1] + 0.5 * self.dboxes[:, 3]
-
-        self.dboxes_ltrb.to(device)  # might not be needed depending on what  clone does
 
     @property
     def scale_xy(self):
@@ -66,17 +61,6 @@ class DefaultBoxes(object):
             return self.dboxes_ltrb
         if order == "xywh":
             return self.dboxes
-
-
-def dboxes300_coco():
-    fig_size = 300
-    feat_size = [38, 19, 10, 5, 3, 1]
-    steps = [8, 16, 32, 64, 100, 300]
-    # use the scales here: https://github.com/amdegroot/ssd.pytorch/blob/master/data/config.py
-    scales = [21, 45, 99, 153, 207, 261, 315]
-    aspect_ratios = [[2], [2, 3], [2, 3], [2, 3], [2], [2]]
-    dboxes = DefaultBoxes(fig_size, feat_size, steps, scales, aspect_ratios)
-    return dboxes
 
 
 def prepare_gt(input_img, gt_target):

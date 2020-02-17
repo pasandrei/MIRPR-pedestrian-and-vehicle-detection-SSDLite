@@ -8,6 +8,7 @@ from utils.box_computations import *
 from utils.training import *
 from utils.preprocessing import *
 from general_config.config import device
+from general_config.anchor_config import default_boxes
 
 # inspired by fastai course
 
@@ -85,8 +86,12 @@ class Detection_Loss():
     """
 
     def __init__(self, params):
-        self.anchors = dboxes300_coco()
-        # self.anchors = self.anchors.to(device)
+        self.anchors_xywh = default_boxes(order="xywh")
+        self.anchors_xywh = self.anchors_xywh.to(device)
+
+        self.anchors_ltrb = default_boxes(order="ltrb")
+        self.anchors_ltrb = self.anchors_ltrb.to(device)
+
         self.params = params
         self.hard_negative = params.use_hard_negative_mining
         self.class_loss = Classification_Loss(self.params)
@@ -109,7 +114,7 @@ class Detection_Loss():
         indeces of object predicting anchors
         """
         # compute IOU for obj x anchor
-        overlaps = jaccard(wh2corners(gt_bbox[:, :2], gt_bbox[:, 2:]), self.anchors("ltrb"))
+        overlaps = jaccard(wh2corners(gt_bbox[:, :2], gt_bbox[:, 2:]), self.anchors_ltrb)
 
         # map each anchor to the highest IOU obj, gt_idx - ids of mapped objects
         gt_bbox_for_matched_anchors, matched_gt_class_ids, pos_idx = map_to_ground_truth(
@@ -138,7 +143,7 @@ class Detection_Loss():
             gt_bbox_for_anchors, class_ids_for_anchors, pos_idx = self.match(gt_bbox, gt_class)
 
             batch_gt_bbox.append(gt_bbox_for_anchors)
-            batch_anchor_bbox.append(self.anchors("xywh")[pos_idx])
+            batch_anchor_bbox.append(self.anchors_xywh[pos_idx])
             batch_pred_bbox.append(pred_bbox[pos_idx])
             batch_class_ids.append(class_ids_for_anchors)
 

@@ -8,44 +8,43 @@ from utils.postprocessing import *
 from utils.preprocessing import *
 from utils.box_computations import *
 from utils.training import *
+from general_config.anchor_config import default_boxes, feat_size, k_list
 
 
-def visualize_anchor_sets(image, anchor_grid, grid_size, k, size, zoom, ratio):
+def visualize_anchor_sets(image, anchor_grid, grid_size, k, size):
     """
     prints all anchors of a (scale, ratio) in the grid
     """
-    zooms_and_ratios = [(z, r) for z in zoom for r in ratio]
     for i in range(k):
         cur_anchors = []
         for j in range(grid_size**2):
             if random.random() > 0:
                 cur_anchors.append(anchor_grid[i + j*k])
-        cur_zoom, cur_ratio = zooms_and_ratios[i]
         cur_anchors = np.array(cur_anchors)
         plot_bounding_boxes(image=image, bounding_boxes=cur_anchors,
                             classes=np.ones(cur_anchors.shape), bbox_type="anchor",
-                            message="Grid size: " + str(grid_size) + " Zoom: " + str(cur_zoom) + " Ratio: " + str(cur_ratio), size=size)
+                            message="Grid size: " + str(grid_size), size=size)
 
 
-def visualize_all_anchor_types(image, anchors, size, sizes_ks_zooms_ratios):
+def visualize_all_anchor_types(image, anchors, size, sizes_ks):
     """
     visually inspect all anchors
     """
     slice_idx = 0
-    for (grid_size, k, zoom, ratio) in sizes_ks_zooms_ratios:
+    for (grid_size, k) in sizes_ks:
         if k == 0:
             continue
         visualize_anchor_sets(image=image, anchor_grid=anchors[slice_idx:slice_idx+grid_size**2 * k],
-                              grid_size=grid_size, k=k, size=size, zoom=zoom, ratio=ratio)
+                              grid_size=grid_size, k=k, size=size)
         slice_idx += grid_size**2 * k
 
 
-def mapping_per_set(pos_idx, sizes_ks_zooms_ratios):
+def mapping_per_set(pos_idx, sizes_ks):
     """
     returns the number of mapped anchors from each grid
     """
     grid_maps = [0, 0, 0, 0, 0, 0]
-    grid_threshold = [size**2 * k for (size, k, _, _) in sizes_ks_zooms_ratios]
+    grid_threshold = [size**2 * k for (size, k) in sizes_ks]
     for i in range(1, len(grid_threshold)):
         grid_threshold[i] += grid_threshold[i-1]
 
@@ -69,21 +68,20 @@ def mapping_per_set(pos_idx, sizes_ks_zooms_ratios):
     return np.array(grid_maps)
 
 
-def mean_mapping_IOU(image, anchors, pos_idx, gt_bbox_for_matched_anchors, gt_classes_for_matched_anchors, size, sizes_ks_zooms_ratios, visualize_anchor_gt_pair):
+def mean_mapping_IOU(image, anchors, pos_idx, gt_bbox_for_matched_anchors, gt_classes_for_matched_anchors, size, sizes_ks, visualize_anchor_gt_pair):
     """
     Checks how well anchors match ground truth bboxes
     returns the mean IoU of mapped anchors, plots pairs of anchor/gt bboxes
     """
-    anchors_cnr = wh2corners_numpy(anchors[:, :2], anchors[:, 2:])
+    anchors_ltrb = default_boxes(order='ltrb')
     gt_bbox_cnr = wh2corners_numpy(
         gt_bbox_for_matched_anchors[:, :2], gt_bbox_for_matched_anchors[:, 2:])
     ious = []
     for i in range(pos_idx.shape[0]):
-        cur_iou = get_IoU(anchors_cnr[pos_idx[i]], gt_bbox_cnr[i])
+        cur_iou = get_IoU(anchors_ltrb[pos_idx[i]], gt_bbox_cnr[i])
         ious.append(cur_iou)
         if visualize_anchor_gt_pair:
-            cur_grid = list(mapping_per_set(
-                [pos_idx[i]], sizes_ks_zooms_ratios=sizes_ks_zooms_ratios)).index(1)
+            cur_grid = list(mapping_per_set([pos_idx[i]], sizes_ks=sizes_ks)).index(1)
             plot_anchor_gt(image, anchors[pos_idx[i]],
                            gt_bbox_for_matched_anchors[i], gt_classes_for_matched_anchors[i],
                            message="Anchor/GT pair IoU: " + str(cur_iou) + " Grid " + str(cur_grid), size=size)
@@ -100,16 +98,16 @@ def inspect_anchors(image, anchors, gt_bbox_for_matched_anchors, gt_classes_for_
     thoroughly inspect anchors and mapping
     returns the mean IoU of mapped anchors and the number of mapped anchors for each grid
     """
-    sizes_ks_zooms_ratios = [(grid_size, len(v_zoom)*len(v_ratio), v_zoom, v_ratio)
-                             for (grid_size, v_zoom), (_, v_ratio) in zip(anchor_config.zoom.items(), anchor_config.ratio.items())]
+    sizes_ks = list(zip(feat_size, k_list))
+    print(sizes_ks)
     if visualize_anchors:
         visualize_all_anchor_types(image=image, anchors=anchors, size=size,
-                                   sizes_ks_zooms_ratios=sizes_ks_zooms_ratios)
+                                   sizes_ks=sizes_ks)
 
     iou = mean_mapping_IOU(image, anchors, pos_idx, gt_bbox_for_matched_anchors, gt_classes_for_matched_anchors, size,
-                           sizes_ks_zooms_ratios=sizes_ks_zooms_ratios, visualize_anchor_gt_pair=visualize_anchor_gt_pair)
+                           sizes_ks=sizes_ks, visualize_anchor_gt_pair=visualize_anchor_gt_pair)
 
-    maps = mapping_per_set(pos_idx, sizes_ks_zooms_ratios=sizes_ks_zooms_ratios)
+    maps = mapping_per_set(pos_idx, sizes_ks=sizes_ks)
     return iou, maps
 
 
@@ -124,9 +122,10 @@ def test_anchor_mapping(image, bbox_predictions, classification_predictions, gt_
     """
     output_handler = Model_output_handler(params)
 
-    anchors_wh = output_handler.anchors_wh
-    overlaps = jaccard(wh2corners(gt_bbox[:, :2], gt_bbox[:, 2:]), wh2corners(
-        anchors_wh[:, :2], anchors_wh[:, 2:]))
+    anchors_ltrb = default_boxes(order="ltrb")
+    anchors_xywh = default_boxes(order="xywh")
+
+    overlaps = jaccard(wh2corners(gt_bbox[:, :2], gt_bbox[:, 2:]), anchors_ltrb)
 
     prediction_bboxes, predicted_classes, highest_confidence_for_predictions, high_confidence_indeces = output_handler._get_sorted_predictions(
         bbox_predictions, classification_predictions, image_info)
@@ -152,7 +151,7 @@ def test_anchor_mapping(image, bbox_predictions, classification_predictions, gt_
     gt_bbox_for_matched_anchors = output_handler._rescale_bboxes(
         gt_bbox_for_matched_anchors, image_info[1])
     matched_gt_class_ids = matched_gt_class_ids[pos_idx].cpu().numpy()
-    anchors_wh = output_handler._rescale_bboxes(anchors_wh, image_info[1])
+    anchors_xywh = output_handler._rescale_bboxes(anchors_xywh, image_info[1])
 
     if model_outputs:
         test(raw_bbox=bbox_predictions, raw_class_values=classification_predictions, raw_class_ids=raw_class_ids,
@@ -164,11 +163,11 @@ def test_anchor_mapping(image, bbox_predictions, classification_predictions, gt_
              pos_idx=pos_idx,
              size=image_info[1],
              image=image,
-             anchors=anchors_wh,
+             anchors=anchors_xywh,
              gt_bbox_for_matched_anchors=gt_bbox_for_matched_anchors,
              matched_gt_class_ids=matched_gt_class_ids)
 
-    return inspect_anchors(image=image, anchors=anchors_wh, gt_bbox_for_matched_anchors=gt_bbox_for_matched_anchors,
+    return inspect_anchors(image=image, anchors=anchors_xywh, gt_bbox_for_matched_anchors=gt_bbox_for_matched_anchors,
                            gt_classes_for_matched_anchors=matched_gt_class_ids, pos_idx=pos_idx, size=image_info[
                                1],
                            visualize_anchors=visualize_anchors, visualize_anchor_gt_pair=visualize_anchor_gt_pair)
@@ -182,7 +181,7 @@ def test(raw_bbox=None, raw_class_values=None, raw_class_ids=None,
          indeces_kept_by_nms=None,
          pos_idx=None, size=(320, 320),
          image=None, anchors=None,
-         one_by_one=False,
+         one_by_one=True,
          gt_bbox_for_matched_anchors=None,
          matched_gt_class_ids=None):
     '''
