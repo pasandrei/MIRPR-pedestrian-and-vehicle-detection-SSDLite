@@ -98,7 +98,7 @@ class DefaultBoxes(object):
                 w, h = sk1*sqrt(alpha), sk1/sqrt(alpha)
                 all_sizes.append((w, h))
                 all_sizes.append((h, w))
-            for i, j in itertools.product(range(sfeat), repeat=2):
+            for j, i in itertools.product(range(sfeat), repeat=2):
                 for w, h in all_sizes:
                     cx, cy = (j+0.5)/fk[idx], (i+0.5)/fk[idx]
                     self.default_boxes.append((cx, cy, w, h))

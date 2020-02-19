@@ -31,27 +31,25 @@ class Classification_Loss(nn.Module):
 
         Returns: softmax loss or (weighted if focal) BCE loss
         '''
-        bs, anchor_nr, n_classes = pred.shape
-        pred = pred.view(-1, n_classes)
-        targ = targ.view(-1)
+
+        batch, n_anchors, n_classes = pred.shape
         class_idx = self.map_id_to_idx(targ)
 
         if self.loss_type == "BCE":
-            one_hot = torch.zeros((class_idx.shape[0], n_classes+1))
-            one_hot = one_hot.to("cuda:0" if torch.cuda.is_available() else "cpu")
-            one_hot[torch.arange(class_idx.shape[0]), class_idx] = 1
+            one_hot = torch.nn.functional.one_hot(class_idx, num_classes=n_classes+1).float()
+            one_hot = one_hot.to(device)
 
             # remove background column
-            one_hot = one_hot[:, :-1]
+            one_hot = one_hot[:, :, :-1]
 
             weight = self.get_weight(pred, one_hot) if self.focal_loss else None
             bce_loss = torch.nn.functional.binary_cross_entropy_with_logits(pred, one_hot,
                                                                             weight=weight,
                                                                             reduction='none')
-            bce_loss = bce_loss.view(bs, anchor_nr, n_classes)
             return bce_loss.sum(dim=2)
         else:
-            return torch.nn.functional.cross_entropy(pred, class_idx, reduction='none').view(bs, anchor_nr)
+            pred = pred.permute(0, 2, 1).contiguous()
+            return torch.nn.functional.cross_entropy(pred, class_idx, reduction='none')
 
     def get_weight(self, x, t):
         # focal loss decreases loss for correctly classified (P>0.5) examples, relative to the missclassified ones
