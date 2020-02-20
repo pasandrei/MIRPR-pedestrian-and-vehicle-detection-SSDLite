@@ -32,10 +32,11 @@ class Classification_Loss(nn.Module):
         Returns: softmax loss or (weighted if focal) BCE loss
         '''
 
-        batch, n_anchors, n_classes = pred.shape
+        batch, n_classes, n_anchors = pred.shape
         class_idx = self.map_id_to_idx(targ)
 
         if self.loss_type == "BCE":
+            pred = pred.permute(0, 2, 1).contiguous()
             one_hot = torch.nn.functional.one_hot(class_idx, num_classes=n_classes+1).float()
             one_hot = one_hot.to(device)
 
@@ -48,7 +49,6 @@ class Classification_Loss(nn.Module):
                                                                             reduction='none')
             return bce_loss.sum(dim=2)
         else:
-            pred = pred.permute(0, 2, 1).contiguous()
             return torch.nn.functional.cross_entropy(pred, class_idx, reduction='none')
 
     def get_weight(self, x, t):
@@ -113,7 +113,7 @@ class Detection_Loss():
 
         Return: loc and class loss per whole batch
         """
-        pred_bbox, pred_id = pred
+        pred_bbox, pred_id = pred[0].permute(0, 2, 1), pred[1]
         gt_bbox, gt_id = targ
 
         # compute offsets

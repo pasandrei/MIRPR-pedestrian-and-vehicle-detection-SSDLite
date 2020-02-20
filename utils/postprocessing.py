@@ -151,6 +151,10 @@ def prepare_outputs_for_COCOeval(output, image_info, prediction_annotations, pre
 
         image_id = image_info[i][0]
 
+        output[0] = output[0].permute(0, 2, 1)
+        output[0] = output[0].permute(0, 2, 2)
+
+
         complete_outputs = output_handler.process_outputs(
             output[0][i], output[1][i], image_info[i])
 

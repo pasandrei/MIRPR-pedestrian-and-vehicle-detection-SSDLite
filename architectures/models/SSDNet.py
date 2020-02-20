@@ -34,16 +34,9 @@ class OutConv(nn.Module):
         self.oconv_class = nn.Conv2d(in_channels, n_classes*k, 1)
 
     def forward(self, x):
-        return [self.flatten_conv(self.oconv_loc(self.prepare_bbox(x)), self.k),
-                self.flatten_conv(self.oconv_class(self.prepare_class(x)), self.k)]
-
-    def flatten_conv(self, x, k):
-        batch_size, channels, H, W = x.size()
-
-        x = x.permute(0, 2, 3, 1).contiguous()  # B x H x W x (4*k)
-
-        # batch, H*W*k, #classes or 4 (bbox coords)
-        return x.view(batch_size, -1, channels//k)
+        batch_size, channels, H, W = x.shape
+        return [self.oconv_loc(self.prepare_bbox(x)).view(batch_size, -1, H*W*self.k),
+                self.oconv_class(self.prepare_class(x)).view(batch_size, -1, H*W*self.k)]
 
 
 class SSD_Head(nn.Module):
@@ -114,12 +107,12 @@ class SSD_Head(nn.Module):
         x = self.down_conv5(x)
         _1bbox, _1class = self.out5(x)
 
-        bbox_predictions = torch.cat([_10bbox, _5bbox, _3bbox, _2bbox, _1bbox], dim=1)
-        class_predictions = torch.cat([_10class, _5class, _3class, _2class, _1class], dim=1)
+        bbox_predictions = torch.cat([_10bbox, _5bbox, _3bbox, _2bbox, _1bbox], dim=2)
+        class_predictions = torch.cat([_10class, _5class, _3class, _2class, _1class], dim=2)
 
         if self.out0 is not None:
             _20bbox, _20class = self.out0(lay15)
-            bbox_predictions = torch.cat([_20bbox, bbox_predictions], dim=1)
-            class_predictions = torch.cat([_20class, class_predictions], dim=1)
+            bbox_predictions = torch.cat([_20bbox, bbox_predictions], dim=2)
+            class_predictions = torch.cat([_20class, class_predictions], dim=2)
 
         return bbox_predictions, class_predictions
