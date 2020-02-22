@@ -33,7 +33,7 @@ def train(model, optimizer, train_loader, model_evaluator, detection_loss, param
         lr=params.learning_rate, start_epoch=start_epoch, params=params)
     backbone_freezer = Backbone_Freezer(params)
     losses = [0] * 4
-    one_tenth_of_loader = len(train_loader) // params.train_stats_step
+    one_tenth_of_loader = len(train_loader) // params.batch_stats_step
 
     if params.freeze_backbone:
         backbone_freezer.freeze_backbone(model)

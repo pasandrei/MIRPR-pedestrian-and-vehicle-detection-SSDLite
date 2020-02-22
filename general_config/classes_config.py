@@ -6,3 +6,11 @@ training_ids = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18, 19, 2
 training_ids2_idx = {training_ids[i]: i for i in range(len(training_ids))}
 
 idx_training_ids2 = {i: training_ids[i] for i in range(len(training_ids))}
+
+person_ids = set([1])
+vehicle_ids = set([2, 3, 4, 5, 6, 7, 8, 9])
+
+person_color = {k: (0, 255, 0) for k in person_ids}
+vehicle_color = {k: (0, 0, 255) for k in vehicle_ids}
+
+complete_map = person_color.update(vehicle_color)

@@ -10,15 +10,18 @@ from utils.training import load_model, model_setup
 from general_config.config import device
 
 
-def model_output_pipeline(params_path, model_outputs=False, visualize_anchors=False, visualize_anchor_gt_pair=False):
-    params = Params(params_path)
-
-    if params.model_id == 'ssdnet':
-        model = model_setup(params)
-    model.to(device)
+def model_output_pipeline(model_id="ssdnet", model_outputs=False, visualize_anchors=False, visualize_anchor_gt_pair=False):
+    """
+    model_outputs - flag to enable plotting model outputs
+    visualize_anchors - flag to visualize anchors
+    visualize_anchor_gt_pair - flag to visualize ground truth bboxes and respective anchors
+    """
+    params = Params(path_config.format(model_id))
 
     if model_outputs:
+        model = model_setup(params)
         model, _, _ = load_model(model, params)
+        model.to(device)
         model.eval()
 
     valid_loader = dataloaders.get_dataloaders_test(params)
@@ -38,6 +41,7 @@ def model_output_pipeline(params_path, model_outputs=False, visualize_anchors=Fa
                 non_background = batch_targets[1][idx] != 100
                 gt_bbox = batch_targets[0][idx][non_background]
                 gt_class = batch_targets[1][idx][non_background]
+
                 iou, maps = anchor_mapping.test_anchor_mapping(
                     image=batch_images[idx], bbox_predictions=predictions[0][idx], classification_predictions=predictions[1][idx],
                     gt_bbox=gt_bbox, gt_class=gt_class, image_info=images_info[idx], params=params,

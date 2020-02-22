@@ -1,6 +1,7 @@
 from torch.utils.tensorboard import SummaryWriter
 from train.loss_fn import Detection_Loss
 import torch
+import random
 
 from train import train
 from train.config import Params
@@ -10,13 +11,14 @@ from misc.model_output_handler import Model_output_handler
 from jaad_data import inference
 from general_config import path_config
 
-from utils.prints import *
-from utils.training import *
+from utils import prints
+from utils import training
 
 
 def run(model_id="ssdnet", train_model=False, load_checkpoint=False, eval_only=False, cross_validate=False, jaad=False):
     """
     Arguments:
+    model_id - id of the model to be trained
     train_model - training
     load_checkpoint - load a pretrained model
     eval_only - only inference
@@ -24,20 +26,21 @@ def run(model_id="ssdnet", train_model=False, load_checkpoint=False, eval_only=F
     jaad - inference on jaad videos
     """
     torch.manual_seed(2)
+    random.seed(2)
 
     params = Params(path_config.params_path.format(model_id))
     stats = Params(path_config.stats_path.format(model_id))
 
-    show_training_info(params)
+    prints.show_training_info(params)
 
-    train_loader, valid_loader = prepare_datasets(params)
-    print_dataset_stats(train_loader, valid_loader)
+    train_loader, valid_loader = training.prepare_datasets(params)
+    prints.print_dataset_stats(train_loader, valid_loader)
 
-    model = model_setup(params)
-    optimizer = optimizer_setup(model, params)
+    model = training.model_setup(params)
+    optimizer = training.optimizer_setup(model, params)
 
     if jaad:
-        model, _, _ = load_model(model, params, optimizer)
+        model, _, _ = training.load_model(model, params, optimizer)
         handler = Model_output_handler(params)
         inference.jaad_inference(model, handler)
 
@@ -50,9 +53,9 @@ def run(model_id="ssdnet", train_model=False, load_checkpoint=False, eval_only=F
 
     start_epoch = 0
     if load_checkpoint:
-        model, optimizer, start_epoch = load_model(model, params, optimizer)
+        model, optimizer, start_epoch = training.load_model(model, params, optimizer)
 
-    print_trained_parameters_count(model, optimizer)
+    prints.print_trained_parameters_count(model, optimizer)
 
     if eval_only:
         model_evaluator.complete_evaluate(model, optimizer, train_loader)

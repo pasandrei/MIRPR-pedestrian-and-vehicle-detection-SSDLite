@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from architectures.backbones.MobileNet import ConvBNReLU, InvertedResidual, mobilenet_v2, _make_divisible
+from architectures.backbones.MobileNet import ConvBNReLU, mobilenet_v2
 
 
 class DepthWiseConv(nn.Module):

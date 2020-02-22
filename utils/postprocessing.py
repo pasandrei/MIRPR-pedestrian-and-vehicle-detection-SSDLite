@@ -53,41 +53,10 @@ def after_nms(prediction_bboxes, predicted_confidences):
     return post_nms_bboxes, post_nms_confidences
 
 
-def get_intersection(bbox1, bbox2):
-    x1 = max(bbox1[0], bbox2[0])
-    y1 = max(bbox1[1], bbox2[1])
-    x2 = min(bbox1[2], bbox2[2])
-    y2 = min(bbox1[3], bbox2[3])
-
-    return np.array([x1, y1, x2, y2])
-
-
-def get_bbox_area(bbox):
-    width = bbox[2] - bbox[0]
-    height = bbox[3] - bbox[1]
-
-    if width < 0 or height < 0:
-        return 0
-
-    return width*height
-
-
-def get_IoU(bbox1, bbox2):
-    bbox1_x1, bbox1_y1, bbox1_x2, bbox1_y2 = bbox1
-    bbox2_x1, bbox2_y1, bbox2_x2, bbox2_y2 = bbox2
-
-    intersection = get_intersection(bbox1, bbox2)
-    intersection_area = get_bbox_area(intersection)
-
-    union_area = get_bbox_area(bbox1) + get_bbox_area(bbox2) - intersection_area
-
-    if union_area == 0:
-        return -1
-
-    return intersection_area/union_area
-
-
-def plot_anchor_gt(image, anchor, gt, cur_class, message="DA_MA", size=(320, 320)):
+def plot_anchor_gt(image, anchor, gt, message="no_message", size=(320, 320)):
+    """
+    Plots a ground truth bbox with an anchor that mapped to it
+    """
     image = image.transpose(1, 2, 0)
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     image = cv2.resize(image, dsize=(size[0], size[1]))
@@ -96,10 +65,7 @@ def plot_anchor_gt(image, anchor, gt, cur_class, message="DA_MA", size=(320, 320
     cv2.rectangle(image, (int(anchor[0]-anchor[2]/2), int(anchor[1]-anchor[3]/2)),
                   (int(anchor[0] + anchor[2]/2), int(anchor[1] + anchor[3]/2)), color_anchor, 2)
 
-    # gt_id_2_color = {1: (200, 200, 0), 3: (150, 250, 150)}
-    color_gt = (200, 200, 0)
-    gt_id_2_color = {1: (200, 200, 0), 3: (150, 250, 150)}
-    color_gt = gt_id_2_color.get(cur_class, color_gt)
+    color_gt = (255, 0, 0)
     cv2.rectangle(image, (int(gt[0]-gt[2]/2), int(gt[1]-gt[3]/2)),
                   (int(gt[0] + gt[2]/2), int(gt[1] + gt[3]/2)), color_gt, 2)
 
@@ -107,33 +73,24 @@ def plot_anchor_gt(image, anchor, gt, cur_class, message="DA_MA", size=(320, 320
     cv2.waitKey(0)
 
 
-def plot_bounding_boxes(image, bounding_boxes, classes, bbox_type="pred", message='no_message', size=(500, 500)):
+def plot_bounding_boxes(image, bounding_boxes, classes, ground_truth=False, message='no_message', size=(320, 320)):
     """
     Plots an array of bounding_boxes with their respective color, returns the modified image
+    red - ground truth
+    green - person prediction
+    blue - vehicle prediction
+    gray - any other class
     """
     image = image.transpose(1, 2, 0)
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     image = cv2.resize(image, dsize=(size[0], size[1]))
-
-    # light blue gt is human, light green is vehicle
-    gt_id_2_color = {1: (200, 200, 0), 3: (150, 250, 150)}
-    # blue prediction is human, green is vehicle
-    pred_id_2_color = {1: (255, 0, 0), 3: (0, 255, 0)}
-    # anchors are not class aware, they are just red
-    anchor_id_2_color = {1: (0, 0, 255), 3: (0, 0, 255)}
-    if bbox_type == "pred":
-        id_2_color = pred_id_2_color
-    elif bbox_type == "gt":
-        id_2_color = gt_id_2_color
-    else:
-        id_2_color = anchor_id_2_color
 
     if len(bounding_boxes.shape) == 1:
         bounding_boxes = bounding_boxes.reshape(1, -1)
     classes = classes.reshape(-1)
 
     for (startX, startY, width, height), pred_class in zip(bounding_boxes, classes):
-        color = id_2_color.get(pred_class, (0, 255, 0))
+        color = (255, 0, 0) if ground_truth else classes_config.complete_map.get(pred_class, (170, 170, 170))
         cv2.rectangle(image, (int(startX-width/2), int(startY-height/2)),
                       (int(startX+width/2), int(startY+height/2)), color, 2)
 
@@ -145,6 +102,9 @@ def plot_bounding_boxes(image, bounding_boxes, classes, bbox_type="pred", messag
 
 
 def prepare_outputs_for_COCOeval(output, image_info, prediction_annotations, prediction_id, output_handler):
+    """
+    convert raw model outputs to format required by COCO evaluation
+    """
     batch_size = output[0].shape[0]
 
     for i in range(batch_size):

@@ -5,7 +5,7 @@ from data import dataloaders
 
 from architectures.models import SSDNet, resnet_ssd
 from general_config import anchor_config
-from train.optimizer_handler import *
+from train import optimizer_handler
 from general_config import path_config
 from general_config.config import device
 
@@ -73,6 +73,9 @@ def plot_grad_flow(model):
 
 
 def model_setup(params):
+    """
+    creates model and moves it on to cpu/gpu
+    """
     n_classes = params.n_classes if params.loss_type == "BCE" else params.n_classes + 1
     if params.model_id == 'ssdnet':
         model = SSDNet.SSD_Head(n_classes=n_classes, k_list=anchor_config.k_list)
@@ -84,16 +87,19 @@ def model_setup(params):
 
 
 def optimizer_setup(model, params):
+    """
+    creates optimizer, can have layer specific options
+    """
     if params.optimizer == 'adam':
         if params.freeze_backbone:
-            optimizer = layer_specific_adam(model, params)
+            optimizer = optimizer_handler.layer_specific_adam(model, params)
         else:
-            optimizer = plain_adam(model, params)
+            optimizer = optimizer_handler.plain_adam(model, params)
     elif params.optimizer == 'sgd':
         if params.freeze_backbone:
-            optimizer = layer_specific_sgd(model, params)
+            optimizer = optimizer_handler.layer_specific_sgd(model, params)
         else:
-            optimizer = plain_sgd(model, params)
+            optimizer = optimizer_handler.plain_sgd(model, params)
 
     return optimizer
 

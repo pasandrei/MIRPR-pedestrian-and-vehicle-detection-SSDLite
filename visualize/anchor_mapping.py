@@ -2,12 +2,11 @@ import numpy as np
 import random
 
 from misc.model_output_handler import Model_output_handler
-from general_config import anchor_config
 
-from utils.postprocessing import *
-from utils.preprocessing import *
-from utils.box_computations import *
-from utils.training import *
+from utils.postprocessing import plot_bounding_boxes, plot_anchor_gt, nms, wh2corners
+from utils.box_computations import jaccard, wh2corners_numpy, get_IoU
+from utils.preprocessing import map_to_ground_truth
+
 from general_config.anchor_config import default_boxes, feat_size, k_list
 
 
@@ -194,7 +193,6 @@ def test(raw_bbox=None, raw_class_values=None, raw_class_ids=None,
     - pos_idx - indeces of anchors (predictions) that mapped by IOU threshold (matching phase)
     - size - dimensions of image
     - image - actual input image
-    - achors - corner format anchors
     '''
     matched_anchors = anchors[pos_idx]
     matched_bbox = raw_bbox[pos_idx]
