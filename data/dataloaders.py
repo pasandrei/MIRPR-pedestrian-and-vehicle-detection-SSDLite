@@ -9,10 +9,10 @@ from general_config import path_config
 def get_dataloaders(params):
     ''' creates and returns train and validation data loaders '''
 
-    train_dataloader = get_train_dataloader(params)
+    # train_dataloader = get_train_dataloader(params)
     valid_dataloader = get_valid_dataloader(params)
 
-    return train_dataloader, valid_dataloader
+    return valid_dataloader, valid_dataloader
 
 
 def get_dataloaders_test(params):

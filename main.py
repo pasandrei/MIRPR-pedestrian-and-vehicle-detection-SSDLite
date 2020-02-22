@@ -13,6 +13,12 @@ from general_config import path_config
 from utils.prints import *
 from utils.training import *
 
+try:
+    from apex import amp
+    APEX_AVAILABLE = True
+except ModuleNotFoundError:
+    APEX_AVAILABLE = False
+
 
 def run(model_id="ssdnet", train_model=False, load_checkpoint=False, eval_only=False, cross_validate=False, jaad=False):
     """
@@ -35,6 +41,11 @@ def run(model_id="ssdnet", train_model=False, load_checkpoint=False, eval_only=F
 
     model = model_setup(params)
     optimizer = optimizer_setup(model, params)
+
+    model, optimizer = amp.initialize(
+        model, optimizer, opt_level="O2",
+        keep_batchnorm_fp32=True, loss_scale="dynamic"
+    )
 
     if jaad:
         model, _, _ = load_model(model, params, optimizer)
@@ -63,4 +74,4 @@ def run(model_id="ssdnet", train_model=False, load_checkpoint=False, eval_only=F
 
     if train_model:
         train.train(model, optimizer, train_loader, model_evaluator,
-                    detection_loss, params, start_epoch)
+                    detection_loss, params, start_epoch, APEX_AVAILABLE)
