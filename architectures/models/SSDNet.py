@@ -4,16 +4,30 @@ import torch.nn as nn
 from architectures.backbones.MobileNet import ConvBNReLU, InvertedResidual, mobilenet_v2, _make_divisible
 
 
+class DepthWiseConv_No_ReLu(nn.Module):
+    """
+    Depth wise convolution used for the final bbox offset and class score predictions
+    """
+    def __init__(self, in_planes, out_planes, kernel_size=3, stride=1, padding=0):
+        super().__init__()
+        self.ds_conv = nn.Conv2d(in_planes, in_planes, kernel_size, groups=in_planes, padding=padding)
+        self.ds_bn = nn.BatchNorm2d(in_planes)
+        self.pw_conv = nn.Conv2d(in_planes, out_planes, kernel_size=1)
+
+    def forward(self, x):
+        return self.pw_conv(self.ds_bn(self.ds_conv(x)))
+
+
 class DepthWiseConv(nn.Module):
     """
     depth wise followed by point wise convolution
     """
 
-    def __init__(self, in_planes, out_planes, kernel_size=3, stride=1, padding=0):
+    def __init__(self, in_planes, out_planes, kernel_size=3, stride=1, padding=0, bias=False):
         super().__init__()
         self.ds_conv = ConvBNReLU(in_planes, in_planes, kernel_size=kernel_size,
-                                  stride=stride, groups=in_planes, padding=padding)
-        self.pw_conv = ConvBNReLU(in_planes, out_planes, kernel_size=1)
+                                  stride=stride, groups=in_planes, padding=padding, bias=False)
+        self.pw_conv = ConvBNReLU(in_planes, out_planes, kernel_size=1, bias=False)
 
     def forward(self, x):
         return self.pw_conv(self.ds_conv(x))
@@ -23,20 +37,18 @@ class OutConv(nn.Module):
     def __init__(self, in_channels, n_classes, k):
         super().__init__()
         self.k = k
+        self.n_classes = n_classes
         """
         returns the predicted bboxes and class confidences as flattened arrays after applying a
         depth wise and a point wise convolution
         """
-        self.prepare_bbox = ConvBNReLU(in_channels, in_channels, groups=in_channels)
-        self.prepare_class = ConvBNReLU(in_channels, in_channels, groups=in_channels)
-
-        self.oconv_loc = nn.Conv2d(in_channels, 4*k, 1)
-        self.oconv_class = nn.Conv2d(in_channels, n_classes*k, 1)
+        self.oconv_loc = DepthWiseConv_No_ReLu(in_channels, 4*k, kernel_size=3, padding=1)
+        self.oconv_class = DepthWiseConv_No_ReLu(in_channels, self.n_classes*k, kernel_size=3, padding=1)
 
     def forward(self, x):
-        batch_size, channels, H, W = x.shape
-        return [self.oconv_loc(self.prepare_bbox(x)).view(batch_size, -1, H*W*self.k),
-                self.oconv_class(self.prepare_class(x)).view(batch_size, -1, H*W*self.k)]
+        batch_size = x.shape[0]
+        return [self.oconv_loc(x).view(batch_size, 4, -1),
+                self.oconv_class(x).view(batch_size, self.n_classes, -1)]
 
 
 class SSD_Head(nn.Module):
@@ -59,19 +71,19 @@ class SSD_Head(nn.Module):
         self.out1 = OutConv(1280, n_classes, k_list[1])
 
         # construct second grid 5x5
-        self.down_conv2 = DepthWiseConv(in_planes=1280, out_planes=512, stride=2, padding=1)
+        self.down_conv2 = DepthWiseConv(in_planes=1280, out_planes=512, stride=2, padding=1, bias=False)
         self.out2 = OutConv(512, n_classes, k_list[2])
 
         # third grid 3x3
-        self.down_conv3 = DepthWiseConv(in_planes=512, out_planes=256)
+        self.down_conv3 = DepthWiseConv(in_planes=512, out_planes=256, bias=False)
         self.out3 = OutConv(256, n_classes, k_list[3])
 
-        # fourth grid 2x2
-        self.down_conv4 = DepthWiseConv(in_planes=256, out_planes=256, kernel_size=2)
+        # # fourth grid 2x2
+        self.down_conv4 = DepthWiseConv(in_planes=256, out_planes=256, kernel_size=2, bias=False)
         self.out4 = OutConv(256, n_classes, k_list[4])
 
         # last grid 1x1
-        self.down_conv5 = DepthWiseConv(in_planes=256, out_planes=128, kernel_size=2)
+        self.down_conv5 = DepthWiseConv(in_planes=256, out_planes=128, kernel_size=2, bias=False)
         self.out5 = OutConv(128, n_classes, k_list[5])
 
         # weight initialization
@@ -87,12 +99,11 @@ class SSD_Head(nn.Module):
                 nn.init.normal_(m.weight, 0, 0.01)
                 nn.init.zeros_(m.bias)
 
-        self.backbone = mobilenet_v2(width_mult=width_mult)
+        self.backbone = mobilenet_v2(pretrained=True, width_mult=width_mult)
         print('Created SSDNet model succesfully!')
 
     def forward(self, x):
         lay15, x = self.backbone(x)
-
         _10bbox, _10class = self.out1(x)
 
         x = self.down_conv2(x)
