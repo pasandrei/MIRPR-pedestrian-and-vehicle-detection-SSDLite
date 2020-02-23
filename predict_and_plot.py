@@ -16,7 +16,7 @@ def model_output_pipeline(model_id="ssdlite", model_outputs=False, visualize_anc
     visualize_anchors - flag to visualize anchors
     visualize_anchor_gt_pair - flag to visualize ground truth bboxes and respective anchors
     """
-    params = Params(path_config.format(model_id))
+    params = Params(path_config.params_path.format(model_id))
 
     if model_outputs:
         model = model_setup(params)
@@ -43,8 +43,8 @@ def model_output_pipeline(model_id="ssdlite", model_outputs=False, visualize_anc
                 gt_class = batch_targets[1][idx][non_background]
 
                 iou, maps = anchor_mapping.test_anchor_mapping(
-                    image=batch_images[idx], bbox_predictions=predictions[0][idx].permute(0, 2, 1),
-                    classification_predictions=predictions[1][idx].permute(0, 2, 1),
+                    image=batch_images[idx], bbox_predictions=predictions[0][idx].permute(1, 0),
+                    classification_predictions=predictions[1][idx].permute(1, 0),
                     gt_bbox=gt_bbox, gt_class=gt_class, image_info=images_info[idx], params=params,
                     model_outputs=model_outputs, visualize_anchors=visualize_anchors, visualize_anchor_gt_pair=visualize_anchor_gt_pair)
                 total_iou += iou

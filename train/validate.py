@@ -29,7 +29,8 @@ class Model_evaluator():
         evaluates model performance of the validation set, saves current model, optimizer, stats if it is better that the best so far
         also logs info to tensorboard
         """
-        loc_loss_train, class_loss_train = prints.print_train_stats(train_loader, losses, self.params)
+        loc_loss_train, class_loss_train = prints.print_train_stats(
+            train_loader, losses, self.params)
 
         print('Validation start...')
         model.eval()
@@ -53,10 +54,10 @@ class Model_evaluator():
                 loc_loss, class_loss = self.detection_loss.ssd_loss(output, label)
                 training.update_losses(losses, loc_loss.item(), class_loss.item())
 
-                prints.print_val_batch_stats(model, batch_idx, self.valid_loader, losses, self.params)
+                prints.print_val_batch_stats(
+                    model, batch_idx, self.valid_loader, losses, self.params)
 
-            # mAP = postprocessing.evaluate_on_COCO_metrics(prediction_annotations)
-            mAP = 1
+            mAP = postprocessing.evaluate_on_COCO_metrics(prediction_annotations)
 
             val_loss = (losses[2] + losses[3]) / val_set_size
             if self.stats.mAP < mAP:
@@ -67,7 +68,8 @@ class Model_evaluator():
             if self.stats.loss > val_loss:
                 self.stats.loss = val_loss
                 msg = 'Model saved succesfully by loss'
-                training.save_model(epoch, model, optimizer, self.params, self.stats, msg=msg, by_loss=True)
+                training.save_model(epoch, model, optimizer, self.params,
+                                    self.stats, msg=msg, by_loss=True)
 
             # tensorboard
             loc_loss_val, class_loss_val = losses[2] / val_set_size, losses[3] / val_set_size

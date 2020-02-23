@@ -3,6 +3,7 @@ import cv2
 
 import json
 from general_config import classes_config, path_config
+from utils.box_computations import get_IoU
 
 
 from pycocotools.cocoeval import COCOeval
@@ -90,7 +91,8 @@ def plot_bounding_boxes(image, bounding_boxes, classes, ground_truth=False, mess
     classes = classes.reshape(-1)
 
     for (startX, startY, width, height), pred_class in zip(bounding_boxes, classes):
-        color = (255, 0, 0) if ground_truth else classes_config.complete_map.get(pred_class, (170, 170, 170))
+        color = (255, 0, 0) if ground_truth else classes_config.complete_map.get(
+            pred_class, (170, 170, 170))
         cv2.rectangle(image, (int(startX-width/2), int(startY-height/2)),
                       (int(startX+width/2), int(startY+height/2)), color, 2)
 
@@ -113,7 +115,6 @@ def prepare_outputs_for_COCOeval(output, image_info, prediction_annotations, pre
 
         pred_bbox = output[0].permute(0, 2, 1)
         pred_class = output[1].permute(0, 2, 1)
-
 
         complete_outputs = output_handler.process_outputs(
             pred_bbox[i], pred_class[i], image_info[i])
