@@ -74,6 +74,7 @@ def match(anchors_ltrb, anchors_xywh, gt_bbox, gt_class, params):
 class DefaultBoxes(object):
     # https://github.com/NVIDIA/DeepLearningExamples/tree/master/PyTorch/Detection/SSD
     def __init__(self, fig_size, feat_size, steps, scales, aspect_ratios, scale_xy=0.1, scale_wh=0.2):
+
         self.feat_size = feat_size
         self.fig_size = fig_size
 
@@ -91,6 +92,7 @@ class DefaultBoxes(object):
         self.default_boxes = []
         # size of feature and number of feature
         for idx, sfeat in enumerate(self.feat_size):
+
             sk1 = scales[idx]/fig_size
             sk2 = scales[idx+1]/fig_size
             sk3 = sqrt(sk1*sk2)
@@ -100,14 +102,13 @@ class DefaultBoxes(object):
                 w, h = sk1*sqrt(alpha), sk1/sqrt(alpha)
                 all_sizes.append((w, h))
                 all_sizes.append((h, w))
-            for i, j in itertools.product(range(sfeat), repeat=2):
-                for w, h in all_sizes:
+            for w, h in all_sizes:
+                for i, j in itertools.product(range(sfeat), repeat=2):
                     cx, cy = (j+0.5)/fk[idx], (i+0.5)/fk[idx]
                     self.default_boxes.append((cx, cy, w, h))
 
         self.dboxes = torch.tensor(self.default_boxes)
         self.dboxes.clamp_(min=0, max=1)
-
         # For IoU calculation
         self.dboxes_ltrb = self.dboxes.clone()
         self.dboxes_ltrb[:, 0] = self.dboxes[:, 0] - 0.5 * self.dboxes[:, 2]
@@ -124,10 +125,8 @@ class DefaultBoxes(object):
         return self.scale_wh_
 
     def __call__(self, order="ltrb"):
-        if order == "ltrb":
-            return self.dboxes_ltrb
-        if order == "xywh":
-            return self.dboxes
+        if order == "ltrb": return self.dboxes_ltrb
+        if order == "xywh": return self.dboxes
 
 
 def prepare_gt(input_img, gt_target):

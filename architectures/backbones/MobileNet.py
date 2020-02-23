@@ -42,7 +42,7 @@ def _make_divisible(v, divisor, min_value=None):
 
 
 class ConvBNReLU(nn.Sequential):
-    def __init__(self, in_planes, out_planes, kernel_size=3, stride=1, groups=1, padding=-1):
+    def __init__(self, in_planes, out_planes, kernel_size=3, stride=1, groups=1, padding=-1, bias=False):
         if padding == -1:
             padding = (kernel_size - 1) // 2
         super(ConvBNReLU, self).__init__(

@@ -97,12 +97,10 @@ class SSD300(nn.Module):
     def bbox_view(self, src, loc, conf):
         ret = []
         for s, l, c in zip(src, loc, conf):
-            loc_ = l(s).permute(0, 2, 3, 1).contiguous()
-            conf_ = c(s).permute(0, 2, 3, 1).contiguous()
-            ret.append((loc_.view(s.size(0), -1, 4), conf_.view(s.size(0), -1, self.label_num)))
+            ret.append((l(s).view(s.size(0), 4, -1), c(s).view(s.size(0), self.label_num, -1)))
 
         locs, confs = list(zip(*ret))
-        locs, confs = torch.cat(locs, 1).contiguous(), torch.cat(confs, 1).contiguous()
+        locs, confs = torch.cat(locs, 2).contiguous(), torch.cat(confs, 2).contiguous()
         return locs, confs
 
     def forward(self, x):

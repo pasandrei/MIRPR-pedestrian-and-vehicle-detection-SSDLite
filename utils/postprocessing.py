@@ -111,8 +111,12 @@ def prepare_outputs_for_COCOeval(output, image_info, prediction_annotations, pre
 
         image_id = image_info[i][0]
 
+        pred_bbox = output[0].permute(0, 2, 1)
+        pred_class = output[1].permute(0, 2, 1)
+
+
         complete_outputs = output_handler.process_outputs(
-            output[0][i], output[1][i], image_info[i])
+            pred_bbox[i], pred_class[i], image_info[i])
 
         for index in range(complete_outputs.shape[0]):
             bbox = [int(x) for x in complete_outputs[index][:4]]

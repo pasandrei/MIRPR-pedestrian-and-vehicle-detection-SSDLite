@@ -43,7 +43,8 @@ def model_output_pipeline(model_id="ssdnet", model_outputs=False, visualize_anch
                 gt_class = batch_targets[1][idx][non_background]
 
                 iou, maps = anchor_mapping.test_anchor_mapping(
-                    image=batch_images[idx], bbox_predictions=predictions[0][idx], classification_predictions=predictions[1][idx],
+                    image=batch_images[idx], bbox_predictions=predictions[0][idx].permute(0, 2, 1),
+                    classification_predictions=predictions[1][idx].permute(0, 2, 1),
                     gt_bbox=gt_bbox, gt_class=gt_class, image_info=images_info[idx], params=params,
                     model_outputs=model_outputs, visualize_anchors=visualize_anchors, visualize_anchor_gt_pair=visualize_anchor_gt_pair)
                 total_iou += iou
