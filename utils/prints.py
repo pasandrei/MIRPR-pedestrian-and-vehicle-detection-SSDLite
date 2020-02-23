@@ -62,7 +62,7 @@ def print_batch_stats(batch_idx, data_loader, loc_loss, class_loss, one_tenth_of
     print('Batch: {} of {}'.format(batch_idx, len(data_loader)))
 
     avg_factor = one_tenth_of_loader * params.batch_size
-    print('Loss in the past {} batches: Localization {} Classification {}'.format(
+    print('Loss in the past {} samples: Localization {} Classification {}'.format(
         avg_factor, loc_loss / avg_factor, class_loss / avg_factor))
 
 
