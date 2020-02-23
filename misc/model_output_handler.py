@@ -1,19 +1,28 @@
-from train.helpers import *
-from misc.postprocessing import *
-from misc.utils import *
-
+import torch
 import numpy as np
 import copy
 
+from general_config.anchor_config import default_boxes
+from utils.box_computations import wh2corners_numpy, corners_to_wh
+from utils.postprocessing import nms
+
 
 class Model_output_handler():
-
-    def __init__(self, conf_threshold=0.35, suppress_threshold=0.5):
+    """
+    Class used to bring the raw model outputs to interpretable data
+    -> bbox coordinates and respective predicted class
+    """
+    def __init__(self, params):
+        self.params = params
         self.unnorm = UnNormalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
-        self.confidence_threshold = conf_threshold
-        self.suppress_threshold = suppress_threshold
-        self.anchors_hw, self.grid_sizes = create_anchors()
-        self.corner_anchors = hw2corners(self.anchors_hw[:, :2], self.anchors_hw[:, 2:])
+        self.confidence_threshold = params.conf_threshold
+        self.suppress_threshold = params.suppress_threshold
+
+        self.anchors_xywh = default_boxes(order="xywh")
+        self.anchors_xywh = self.anchors_xywh.to('cpu')
+
+        self.scale_xy = 10
+        self.scale_wh = 5
 
     def process_outputs(self, bbox_predictions, classification_predictions, image_info):
         """
@@ -24,10 +33,11 @@ class Model_output_handler():
         prediction_bboxes, predicted_classes, highest_confidence_for_predictions, _ = self._get_sorted_predictions(
             bbox_predictions, classification_predictions, image_info)
 
+        # convert to corners for nms
+        prediction_bboxes = wh2corners_numpy(prediction_bboxes[:, :2], prediction_bboxes[:, 2:])
         indeces_kept_by_nms = nms(prediction_bboxes, predicted_classes, self.suppress_threshold)
 
         # new structure: array of bbox, class, confidence
-        # for some reason, bboxes should be WH format
         prediction_bboxes = corners_to_wh(prediction_bboxes)
         complete_outputs = np.concatenate(
             (prediction_bboxes, predicted_classes, highest_confidence_for_predictions), axis=1)
@@ -66,7 +76,6 @@ class Model_output_handler():
         """
         keep predictions above a confidence threshold
         """
-
         highest_confidence = np.amax(predicted_confidences, axis=1)
         keep_indices = (highest_confidence > self.confidence_threshold)
 
@@ -97,18 +106,34 @@ class Model_output_handler():
 
         return predicted_idxs, highest_confidence_for_predictions
 
-    def _convert_bboxes_to_workable_data(self, prediction_bboxes, size):
-        height, width = size
+    def _convert_offsets_to_bboxes(self, prediction_bboxes, size):
+        """
+        Computes offsets according to the ssd paper formula
+        """
         prediction_bboxes = prediction_bboxes.cpu()
-        prediction_bboxes = activations_to_bboxes(
-            prediction_bboxes, self.anchors_hw, self.grid_sizes)
+
+        prediction_bboxes[:, :2] = (1/self.scale_xy)*prediction_bboxes[:, :2]
+        prediction_bboxes[:, 2:] = (1/self.scale_wh)*prediction_bboxes[:, 2:]
+
+        prediction_bboxes[:, :2] = prediction_bboxes[:, :2] * self.anchors_xywh[:, 2:] + \
+            self.anchors_xywh[:, :2]
+        prediction_bboxes[:, 2:] = prediction_bboxes[:, 2:].exp() * self.anchors_xywh[:, 2:]
+
         return self._rescale_bboxes(prediction_bboxes, size)
 
     def _convert_confidences_to_workable_data(self, prediction_confidences):
-        return prediction_confidences.sigmoid().cpu().numpy()
+        """
+        Applies softmax or sigmoid respectively to confidence predictions
+        """
+        if self.params.loss_type == "BCE":
+            return prediction_confidences.sigmoid().cpu().numpy()
+        else:
+            prediction_confidences = torch.nn.functional.softmax(prediction_confidences, dim=1)
+            # want actual object probabilities, so cut the background column
+            return prediction_confidences[:, :-1].cpu().numpy()
 
     def _convert_output_to_workable_data(self, model_output_bboxes, model_output_confidences, size):
-        prediction_bboxes = self._convert_bboxes_to_workable_data(
+        prediction_bboxes = self._convert_offsets_to_bboxes(
             model_output_bboxes, size)
         prediction_confidences = self._convert_confidences_to_workable_data(
             model_output_confidences)
@@ -116,15 +141,16 @@ class Model_output_handler():
 
     def _rescale_bboxes(self, bboxes, size):
         """
-        Args: array of bboxes in corner format
-        returns: bboxes upscaled by height and width as numpy array on cpu
+        Arguments:
+        bboxes - bboxes to be upscaled
+        size - original size of the image used for upscaling
         """
-        height, width = size
+        width, height = size
         scale_bboxes = copy.deepcopy(bboxes)
-        scale_bboxes[:, 0] *= height
-        scale_bboxes[:, 2] *= height
-        scale_bboxes[:, 1] *= width
-        scale_bboxes[:, 3] *= width
+        scale_bboxes[:, 0] *= width
+        scale_bboxes[:, 2] *= width
+        scale_bboxes[:, 1] *= height
+        scale_bboxes[:, 3] *= height
         return (scale_bboxes.cpu().numpy()).astype(int)
 
 

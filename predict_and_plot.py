@@ -1,31 +1,27 @@
-from misc.postprocessing import nms, plot_bounding_boxes
-from train.helpers import *
-from train.config import Params
-from general_config import anchor_config
-from data import dataloaders
-from architectures.models import SSDNet
-from visualize import anchor_mapping
-from misc.model_output_handler import *
-
-import cv2
 import numpy as np
-
 import torch
-import torch.nn as nn
+
+from train.params import Params
+from general_config import anchor_config, path_config
+from data import dataloaders
+from architectures.models import SSDLite
+from visualize import anchor_mapping
+from utils.training import load_model, model_setup
+from general_config.system_device import device
 
 
-def model_output_pipeline(params_path, model_outputs=False, visualize_anchors=False, visualize_anchor_gt_pair=False):
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    params = Params(params_path)
-
-    if params.model_id == 'ssdnet':
-        model = SSDNet.SSD_Head(params.n_classes, anchor_config.k_list)
-    model.to(device)
+def model_output_pipeline(model_id="ssdlite", model_outputs=False, visualize_anchors=False, visualize_anchor_gt_pair=False):
+    """
+    model_outputs - flag to enable plotting model outputs
+    visualize_anchors - flag to visualize anchors
+    visualize_anchor_gt_pair - flag to visualize ground truth bboxes and respective anchors
+    """
+    params = Params(path_config.params_path.format(model_id))
 
     if model_outputs:
-        checkpoint = torch.load('misc/experiments/{}/model_checkpoint'.format(params.model_id))
-        model.load_state_dict(checkpoint['model_state_dict'])
-        print('Model loaded successfully')
+        model = model_setup(params)
+        model, _, _ = load_model(model, params)
+        model.to(device)
         model.eval()
 
     valid_loader = dataloaders.get_dataloaders_test(params)
@@ -37,13 +33,19 @@ def model_output_pipeline(params_path, model_outputs=False, visualize_anchors=Fa
                 batch_images = batch_images.to(device)
                 predictions = model(batch_images)
             else:
+                n_classes = params.n_classes if params.loss_type == "BCE" else params.n_classes + 1
                 predictions = [torch.randn(params.batch_size, anchor_config.total_anchors, 4),
-                               torch.randn(params.batch_size, anchor_config.total_anchors, params.n_classes)]
+                               torch.randn(params.batch_size, anchor_config.total_anchors, n_classes)]
 
             for idx in range(len(batch_images)):
+                non_background = batch_targets[1][idx] != 100
+                gt_bbox = batch_targets[0][idx][non_background]
+                gt_class = batch_targets[1][idx][non_background]
+
                 iou, maps = anchor_mapping.test_anchor_mapping(
-                    image=batch_images[idx], bbox_predictions=predictions[0][idx], classification_predictions=predictions[1][idx],
-                    gt_bbox=batch_targets[0][idx], gt_class=batch_targets[1][idx], image_info=images_info[idx], params=params,
+                    image=batch_images[idx], bbox_predictions=predictions[0][idx].permute(1, 0),
+                    classification_predictions=predictions[1][idx].permute(1, 0),
+                    gt_bbox=gt_bbox, gt_class=gt_class, image_info=images_info[idx], params=params,
                     model_outputs=model_outputs, visualize_anchors=visualize_anchors, visualize_anchor_gt_pair=visualize_anchor_gt_pair)
                 total_iou += iou
                 total_maps += maps

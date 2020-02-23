@@ -1,9 +1,4 @@
-import torch
-
-from misc.model_output_handler import *
-from train.validate import Model_evaluator
-from train import validate
-
+from general_config import path_config
 
 def cross_validate(model, detection_loss, valid_loader, model_evaluator, params):
     """
@@ -22,7 +17,6 @@ def cross_validate(model, detection_loss, valid_loader, model_evaluator, params)
     suppress_range = [(0.4 + i / 50) for i in range(11)]
 
     print(conf_range)
-
     for i in range(len(conf_range)):
         for j in range(len(suppress_range)):
             print("Current best hyperparams: ")
@@ -40,5 +34,5 @@ def cross_validate(model, detection_loss, valid_loader, model_evaluator, params)
                 params.conf_threshold = conf_range[i]
                 params.suppress_threshold = suppress_range[j]
                 params.mAP = cur_mAP
-                params.save('misc/experiments/ssdnet/params.json')
+                params.save(path_config.params_path.format(params.model_id))
                 print('Params saved succesfully')

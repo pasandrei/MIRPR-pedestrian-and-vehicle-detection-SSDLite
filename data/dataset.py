@@ -1,13 +1,12 @@
-from data.vision_dataset import VisionDataset
-from PIL import Image
+import torch
 import os
 import os.path
 import torchvision.transforms.functional as F
-import numpy
 import random
-import copy
-
-from train.helpers import *
+from data.vision_dataset import VisionDataset
+from PIL import Image
+from general_config.anchor_config import default_boxes
+from utils.preprocessing import *
 
 
 class CocoDetection(VisionDataset):
@@ -26,12 +25,16 @@ class CocoDetection(VisionDataset):
     We are using the COCO API on top of which we build our custom data processing
     """
 
-    def __init__(self, root, annFile, transform=None, target_transform=None, transforms=None, augmentation=True):
+    def __init__(self, root, annFile, transform=None, target_transform=None, transforms=None, augmentation=True, params=None):
         super().__init__(root, transforms, transform, target_transform)
         from pycocotools.coco import COCO
         self.coco = COCO(annFile)
         self.ids = list(sorted(self.coco.imgs.keys()))
         self.augmentation = augmentation
+        self.params = params
+
+        self.anchors_ltrb = default_boxes(order='ltrb')
+        self.anchors_xywh = default_boxes(order='xywh')
 
     def __getitem__(self, batched_indices):
         """
@@ -50,13 +53,15 @@ class CocoDetection(VisionDataset):
             # target[0] = tensor of bboxes of objects in image
             # target[1] = tensor of class ids in image
             target = prepare_gt(img, target)
-            
-            if len(target[0].shape) < 2:
+            self.check_bbox_validity(target)
+
+            if target[0].nelement() == 0:
                 continue
 
             width, height = img.size
 
-            img = F.resize(img, size=(320, 320), interpolation=2)
+            img = F.resize(img, size=(self.params.input_width,
+                                      self.params.input_height), interpolation=2)
             if self.augmentation:
                 img, target = self.augment_data(img, target)
 
@@ -65,19 +70,25 @@ class CocoDetection(VisionDataset):
             img = F.normalize(img, mean=[0.485, 0.456, 0.406],
                               std=[0.229, 0.224, 0.225])
 
+            # #anchors x 4 and #anchors x 1
+            gt_bbox, gt_class = match(self.anchors_ltrb, self.anchors_xywh,
+                                      target[0], target[1], self.params)
+
             imgs.append(img)
-            targets_bboxes.append(target[0])
-            targets_classes.append(target[1])
-            image_info.append((img_id, (height, width)))
+            targets_bboxes.append(gt_bbox)
+            targets_classes.append(gt_class)
+            image_info.append((img_id, (width, height)))
 
         # B x C x H x W
         batch_images = torch.stack(imgs)
 
-        # batch_targets[0] = list of bboxes tensors for each image
-        # batch_targets[1] = list of class id tensors for each image
-        batch_targets = [targets_bboxes, targets_classes]
+        # B x #anchors x 4 and 1 respectively
+        batch_bboxes = torch.stack(targets_bboxes)
+        batch_class_ids = torch.stack(targets_classes)
 
-        return batch_images, batch_targets, image_info
+        label = (batch_bboxes, batch_class_ids)
+
+        return batch_images, label, image_info
 
     def __len__(self):
         return len(self.ids)
@@ -89,18 +100,33 @@ class CocoDetection(VisionDataset):
             self.flip_gt_bboxes(target[0])
 
         # color jitter
-        img = F.adjust_brightness(img, random.uniform(0.85, 1.15))
-        img = F.adjust_contrast(img, random.uniform(0.85, 1.15))
-        img = F.adjust_saturation(img, random.uniform(0.85, 1.15))
-        img = F.adjust_hue(img, random.uniform(-0.08, 0.08))
+        img = F.adjust_brightness(img, random.uniform(0.8, 1.2))
+        img = F.adjust_contrast(img, random.uniform(0.8, 1.2))
+        img = F.adjust_saturation(img, random.uniform(0.8, 1.2))
+        img = F.adjust_hue(img, random.uniform(-0.05, 0.05))
 
         return img, target
 
     def flip_gt_bboxes(self, image_bboxes):
-        image_bboxes[:, 1] = 1 - image_bboxes[:, 1]
-        image_bboxes[:, 3] = 1 - image_bboxes[:, 3]
+        # only mirror on x axis
+        image_bboxes[:, 0] = 1 - image_bboxes[:, 0]
 
-        # don't forget to also swap second and fourth columns to keep format
-        temp = copy.deepcopy(image_bboxes[:, 1])
-        image_bboxes[:, 1] = image_bboxes[:, 3]
-        image_bboxes[:, 3] = temp
+    def check_bbox_validity(self, target):
+        if target[0].nelement() == 0:
+            return
+
+        eps = 0.00001
+        gt_bbox = target[0]
+
+        # x and y must be positive
+        col_1_ok = gt_bbox[:, 0] > 0
+        col_2_ok = gt_bbox[:, 1] > 0
+
+        # width and height must be strictly greater than zero
+        col_3_ok = gt_bbox[:, 2] > eps
+        col_4_ok = gt_bbox[:, 3] > eps
+
+        # rows to keep
+        ok = col_1_ok * col_2_ok * col_3_ok * col_4_ok
+        target[0] = target[0][ok]
+        target[1] = target[1][ok]

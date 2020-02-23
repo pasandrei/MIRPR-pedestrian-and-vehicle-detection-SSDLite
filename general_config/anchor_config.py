@@ -1,32 +1,16 @@
-from collections import OrderedDict
-from math import sqrt
+from utils.preprocessing import DefaultBoxes
 
-zoom = {
-    20: [1.],
-    10: [1.],
-    5: [1.],
-    3: [1.],
-    1: [1.]
-}
-zoom = OrderedDict(zoom)
+fig_size = 300
+feat_size = [19, 10, 5, 3, 2, 1]
+steps = [16, 32, 64, 100, 150, 300]
+# use the scales here: https://github.com/amdegroot/ssd.pytorch/blob/master/data/config.py
+scales = [45, 99, 153, 207, 261, 290, 315]
+aspect_ratios = [[2], [2, 3], [2, 3], [2, 3], [2, 3], [2, 3]]
 
-sqrt2 = sqrt(2)
-sqrt3 = sqrt(3)
+k_list = [len(aspect_ratio)*2 + 2 for aspect_ratio in aspect_ratios]
 
-ratio = {
-    20: [(2.85, 2.85), (2.85/sqrt2, 2.85*sqrt2), (2.85*sqrt2, 2.85/sqrt2), (2.85/sqrt3, 2.85*sqrt3), (2.85*sqrt3, 2.85/sqrt3), (4.22, 4.22)],
-    10: [(3.3, 3.3), (3.3/sqrt2, 3.3*sqrt2), (3.3*sqrt2, 3.3/sqrt2), (3.3/sqrt3, 3.3*sqrt3), (3.3*sqrt3, 3.3/sqrt3), (4.1, 4.1)],
-    5: [(2.55, 2.55), (2.55/sqrt2, 2.55*sqrt2), (2.55*sqrt2, 2.55/sqrt2), (2.55/sqrt3, 2.55*sqrt3), (2.55*sqrt3, 2.55/sqrt3), (3, 3)],
-    3: [(2.07, 2.07), (2.07/sqrt2, 2.07*sqrt2), (2.07*sqrt2, 2.07/sqrt2), (2.3, 2.3)],
-    1: [(0.87, 0.87), (0.87/sqrt2, 0.87*sqrt2), (0.87*sqrt2, 0.87/sqrt2), (0.95, 0.95)]
-}
-ratio = OrderedDict(ratio)
+total_anchors = 0
+for (size, k) in zip(feat_size, k_list):
+    total_anchors += size*size*k
 
-# anchors per feature map cell for each grid
-k_list = [len(v_zoom) * len(v_ratio) for (_, v_zoom), (_, v_ratio)
-          in zip(zoom.items(), ratio.items())]
-
-total_anchors = sum([len(v_zoom) * len(v_ratio) * k_zoom**2 for (k_zoom, v_zoom), (_, v_ratio)
-                     in zip(zoom.items(), ratio.items())])
-
-print("total_anchors: ", total_anchors)
+default_boxes = DefaultBoxes(fig_size, feat_size, steps, scales, aspect_ratios)

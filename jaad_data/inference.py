@@ -3,11 +3,11 @@ from PIL import Image
 import os
 import cv2
 import copy
-import numpy as np
 import torch
 
-from misc import postprocessing
-from misc.utils import *
+from utils.postprocessing import *
+from general_config.system_device import device
+
 
 rootdir = 'C:\\Users\Andrei Popovici\Desktop\JAAD_stuff\JAAD-JAAD_2.0\images'
 
@@ -64,14 +64,14 @@ def feed_to_model(model, img, output_handler):
         # add batch channel
         img = img.view((1, img.shape[0], img.shape[1], img.shape[2]))
 
-        img = img.to(torch.device("cuda:0" if torch.cuda.is_available() else "cpu"))
+        img = img.to(device)
         predictions = model(img)
 
         prediction_bboxes, predicted_classes, _, _ = output_handler._get_sorted_predictions(
             predictions[0][0], predictions[1][0], (0, (init_size[0], init_size[1])))
 
-        indeces_kept_by_nms = postprocessing.nms(prediction_bboxes, predicted_classes,
-                                                 output_handler.suppress_threshold)
+        indeces_kept_by_nms = nms(prediction_bboxes, predicted_classes,
+                                  output_handler.suppress_threshold)
 
         final_bbox = prediction_bboxes[indeces_kept_by_nms]
         final_class = predicted_classes[indeces_kept_by_nms]
@@ -80,4 +80,4 @@ def feed_to_model(model, img, output_handler):
         img = output_handler._unnorm_scale_image(img)
 
         return plot_bounding_boxes(image=img1, bounding_boxes=final_bbox, classes=final_class,
-                                   bbox_type="pred", size=(init_size[0], init_size[1]))
+                                   ground_truth=False, size=(init_size[0], init_size[1]))
