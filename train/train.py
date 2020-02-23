@@ -59,6 +59,8 @@ def train(model, optimizer, train_loader, model_evaluator, detection_loss, param
             model_evaluator.complete_evaluate(model, optimizer, train_loader, losses, epoch)
             losses[2], losses[3] = 0, 0
 
+        losses = [0] * 4
+
 
 def warm_up(train_loader, optimizer, params):
     """
