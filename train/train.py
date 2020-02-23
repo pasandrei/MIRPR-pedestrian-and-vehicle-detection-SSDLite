@@ -1,8 +1,8 @@
 from train.lr_policies import retina_decay
 from train.backbone_freezer import Backbone_Freezer
-from utils.training import *
-from utils.prints import print_batch_stats
-from general_config.config import device
+from utils.prints import print_train_batch_stats
+from general_config.system_device import device
+from utils.training import update_losses
 
 import datetime
 
@@ -33,7 +33,6 @@ def train(model, optimizer, train_loader, model_evaluator, detection_loss, param
         lr=params.learning_rate, start_epoch=start_epoch, params=params)
     backbone_freezer = Backbone_Freezer(params)
     losses = [0] * 4
-    one_tenth_of_loader = len(train_loader) // params.train_stats_step
 
     if params.freeze_backbone:
         backbone_freezer.freeze_backbone(model)
@@ -50,31 +49,15 @@ def train(model, optimizer, train_loader, model_evaluator, detection_loss, param
         for batch_idx, (input_, label, _) in enumerate(train_loader):
             train_step(model, input_, label, optimizer, losses, detection_loss, params)
 
-            if (batch_idx + 1) % one_tenth_of_loader == 0:
-                print(datetime.datetime.now())
-                print_batch_stats(model, epoch, batch_idx, train_loader,
-                                  losses, params)
-                losses[0], losses[1] = 0, 0
-                for pg in optimizer.param_groups:
-                    print('Current learning_rate:', pg['lr'])
+            print_train_batch_stats(model=model, epoch=epoch, batch_idx=batch_idx, data_loader=train_loader,
+                                    losses=losses, optimizer=optimizer, params=params)
 
             if epoch == 0 and params.warm_up:
                 warm_up(train_loader, optimizer, params)
 
         if (epoch + 1) % params.eval_step == 0:
             model_evaluator.complete_evaluate(model, optimizer, train_loader, losses, epoch)
-
-        losses = [0] * 4
-
-
-def update_losses(losses, l_loss, c_loss):
-    """
-    losses[0], losses[1] - batch l and c loss, similarily for idx 2 and 3 epoch loss
-    """
-    losses[0] += l_loss
-    losses[1] += c_loss
-    losses[2] += l_loss
-    losses[3] += c_loss
+            losses[2], losses[3] = 0, 0
 
 
 def warm_up(train_loader, optimizer, params):

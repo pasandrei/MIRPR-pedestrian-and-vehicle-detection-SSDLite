@@ -2,12 +2,11 @@ import numpy as np
 import random
 
 from misc.model_output_handler import Model_output_handler
-from general_config import anchor_config
 
-from utils.postprocessing import *
-from utils.preprocessing import *
-from utils.box_computations import *
-from utils.training import *
+from utils.postprocessing import plot_bounding_boxes, plot_anchor_gt, nms
+from utils.box_computations import jaccard, wh2corners_numpy, get_IoU, wh2corners
+from utils.preprocessing import map_to_ground_truth
+
 from general_config.anchor_config import default_boxes, feat_size, k_list
 
 
@@ -22,7 +21,7 @@ def visualize_anchor_sets(image, anchor_grid, grid_size, k, size):
                 cur_anchors.append(anchor_grid[i + j*k])
         cur_anchors = np.array(cur_anchors)
         plot_bounding_boxes(image=image, bounding_boxes=cur_anchors,
-                            classes=np.ones(cur_anchors.shape), bbox_type="anchor",
+                            classes=np.ones(cur_anchors.shape), ground_truth=False,
                             message="Grid size: " + str(grid_size), size=size)
 
 
@@ -83,7 +82,7 @@ def mean_mapping_IOU(image, anchors, pos_idx, gt_bbox_for_matched_anchors, gt_cl
         if visualize_anchor_gt_pair:
             cur_grid = list(mapping_per_set([pos_idx[i]], sizes_ks=sizes_ks)).index(1)
             plot_anchor_gt(image, anchors[pos_idx[i]],
-                           gt_bbox_for_matched_anchors[i], gt_classes_for_matched_anchors[i],
+                           gt_bbox_for_matched_anchors[i],
                            message="Anchor/GT pair IoU: " + str(cur_iou) + " Grid " + str(cur_grid), size=size)
 
     ious = np.array(ious)
@@ -181,7 +180,7 @@ def test(raw_bbox=None, raw_class_values=None, raw_class_ids=None,
          indeces_kept_by_nms=None,
          pos_idx=None, size=(320, 320),
          image=None, anchors=None,
-         one_by_one=True,
+         one_by_one=False,
          gt_bbox_for_matched_anchors=None,
          matched_gt_class_ids=None):
     '''
@@ -194,7 +193,6 @@ def test(raw_bbox=None, raw_class_values=None, raw_class_ids=None,
     - pos_idx - indeces of anchors (predictions) that mapped by IOU threshold (matching phase)
     - size - dimensions of image
     - image - actual input image
-    - achors - corner format anchors
     '''
     matched_anchors = anchors[pos_idx]
     matched_bbox = raw_bbox[pos_idx]
@@ -204,11 +202,11 @@ def test(raw_bbox=None, raw_class_values=None, raw_class_ids=None,
     # add the classes array for each bbox array
     print("GT BBOXES: ", gt_bbox, gt_bbox.shape)
     plot_bounding_boxes(image=image, bounding_boxes=gt_bbox, classes=gt_class,
-                        bbox_type="gt", message="Ground truth", size=size)
+                        ground_truth=True, message="Ground truth", size=size)
 
     print("MATCHED GT BBOXES: ", gt_bbox_for_matched_anchors, gt_bbox_for_matched_anchors.shape)
     plot_bounding_boxes(image=image, bounding_boxes=gt_bbox_for_matched_anchors, classes=matched_gt_class_ids,
-                        bbox_type="gt", message="Matched Ground truth", size=size)
+                        ground_truth=True, message="Matched Ground truth", size=size)
 
     print("Matched ANCHORS WITH THEIR RESPECTIVE OFFSET PREDICTIONS: ",
           matched_anchors, matched_anchors.shape)
@@ -221,26 +219,26 @@ def test(raw_bbox=None, raw_class_values=None, raw_class_ids=None,
             cur_pred_bbox = raw_bbox[i]
             cur_id = np.array([1])
             plot_bounding_boxes(image=image, bounding_boxes=cur_anchor_bbox,
-                                classes=cur_id, bbox_type="anchor", message="ANCHOR", size=size)
+                                classes=cur_id, ground_truth=False, message="ANCHOR", size=size)
             plot_bounding_boxes(image=image, bounding_boxes=cur_pred_bbox, classes=cur_id,
-                                bbox_type="pred", message="PRED FROM ANCHOR", size=size)
+                                ground_truth=False, message="PRED FROM ANCHOR", size=size)
             # print('Confidence for this pair of anchor/pred: ',
             #       matched_conf[i], size)
     else:
         plot_bounding_boxes(image=image, bounding_boxes=matched_anchors,
-                            classes=matched_ids, bbox_type="anchor", message="Anchors", size=size)
+                            classes=matched_ids, ground_truth=False, message="Anchors", size=size)
         plot_bounding_boxes(image=image, bounding_boxes=matched_bbox, classes=matched_ids,
-                            bbox_type="pred", message="Cheated Predictions", size=size)
+                            ground_truth=False, message="Cheated Predictions", size=size)
 
     print("THIS IS PRED BBOX KEPT BY CONFIDENCE", pred_bbox, pred_bbox.shape)
     print("These are confidences for model outputs: ", highest_confidence_for_predictions)
 
     plot_bounding_boxes(image=image, bounding_boxes=pred_bbox, classes=pred_class,
-                        bbox_type="pred", message="Pre NMS Predictions", size=size)
+                        ground_truth=False, message="Pre NMS Predictions", size=size)
 
     post_nms_predictions = pred_bbox[indeces_kept_by_nms]
     post_nms_classes = pred_class[indeces_kept_by_nms]
     plot_bounding_boxes(image=image, bounding_boxes=post_nms_predictions,
-                        classes=post_nms_classes, bbox_type="pred", message="Post NMS Predictions", size=size)
+                        classes=post_nms_classes, ground_truth=False, message="Post NMS Predictions", size=size)
     print("THIS IS POST NMS PREDICTIONS", post_nms_predictions,
           post_nms_predictions.shape)

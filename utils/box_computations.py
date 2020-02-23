@@ -42,3 +42,37 @@ def jaccard(box_a, box_b):
     inter = intersect(box_a, box_b)
     union = box_sz(box_a).unsqueeze(1) + box_sz(box_b).unsqueeze(0) - inter
     return inter / union
+
+
+def get_intersection(bbox1, bbox2):
+    x1 = max(bbox1[0], bbox2[0])
+    y1 = max(bbox1[1], bbox2[1])
+    x2 = min(bbox1[2], bbox2[2])
+    y2 = min(bbox1[3], bbox2[3])
+
+    return np.array([x1, y1, x2, y2])
+
+
+def get_bbox_area(bbox):
+    width = bbox[2] - bbox[0]
+    height = bbox[3] - bbox[1]
+
+    if width < 0 or height < 0:
+        return 0
+
+    return width*height
+
+
+def get_IoU(bbox1, bbox2):
+    bbox1_x1, bbox1_y1, bbox1_x2, bbox1_y2 = bbox1
+    bbox2_x1, bbox2_y1, bbox2_x2, bbox2_y2 = bbox2
+
+    intersection = get_intersection(bbox1, bbox2)
+    intersection_area = get_bbox_area(intersection)
+
+    union_area = get_bbox_area(bbox1) + get_bbox_area(bbox2) - intersection_area
+
+    if union_area == 0:
+        return -1
+
+    return intersection_area/union_area

@@ -3,11 +3,11 @@ import numpy as np
 
 from data import dataloaders
 
-from architectures.models import SSDNet, resnet_ssd
+from architectures.models import SSDLite, resnet_ssd
 from general_config import anchor_config
-from train.optimizer_handler import *
+from train import optimizer_handler
 from general_config import path_config
-from general_config.config import device
+from general_config.system_device import device
 
 
 def update_tensorboard_graphs(writer, loc_loss_train, class_loss_train, loc_loss_val, class_loss_val, mAP, epoch):
@@ -73,9 +73,12 @@ def plot_grad_flow(model):
 
 
 def model_setup(params):
+    """
+    creates model and moves it on to cpu/gpu
+    """
     n_classes = params.n_classes if params.loss_type == "BCE" else params.n_classes + 1
-    if params.model_id == 'ssdnet':
-        model = SSDNet.SSD_Head(n_classes=n_classes, k_list=anchor_config.k_list)
+    if params.model_id == 'ssdlite':
+        model = SSDLite.SSD_Head(n_classes=n_classes, k_list=anchor_config.k_list)
     elif params.model_id == 'resnetssd':
         model = resnet_ssd.SSD300(n_classes=n_classes)
     model.to(device)
@@ -84,16 +87,19 @@ def model_setup(params):
 
 
 def optimizer_setup(model, params):
+    """
+    creates optimizer, can have layer specific options
+    """
     if params.optimizer == 'adam':
         if params.freeze_backbone:
-            optimizer = layer_specific_adam(model, params)
+            optimizer = optimizer_handler.layer_specific_adam(model, params)
         else:
-            optimizer = plain_adam(model, params)
+            optimizer = optimizer_handler.plain_adam(model, params)
     elif params.optimizer == 'sgd':
         if params.freeze_backbone:
-            optimizer = layer_specific_sgd(model, params)
+            optimizer = optimizer_handler.layer_specific_sgd(model, params)
         else:
-            optimizer = plain_sgd(model, params)
+            optimizer = optimizer_handler.plain_sgd(model, params)
 
     return optimizer
 
@@ -127,3 +133,15 @@ def save_model(epoch, model, optimizer, params, stats, msg=None, by_loss=False):
     stats.save(path_config.stats_path.format(params.model_id))
 
     print(msg)
+
+
+def update_losses(losses, l_loss, c_loss):
+    """
+    losses[0], losses[1] - losses from batch nr x to batch nr y
+    losses[2], losses[3] - losses per whole data_loader (or multiple epochs if validation does not
+    happen after each epoch)
+    """
+    losses[0] += l_loss
+    losses[1] += c_loss
+    losses[2] += l_loss
+    losses[3] += c_loss
