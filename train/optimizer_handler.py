@@ -1,5 +1,8 @@
 import torch.optim as optim
 
+"""
+Various optimizer setups
+"""
 
 def layer_specific_adam(model, params):
     print("AMS grad is false")

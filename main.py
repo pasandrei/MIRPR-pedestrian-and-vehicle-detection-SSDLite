@@ -4,7 +4,7 @@ import torch
 import random
 
 from train import train
-from train.config import Params
+from train.params import Params
 from train.validate import Model_evaluator
 from misc import cross_validation
 from misc.model_output_handler import Model_output_handler
@@ -15,7 +15,7 @@ from utils import prints
 from utils import training
 
 
-def run(model_id="ssdnet", train_model=False, load_checkpoint=False, eval_only=False, cross_validate=False, jaad=False):
+def run(model_id="ssdlite", train_model=False, load_checkpoint=False, eval_only=False, cross_validate=False, jaad=False):
     """
     Arguments:
     model_id - id of the model to be trained

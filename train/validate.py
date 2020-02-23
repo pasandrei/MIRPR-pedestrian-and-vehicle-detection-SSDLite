@@ -3,7 +3,7 @@ import datetime
 
 from misc.model_output_handler import Model_output_handler
 from utils import postprocessing, training, prints
-from general_config.config import device
+from general_config.system_device import device
 
 
 class Model_evaluator():
@@ -25,17 +25,16 @@ class Model_evaluator():
         self.stats = stats
 
     def complete_evaluate(self, model, optimizer, train_loader, losses=[0, 0, 0, 0], epoch=0):
-        '''
+        """
         evaluates model performance of the validation set, saves current model, optimizer, stats if it is better that the best so far
         also logs info to tensorboard
-        '''
-
+        """
         loc_loss_train, class_loss_train = prints.print_train_stats(train_loader, losses, self.params)
 
         print('Validation start...')
         model.eval()
         with torch.no_grad():
-            loc_loss_val, class_loss_val = 0, 0
+            losses = [0] * 4
             val_set_size = len(self.valid_loader.sampler.sampler)
 
             prediction_annotations = []
@@ -52,14 +51,14 @@ class Model_evaluator():
                     output, image_info, prediction_annotations, prediction_id, self.output_handler)
 
                 loc_loss, class_loss = self.detection_loss.ssd_loss(output, label)
-                loc_loss_val += loc_loss.item()
-                class_loss_val += class_loss.item()
+                training.update_losses(losses, loc_loss.item(), class_loss.item())
 
-                prints.print_val_batch_stats(model, batch_idx, self.valid_loader, loc_loss_val, class_loss_val, self.params)
+                prints.print_val_batch_stats(model, batch_idx, self.valid_loader, losses, self.params)
 
-            mAP = postprocessing.evaluate_on_COCO_metrics(prediction_annotations)
+            # mAP = postprocessing.evaluate_on_COCO_metrics(prediction_annotations)
+            mAP = 1
 
-            val_loss = (class_loss_val + loc_loss_val) / val_set_size
+            val_loss = (losses[2] + losses[3]) / val_set_size
             if self.stats.mAP < mAP:
                 self.stats.mAP = mAP
                 msg = 'Model saved succesfully'
@@ -71,7 +70,7 @@ class Model_evaluator():
                 training.save_model(epoch, model, optimizer, self.params, self.stats, msg=msg, by_loss=True)
 
             # tensorboard
-            loc_loss_val, class_loss_val = loc_loss_val / val_set_size, class_loss_val / val_set_size
+            loc_loss_val, class_loss_val = losses[2] / val_set_size, losses[3] / val_set_size
             training.update_tensorboard_graphs(self.writer, loc_loss_train, class_loss_train,
                                                loc_loss_val, class_loss_val, mAP, epoch)
 

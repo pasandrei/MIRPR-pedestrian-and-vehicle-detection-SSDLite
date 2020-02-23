@@ -16,7 +16,7 @@
     "second_decay": 20,
     "decay_rate": 0.1,
     "freeze_backbone": 0,
-    "train_stats_step": 10,
+    "batch_stats_step": 10,
     "eval_step": 1,
     "input_height": 300,
     "input_width": 300,

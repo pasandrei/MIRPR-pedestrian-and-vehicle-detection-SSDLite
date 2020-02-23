@@ -1,16 +1,16 @@
 import numpy as np
 import torch
 
-from train.config import Params
+from train.params import Params
 from general_config import anchor_config, path_config
 from data import dataloaders
-from architectures.models import SSDNet
+from architectures.models import SSDLite
 from visualize import anchor_mapping
 from utils.training import load_model, model_setup
-from general_config.config import device
+from general_config.system_device import device
 
 
-def model_output_pipeline(model_id="ssdnet", model_outputs=False, visualize_anchors=False, visualize_anchor_gt_pair=False):
+def model_output_pipeline(model_id="ssdlite", model_outputs=False, visualize_anchors=False, visualize_anchor_gt_pair=False):
     """
     model_outputs - flag to enable plotting model outputs
     visualize_anchors - flag to visualize anchors

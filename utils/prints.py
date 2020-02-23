@@ -26,7 +26,7 @@ def print_trained_parameters_count(model, optimizer):
     print("-------------------------------------------------------")
 
 
-def print_train_batch_stats(model, epoch, batch_idx, data_loader, loc_loss, class_loss, params):
+def print_train_batch_stats(model, epoch, batch_idx, data_loader, losses, optimizer, params):
     '''
     prints statistics about the recently seen batches
     the printing interval is set through params.batch_stats_step - which means printing
@@ -35,27 +35,35 @@ def print_train_batch_stats(model, epoch, batch_idx, data_loader, loc_loss, clas
     eg: for a dataset of 1000 images, a batch size of 10 and batch_stats_step = 10
     - a print will be made after each 10 batches (100 images)
     '''
-    print('Epoch: {} of {}'.format(epoch, params.n_epochs))
-    print_batch_stats(batch_idx, data_loader, loc_loss, class_loss, params)
+    one_tenth_of_loader = len(data_loader) // params.batch_stats_step
+    if (batch_idx + 1) % one_tenth_of_loader == 0:
+        print('Epoch: {} of {}'.format(epoch, params.n_epochs))
+        print_batch_stats(batch_idx, data_loader, losses[0], losses[1], one_tenth_of_loader, params)
 
-    mean_grads, max_grads, mean_weights, max_weights = gradient_weight_check(model)
-    print('Mean and max gradients over whole network: ', mean_grads, max_grads)
-    print('Mean and max weights over whole network: ', mean_weights, max_weights)
-    print("-------------------------------------------------------")
+        mean_grads, max_grads, mean_weights, max_weights = gradient_weight_check(model)
+        print('Mean and max gradients over whole network: ', mean_grads, max_grads)
+        print('Mean and max weights over whole network: ', mean_weights, max_weights)
+        print("-------------------------------------------------------")
+
+        for pg in optimizer.param_groups:
+            print('Current learning_rate:', pg['lr'])
+
+        losses[0], losses[1] = 0, 0
 
 
-def print_val_batch_stats(model, batch_idx, data_loader, loc_loss, class_loss, params):
-    print_batch_stats(batch_idx, data_loader, loc_loss, class_loss, params)
+def print_val_batch_stats(model, batch_idx, data_loader, losses, params):
+    one_tenth_of_loader = len(data_loader) // params.batch_stats_step
+    if (batch_idx + 1) % one_tenth_of_loader == 0:
+        print_batch_stats(batch_idx, data_loader, losses[0], losses[1], one_tenth_of_loader, params)
+        losses[0], losses[1] = 0, 0
 
 
-def print_batch_stats(batch_idx, data_loader, loc_loss, class_loss, params):
+def print_batch_stats(batch_idx, data_loader, loc_loss, class_loss, one_tenth_of_loader, params):
     print('Batch: {} of {}'.format(batch_idx, len(data_loader)))
 
-    # want to see per image stats
-    one_tenth_of_loader = len(data_loader) // params.batch_stats_step
     avg_factor = one_tenth_of_loader * params.batch_size
-    print('Loss in the past {}th of the batches: Localization {} Classification {}'.format(
-        params.batch_stats_step, loc_loss / avg_factor, class_loss / avg_factor))
+    print('Loss in the past {} batches: Localization {} Classification {}'.format(
+        avg_factor, loc_loss / avg_factor, class_loss / avg_factor))
 
 
 def print_dataset_stats(train_loader, valid_loader):
