@@ -1,3 +1,5 @@
+from general_config import path_config
+
 def cross_validate(model, detection_loss, valid_loader, model_evaluator, params):
     """
     Goal: find the best pair of confidence threshold and NMS suppression threshold
@@ -32,5 +34,5 @@ def cross_validate(model, detection_loss, valid_loader, model_evaluator, params)
                 params.conf_threshold = conf_range[i]
                 params.suppress_threshold = suppress_range[j]
                 params.mAP = cur_mAP
-                params.save('misc/experiments/ssdlite/params.json')
+                params.save(path_config.params_path.format(params.model_id))
                 print('Params saved succesfully')
