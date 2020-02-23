@@ -1,7 +1,11 @@
 import torch
 import torch.nn as nn
 
-from architectures.backbones.MobileNet import ConvBNReLU, InvertedResidual, mobilenet_v2, _make_divisible
+from architectures.backbones.MobileNet import ConvBNReLU, mobilenet_v2
+
+# this adapts the standard resnet implementation from
+# https://github.com/NVIDIA/DeepLearningExamples/tree/master/PyTorch/Detection/SSD
+# to have depth wise separable convolutions and a mobilenet backbone
 
 
 class DepthWiseConv_No_ReLu(nn.Module):
@@ -33,97 +37,63 @@ class DepthWiseConv(nn.Module):
         return self.pw_conv(self.ds_conv(x))
 
 
-class OutConv(nn.Module):
-    def __init__(self, in_channels, n_classes, k):
-        super().__init__()
-        self.k = k
-        self.n_classes = n_classes
-        """
-        returns the predicted bboxes and class confidences as flattened arrays after applying a
-        depth wise and a point wise convolution
-        """
-        self.oconv_loc = DepthWiseConv_No_ReLu(in_channels, 4*k, kernel_size=3, padding=1)
-        self.oconv_class = DepthWiseConv_No_ReLu(in_channels, self.n_classes*k, kernel_size=3, padding=1)
-
-    def forward(self, x):
-        batch_size = x.shape[0]
-        return [self.oconv_loc(x).view(batch_size, 4, -1),
-                self.oconv_class(x).view(batch_size, self.n_classes, -1)]
-
-
 class SSD_Head(nn.Module):
-    """
-   Implements SDD netword as described in the paper https://arxiv.org/abs/1512.02325
-   Backbone is MobileNetV2
-   k_list - list of anchors per feature map cell for each grid size (k_list[0] - 20x20, k_list[1] - 10x10)
-   width_mult - multiplying constant for the backbone
-   """
-
-    def __init__(self, n_classes, k_list, width_mult=1):
+    def __init__(self, n_classes=81, k_list=[4, 6, 6, 6, 6, 6]):
         super().__init__()
+        self.backbone = mobilenet_v2(pretrained=True, width_mult=1)
+        self.out_channels = [576, 1280, 512, 256, 256, 128]
 
-        self.out0 = None
-        if k_list[0] != 0:
-            # intermediate lay 15 with os = 16, will be a 20x20 grid for 320x320 input, 576 is the expansion size of layer 15 in MobileNetV2
-            self.out0 = OutConv(int(576 * width_mult), n_classes, k_list[0])
+        self.label_num = n_classes
+        self._build_additional_features(self.out_channels[1:-1])
+        self.num_defaults = k_list
+        self.loc = []
+        self.conf = []
 
-        # from now we use the 1280 output of the backbone, first grid 10x10
-        self.out1 = OutConv(1280, n_classes, k_list[1])
+        for nd, oc in zip(self.num_defaults, self.out_channels):
+            self.loc.append(DepthWiseConv_No_ReLu(oc, nd * 4, kernel_size=3, padding=1))
+            self.conf.append(DepthWiseConv_No_ReLu(
+                oc, nd * self.label_num, kernel_size=3, padding=1))
 
-        # construct second grid 5x5
-        self.down_conv2 = DepthWiseConv(in_planes=1280, out_planes=512, stride=2, padding=1, bias=False)
-        self.out2 = OutConv(512, n_classes, k_list[2])
+        self.loc = nn.ModuleList(self.loc)
+        self.conf = nn.ModuleList(self.conf)
+        self._init_weights()
 
-        # third grid 3x3
-        self.down_conv3 = DepthWiseConv(in_planes=512, out_planes=256, bias=False)
-        self.out3 = OutConv(256, n_classes, k_list[3])
+    def _build_additional_features(self, input_size):
+        self.additional_blocks = []
+        for i, (input_size, output_size) in enumerate(zip(input_size[:-1], input_size[1:])):
+            layer = DepthWiseConv(input_size, output_size, kernel_size=3,
+                                  padding=1, stride=2)
+            self.additional_blocks.append(layer)
 
-        # # fourth grid 2x2
-        self.down_conv4 = DepthWiseConv(in_planes=256, out_planes=256, kernel_size=2, bias=False)
-        self.out4 = OutConv(256, n_classes, k_list[4])
+        self.additional_blocks.append(DepthWiseConv(256, 128, kernel_size=2))
 
-        # last grid 1x1
-        self.down_conv5 = DepthWiseConv(in_planes=256, out_planes=128, kernel_size=2, bias=False)
-        self.out5 = OutConv(128, n_classes, k_list[5])
+        self.additional_blocks = nn.ModuleList(self.additional_blocks)
 
-        # weight initialization
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight, mode='fan_out')
-                if m.bias is not None:
-                    nn.init.zeros_(m.bias)
-            elif isinstance(m, nn.BatchNorm2d):
-                nn.init.ones_(m.weight)
-                nn.init.zeros_(m.bias)
-            elif isinstance(m, nn.Linear):
-                nn.init.normal_(m.weight, 0, 0.01)
-                nn.init.zeros_(m.bias)
+    def _init_weights(self):
+        layers = [*self.additional_blocks, *self.loc, *self.conf]
+        for layer in layers:
+            for param in layer.parameters():
+                if param.dim() > 1:
+                    nn.init.xavier_uniform_(param)
 
-        self.backbone = mobilenet_v2(pretrained=True, width_mult=width_mult)
-        print('Created SSDNet model succesfully!')
+    # Shape the classifier to the view of bboxes
+    def bbox_view(self, src, loc, conf):
+        ret = []
+        for s, l, c in zip(src, loc, conf):
+            ret.append((l(s).view(s.size(0), 4, -1), c(s).view(s.size(0), self.label_num, -1)))
+
+        locs, confs = list(zip(*ret))
+        locs, confs = torch.cat(locs, 2).contiguous(), torch.cat(confs, 2).contiguous()
+        return locs, confs
 
     def forward(self, x):
-        lay15, x = self.backbone(x)
-        _10bbox, _10class = self.out1(x)
+        inter_layer, x = self.backbone(x)
+        detection_feed = [inter_layer, x]
+        for l in self.additional_blocks:
+            x = l(x)
+            detection_feed.append(x)
 
-        x = self.down_conv2(x)
-        _5bbox, _5class = self.out2(x)
+        # Feature Maps 19x19, 10x10, 5x5, 3x3, 1x1
+        locs, confs = self.bbox_view(detection_feed, self.loc, self.conf)
 
-        x = self.down_conv3(x)
-        _3bbox, _3class = self.out3(x)
-
-        x = self.down_conv4(x)
-        _2bbox, _2class = self.out4(x)
-
-        x = self.down_conv5(x)
-        _1bbox, _1class = self.out5(x)
-
-        bbox_predictions = torch.cat([_10bbox, _5bbox, _3bbox, _2bbox, _1bbox], dim=2)
-        class_predictions = torch.cat([_10class, _5class, _3class, _2class, _1class], dim=2)
-
-        if self.out0 is not None:
-            _20bbox, _20class = self.out0(lay15)
-            bbox_predictions = torch.cat([_20bbox, bbox_predictions], dim=2)
-            class_predictions = torch.cat([_20class, class_predictions], dim=2)
-
-        return bbox_predictions, class_predictions
+        return locs, confs
