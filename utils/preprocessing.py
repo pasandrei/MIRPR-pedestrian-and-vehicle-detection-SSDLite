@@ -131,24 +131,19 @@ class DefaultBoxes(object):
             return self.dboxes
 
 
-def prepare_gt(input_img, gt_target):
-    '''
+def prepare_gt(input_img, gt_bboxes, gt_classes):
+    """
     args:
     - input_img: PIL image HxW
-    - gt_target: list of gt bbox coords: (x,y,w,h)
+    - gt_bboxes - list of bounding boxes
+    - gt_classes - list of category ids
 
     return:
     gt[0] = tensor of bboxes of objects in image scaled [0,1], in (CENTER, w, h) format
     gt[1] = tensor of class ids in image
-    '''
-    gt_bboxes, gt_classes = [], []
-    for obj in gt_target:
-        gt_bboxes.append(obj['bbox'])
-        gt_classes.append(obj['category_id'])
-
+    """
     gt = [torch.FloatTensor(gt_bboxes), torch.IntTensor(gt_classes)]
-
-    width, height = input_img.size
+    height, width, _ = input_img.shape
 
     for idx, bbox in enumerate(gt[0]):
         new_bbox = [0] * 4
@@ -159,3 +154,15 @@ def prepare_gt(input_img, gt_target):
         gt[0][idx] = torch.FloatTensor(new_bbox)
 
     return gt
+
+
+def get_bboxes(coco_annotation):
+    """
+    Filters the complete coco annotation to only bboxes and cat ids
+    """
+    gt_bboxes, gt_classes = [], []
+    for obj in coco_annotation:
+        gt_bboxes.append(obj['bbox'])
+        gt_classes.append(obj['category_id'])
+
+    return gt_bboxes, gt_classes

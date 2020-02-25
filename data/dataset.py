@@ -2,11 +2,26 @@ import torch
 import os
 import os.path
 import torchvision.transforms.functional as F
-import random
+import numpy as np
 from data.vision_dataset import VisionDataset
 from PIL import Image
 from general_config.anchor_config import default_boxes
-from utils.preprocessing import *
+from utils.preprocessing import match, prepare_gt, get_bboxes
+
+from albumentations import (
+    RandomResizedCrop,
+    HorizontalFlip,
+    Blur,
+    CLAHE,
+    ChannelDropout,
+    CoarseDropout,
+    GaussNoise,
+    RandomBrightnessContrast,
+    RandomGamma,
+    ToGray,
+    Compose,
+    BboxParams
+)
 
 
 class CocoDetection(VisionDataset):
@@ -36,6 +51,12 @@ class CocoDetection(VisionDataset):
         self.anchors_ltrb = default_boxes(order='ltrb')
         self.anchors_xywh = default_boxes(order='xywh')
 
+        self.augmentations = self.get_aug([RandomResizedCrop(height=300, width=300, scale=(0.4, 1.0)),
+                                           HorizontalFlip(), Blur(), CLAHE(), ChannelDropout(), CoarseDropout(),
+                                           GaussNoise(), RandomBrightnessContrast(),
+                                           RandomGamma(), ToGray(),
+                                           ], min_visibility=0.3)
+
     def __getitem__(self, batched_indices):
         """
         return B x C x H x W image tensor and [B x img_bboxes, B x img_classes]
@@ -49,35 +70,35 @@ class CocoDetection(VisionDataset):
             target = coco.loadAnns(ann_ids)
             path = coco.loadImgs(img_id)[0]['file_name']
             img = Image.open(os.path.join(self.root, path)).convert('RGB')
+            orig_width, orig_height = img.size
 
-            # target[0] = tensor of bboxes of objects in image
-            # target[1] = tensor of class ids in image
-            target = prepare_gt(img, target)
+            # get useful annotations
+            bboxes, category_ids = get_bboxes(target)
+
+            # augment data
+            album_annotation = {'image': np.array(img), 'bboxes': bboxes, 'category_id': category_ids}
+            augmented = self.augmentations(**album_annotation)
+            image, bboxes, category_ids = augmented.values()
+
+            # bring bboxes to correct format and check they are valid
+            target = prepare_gt(image, bboxes, category_ids)
             self.check_bbox_validity(target)
-
             if target[0].nelement() == 0:
                 continue
 
-            width, height = img.size
-
-            img = F.resize(img, size=(self.params.input_width,
-                                      self.params.input_height), interpolation=2)
-            if self.augmentation:
-                img, target = self.augment_data(img, target)
-
-            # C x H x W
-            img = F.to_tensor(img)
-            img = F.normalize(img, mean=[0.485, 0.456, 0.406],
-                              std=[0.229, 0.224, 0.225])
+            # get image in right format - normalized tensor
+            image = F.to_tensor(image)
+            image = F.normalize(image, mean=[0.485, 0.456, 0.406],
+                                std=[0.229, 0.224, 0.225])
 
             # #anchors x 4 and #anchors x 1
             gt_bbox, gt_class = match(self.anchors_ltrb, self.anchors_xywh,
                                       target[0], target[1], self.params)
 
-            imgs.append(img)
+            imgs.append(image)
             targets_bboxes.append(gt_bbox)
             targets_classes.append(gt_class)
-            image_info.append((img_id, (width, height)))
+            image_info.append((img_id, (orig_width, orig_height)))
 
         # B x C x H x W
         batch_images = torch.stack(imgs)
@@ -93,23 +114,15 @@ class CocoDetection(VisionDataset):
     def __len__(self):
         return len(self.ids)
 
-    def augment_data(self, img, target):
-        # random flip
-        if random.random() > 0.5:
-            img = F.hflip(img)
-            self.flip_gt_bboxes(target[0])
-
-        # color jitter
-        img = F.adjust_brightness(img, random.uniform(0.8, 1.2))
-        img = F.adjust_contrast(img, random.uniform(0.8, 1.2))
-        img = F.adjust_saturation(img, random.uniform(0.8, 1.2))
-        img = F.adjust_hue(img, random.uniform(-0.05, 0.05))
-
-        return img, target
-
-    def flip_gt_bboxes(self, image_bboxes):
-        # only mirror on x axis
-        image_bboxes[:, 0] = 1 - image_bboxes[:, 0]
+    def get_aug(self, aug, min_area=0., min_visibility=0.3):
+        """
+        Args:
+        aug - set of albumentation augmentations
+        min_area - minimum area to keep bbox
+        min_visibility - minimum area percentage (to keep bbox) of original bbox after transform
+        """
+        return Compose(aug, bbox_params=BboxParams(format='coco', min_area=min_area,
+                                                   min_visibility=min_visibility, label_fields=['category_id']))
 
     def check_bbox_validity(self, target):
         if target[0].nelement() == 0:
