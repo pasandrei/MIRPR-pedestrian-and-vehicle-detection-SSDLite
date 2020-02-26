@@ -11,6 +11,7 @@ from utils.preprocessing import match, prepare_gt, get_bboxes
 from albumentations import (
     RandomResizedCrop,
     HorizontalFlip,
+    Rotate,
     Blur,
     CLAHE,
     ChannelDropout,
@@ -52,16 +53,17 @@ class CocoDetection(VisionDataset):
         self.anchors_xywh = default_boxes(order='xywh')
 
         self.augmentations = self.get_aug([RandomResizedCrop(height=300, width=300, scale=(0.4, 1.0)),
-                                           HorizontalFlip(), Blur(), CLAHE(), ChannelDropout(), CoarseDropout(),
-                                           GaussNoise(), RandomBrightnessContrast(),
-                                           RandomGamma(), ToGray(),
-                                           ], min_visibility=0.3)
+                                           HorizontalFlip(), Rotate(limit=10),
+                                           Blur(p=0.2), CLAHE(p=0.25), ChannelDropout(p=0.1),
+                                           CoarseDropout(max_holes=8, max_height=20, max_width=20),
+                                           GaussNoise(p=0.15), RandomBrightnessContrast(),
+                                           RandomGamma(), ToGray(p=0.25),
+                                           ], min_visibility=0.15)
 
     def __getitem__(self, batched_indices):
         """
         return B x C x H x W image tensor and [B x img_bboxes, B x img_classes]
         """
-
         imgs, targets_bboxes, targets_classes, image_info = [], [], [], []
         for index in batched_indices:
             coco = self.coco
