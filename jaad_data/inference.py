@@ -6,7 +6,7 @@ import copy
 import torch
 
 from utils.postprocessing import *
-from general_config.config import device
+from general_config.system_device import device
 
 
 rootdir = 'C:\\Users\Andrei Popovici\Desktop\JAAD_stuff\JAAD-JAAD_2.0\images'
@@ -80,4 +80,4 @@ def feed_to_model(model, img, output_handler):
         img = output_handler._unnorm_scale_image(img)
 
         return plot_bounding_boxes(image=img1, bounding_boxes=final_bbox, classes=final_class,
-                                   bbox_type="pred", size=(init_size[0], init_size[1]))
+                                   ground_truth=False, size=(init_size[0], init_size[1]))

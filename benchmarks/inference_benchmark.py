@@ -3,7 +3,7 @@ import time
 
 from utils.postprocessing import prepare_outputs_for_COCOeval
 from misc.model_output_handler import Model_output_handler
-from general_config.config import device
+from general_config.system_device import device
 
 
 class Model_evaluator():

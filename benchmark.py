@@ -1,7 +1,7 @@
 import torch
 
-from architectures.models import SSDNet
-from train.config import Params
+from architectures.models import SSDLite
+from train.params import Params
 from general_config import path_config
 from train.validate import Model_evaluator
 from benchmarks import train_benchmark, inference_benchmark
@@ -11,7 +11,7 @@ from train.loss_fn import Detection_Loss
 from utils.training import model_setup
 
 
-def run_training(model_id="ssdnet", benchmark_train=False, benchmark_inference=False, verbose=False):
+def run_training(model_id="ssdlite", benchmark_train=False, benchmark_inference=False, verbose=False):
     params = Params(path_config.params_path.format(model_id))
 
     model = model_setup(params)

@@ -8,7 +8,7 @@ from utils.box_computations import jaccard, wh2corners
 
 
 def map_to_ground_truth(overlaps, gt_bbox, gt_class, params):
-    # taken from fastai
+    # inspired by fastai course
     """ maps priors to max IOU obj
    returns:
    - gt_bbox_for_matched_anchors: tensor of size matched_priors x 4 - essentially assigning GT bboxes to corresponding highest IOU priors
@@ -45,6 +45,7 @@ def map_to_ground_truth(overlaps, gt_bbox, gt_class, params):
 
 
 def match(anchors_ltrb, anchors_xywh, gt_bbox, gt_class, params):
+    # inspired by fastai course
     """
     Arguments:
         gt_bbox - #obj x 4 tensor - GT bboxes for objects in the cur img
@@ -71,6 +72,7 @@ def match(anchors_ltrb, anchors_xywh, gt_bbox, gt_class, params):
 
 
 class DefaultBoxes(object):
+    # https://github.com/NVIDIA/DeepLearningExamples/tree/master/PyTorch/Detection/SSD
     def __init__(self, fig_size, feat_size, steps, scales, aspect_ratios, scale_xy=0.1, scale_wh=0.2):
 
         self.feat_size = feat_size

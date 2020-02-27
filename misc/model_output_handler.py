@@ -8,7 +8,10 @@ from utils.postprocessing import nms
 
 
 class Model_output_handler():
-
+    """
+    Class used to bring the raw model outputs to interpretable data
+    -> bbox coordinates and respective predicted class
+    """
     def __init__(self, params):
         self.params = params
         self.unnorm = UnNormalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
@@ -73,7 +76,6 @@ class Model_output_handler():
         """
         keep predictions above a confidence threshold
         """
-
         highest_confidence = np.amax(predicted_confidences, axis=1)
         keep_indices = (highest_confidence > self.confidence_threshold)
 
@@ -105,6 +107,9 @@ class Model_output_handler():
         return predicted_idxs, highest_confidence_for_predictions
 
     def _convert_offsets_to_bboxes(self, prediction_bboxes, size):
+        """
+        Computes offsets according to the ssd paper formula
+        """
         prediction_bboxes = prediction_bboxes.cpu()
 
         prediction_bboxes[:, :2] = (1/self.scale_xy)*prediction_bboxes[:, :2]
@@ -117,6 +122,9 @@ class Model_output_handler():
         return self._rescale_bboxes(prediction_bboxes, size)
 
     def _convert_confidences_to_workable_data(self, prediction_confidences):
+        """
+        Applies softmax or sigmoid respectively to confidence predictions
+        """
         if self.params.loss_type == "BCE":
             return prediction_confidences.sigmoid().cpu().numpy()
         else:

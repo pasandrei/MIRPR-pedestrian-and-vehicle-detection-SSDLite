@@ -1,10 +1,9 @@
 class Lr_decay:
-    '''
+    """
     Implements learning rate decay similar to the retina net paper:
     initial learning rate of 0.01, which is then
     divided by 10 at certain steps
-    '''
-
+    """
     def __init__(self, lr, start_epoch, params):
         self.lr = lr
         self.current_step = start_epoch

@@ -4,10 +4,7 @@ from torch import nn
 import copy
 
 from general_config import classes_config
-from utils.box_computations import *
-from utils.training import *
-from utils.preprocessing import *
-from general_config.config import device
+from general_config.system_device import device
 from general_config.anchor_config import default_boxes
 
 # inspired by fastai course
@@ -21,16 +18,18 @@ class Classification_Loss(nn.Module):
         self.focal_loss = params.use_focal_loss
 
     def forward(self, pred, targ):
-        '''
+        """
         Arguments:
-            pred - tensor of shape batch x anchors x n_classes
+            pred - tensor of shape batch x n_classes x anchors
             targ - tensor of shape batch x anchors
 
-        Explanation: computes softmax loss between model prediction and target
-            model predicts scores for each class, 0 is background class
-
+        Explanation:
+            computes softmax/BCE loss between model prediction and target
+            model predicts scores for each class
+            for BCE the ground truth is represented as a one-hot matrix
+            for softmax it is just a list of indeces
         Returns: softmax loss or (weighted if focal) BCE loss
-        '''
+        """
 
         batch, n_classes, n_anchors = pred.shape
         class_idx = self.map_id_to_idx(targ)
@@ -75,17 +74,13 @@ class Classification_Loss(nn.Module):
         for k, v in self.id2idx.items():
             class_idx[class_ids == k] = v
 
-        class_idx = class_idx.to("cuda:0" if torch.cuda.is_available() else "cpu")
+        class_idx = class_idx.to(device)
         return class_idx
 
 
 class Detection_Loss():
     """
     Computes both localization and classification loss
-
-    in args:
-    anchors - #anchors x 4 cuda tensor
-    grid_sizes - #anchors x 1 cuda tensor
     """
 
     def __init__(self, params):
@@ -104,7 +99,7 @@ class Detection_Loss():
     def ssd_loss(self, pred, targ):
         """
         Arguments:
-            pred - model output - two tensors of dim B x #anchors x 4 and B x #anchors x n_classes in a list
+            pred - model output - two tensors of dim B x 4 x #anchors and B x n_classes x #anchors in a list
             targ - ground truth - two tensors of dim B x #anchors x 4 and B x #anchors in a list
 
         Explanation:
@@ -166,12 +161,11 @@ class Detection_Loss():
         Arguments:
         pos_mask - indeces of matched anchors
         pos_num - how many mappings for each image
-        pred_id - [batch x #anchors x n_classes] tensor - confidence scores by each anchor
+        pred_id - [batch x n_classes x #anchors] tensor - confidence scores by each anchor
         gt_id - [batch x #anchors x 1] tensor - ground truth class ids
 
         returns: softmax/BCE between predicted scores and gt for each image in batch
         """
-
         class_losses = self.class_loss(pred_id, gt_id)
         if self.hard_negative:
             mask = self.hard_negative_mining(pos_mask, pos_num, class_losses, gt_id)
