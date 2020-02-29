@@ -77,10 +77,12 @@ class CocoDetection(VisionDataset):
             # get useful annotations
             bboxes, category_ids = get_bboxes(target)
 
-            # augment data
-            album_annotation = {'image': np.array(img), 'bboxes': bboxes, 'category_id': category_ids}
-            augmented = self.augmentations(**album_annotation)
-            image, bboxes, category_ids = augmented.values()
+            if self.augmentation:
+                album_annotation = {'image': np.array(img), 'bboxes': bboxes, 'category_id': category_ids}
+                augmented = self.augmentations(**album_annotation)
+                image, bboxes, category_ids = augmented.values()
+            else:
+                image = np.array(img)
 
             # bring bboxes to correct format and check they are valid
             target = prepare_gt(image, bboxes, category_ids)
