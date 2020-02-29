@@ -22,7 +22,7 @@ except ImportError:
     raise ImportError("Please install APEX from https://github.com/nvidia/apex")
 
 
-def run(model_id="ssdlite", train_model=False, load_checkpoint=False, eval_only=False, cross_validate=False, jaad=False):
+def run(model_id="ssdlite", train_model=False, load_checkpoint=False, eval_only=False, cross_validate=False, jaad=False, mixed_precision=False):
     """
     Arguments:
     model_id - id of the model to be trained
@@ -46,7 +46,7 @@ def run(model_id="ssdlite", train_model=False, load_checkpoint=False, eval_only=
     model = training.model_setup(params)
     optimizer = training.optimizer_setup(model, params)
 
-    if APEX_AVAILABLE:
+    if APEX_AVAILABLE and mixed_precision:
         model, optimizer = amp.initialize(
             model, optimizer, opt_level="O2"
         )
@@ -78,4 +78,4 @@ def run(model_id="ssdlite", train_model=False, load_checkpoint=False, eval_only=
 
     if train_model:
         train.train(model, optimizer, train_loader, model_evaluator,
-                    detection_loss, params, start_epoch, APEX_AVAILABLE)
+                    detection_loss, params, start_epoch, APEX_AVAILABLE and mixed_precision)
