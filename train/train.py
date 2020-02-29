@@ -6,8 +6,13 @@ from utils.training import update_losses
 
 import datetime
 
+try:
+    from apex import amp
+except ImportError:
+    raise ImportError("Please install APEX from https://github.com/nvidia/apex")
 
-def train_step(model, input_, label, optimizer, losses, detection_loss, params):
+
+def train_step(model, input_, label, optimizer, losses, detection_loss, params, use_amp=False):
     input_ = input_.to(device)
     label[0] = label[0].to(device)
     label[1] = label[1].to(device)
@@ -18,11 +23,18 @@ def train_step(model, input_, label, optimizer, losses, detection_loss, params):
     loss = l_loss + c_loss
 
     update_losses(losses, l_loss.item(), c_loss.item())
-    loss.backward()
+
+    if use_amp:
+        with amp.scale_loss(loss, optimizer) as scaled_loss:
+            scaled_loss.backward()
+    else:
+        loss.backward()
+
     optimizer.step()
 
 
-def train(model, optimizer, train_loader, model_evaluator, detection_loss, params, start_epoch=0):
+def train(model, optimizer, train_loader, model_evaluator, detection_loss, params, start_epoch=0,
+          use_amp=False):
     """
     args: model - nn.Module CNN to train
           optimizer - torch.optim
@@ -47,7 +59,7 @@ def train(model, optimizer, train_loader, model_evaluator, detection_loss, param
               sum(p.numel() for pg in optimizer.param_groups for p in pg['params'] if p.requires_grad))
 
         for batch_idx, (input_, label, _) in enumerate(train_loader):
-            train_step(model, input_, label, optimizer, losses, detection_loss, params)
+            train_step(model, input_, label, optimizer, losses, detection_loss, params, use_amp)
 
             print_train_batch_stats(model=model, epoch=epoch, batch_idx=batch_idx, data_loader=train_loader,
                                     losses=losses, optimizer=optimizer, params=params)

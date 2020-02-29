@@ -4,7 +4,7 @@ from general_config.system_device import device
 import time
 
 
-def train_step(model, input_, label, optimizer, losses, detection_loss, params, verbose):
+def train_step(model, input_, label, optimizer, losses, detection_loss, params, verbose, use_amp=False):
     input_ = input_.to(device)
     label[0] = label[0].to(device)
     label[1] = label[1].to(device)
@@ -36,7 +36,11 @@ def train_step(model, input_, label, optimizer, losses, detection_loss, params, 
     loss = l_loss + c_loss
 
     update_losses(losses, l_loss.item(), c_loss.item())
-    loss.backward()
+    if use_amp:
+        with amp.scale_loss(loss, optimizer) as scaled_loss:
+            scaled_loss.backward()
+    else:
+        loss.backward()
 
     time_after_backprop = time.time()
     backprop_duration = time_after_backprop - time_before_backprop
@@ -61,7 +65,8 @@ def train_step(model, input_, label, optimizer, losses, detection_loss, params, 
     return batch_time
 
 
-def train(model, optimizer, train_loader, model_evaluator, detection_loss, params, verbose, start_epoch=0):
+def train(model, optimizer, train_loader, model_evaluator, detection_loss, params, verbose, start_epoch=0,
+          use_amp=False):
     """
     args: model - nn.Module CNN to train
           optimizer - torch.optim
@@ -90,7 +95,7 @@ def train(model, optimizer, train_loader, model_evaluator, detection_loss, param
             print("Batch id: ", batch_idx)
         now1 = time.time()
         batch_time = train_step(model, input_, label, optimizer,
-                                losses, detection_loss, params, verbose)
+                                losses, detection_loss, params, verbose, use_amp)
         now2 = time.time()
 
         if verbose:
@@ -111,6 +116,7 @@ def train(model, optimizer, train_loader, model_evaluator, detection_loss, param
     print("Times on {} batches of size {}:".format(counted_batches, params.batch_size))
     print(average)
     print(total)
+    print("Total time: ", total.inference_time + total.backprop_time + total.optimizer_time)
 
 
 def update_losses(losses, l_loss, c_loss):
