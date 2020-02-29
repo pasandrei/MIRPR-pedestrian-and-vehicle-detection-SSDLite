@@ -6,6 +6,11 @@ from utils.training import update_losses
 
 import datetime
 
+try:
+    from apex import amp
+except ImportError:
+    raise ImportError("Please install APEX from https://github.com/nvidia/apex")
+
 
 def train_step(model, input_, label, optimizer, losses, detection_loss, params, use_amp=False):
     input_ = input_.to(device)
@@ -18,12 +23,13 @@ def train_step(model, input_, label, optimizer, losses, detection_loss, params, 
     loss = l_loss + c_loss
 
     update_losses(losses, l_loss.item(), c_loss.item())
+
     if use_amp:
         with amp.scale_loss(loss, optimizer) as scaled_loss:
             scaled_loss.backward()
     else:
         loss.backward()
-    # loss.backward()
+
     optimizer.step()
 
 

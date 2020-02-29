@@ -17,8 +17,9 @@ from utils import training
 try:
     from apex import amp
     APEX_AVAILABLE = True
-except ModuleNotFoundError:
+except ImportError:
     APEX_AVAILABLE = False
+    raise ImportError("Please install APEX from https://github.com/nvidia/apex")
 
 
 def run(model_id="ssdlite", train_model=False, load_checkpoint=False, eval_only=False, cross_validate=False, jaad=False):
@@ -45,10 +46,10 @@ def run(model_id="ssdlite", train_model=False, load_checkpoint=False, eval_only=
     model = training.model_setup(params)
     optimizer = training.optimizer_setup(model, params)
 
-    model, optimizer = amp.initialize(
-        model, optimizer, opt_level="O2",
-        keep_batchnorm_fp32=True, loss_scale="dynamic"
-    )
+    if APEX_AVAILABLE:
+        model, optimizer = amp.initialize(
+            model, optimizer, opt_level="O2"
+        )
 
     if jaad:
         model, _, _ = training.load_model(model, params, optimizer)

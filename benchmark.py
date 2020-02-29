@@ -10,13 +10,25 @@ from train.optimizer_handler import plain_adam
 from train.loss_fn import Detection_Loss
 from utils.training import model_setup
 
+try:
+    from apex import amp
+    APEX_AVAILABLE = True
+except ModuleNotFoundError:
+    APEX_AVAILABLE = False
+
+APEX_AVAILABLE = True
+
 
 def run_training(model_id="ssdlite", benchmark_train=False, benchmark_inference=False, verbose=False):
     params = Params(path_config.params_path.format(model_id))
 
     model = model_setup(params)
-
     optimizer = plain_adam(model, params)
+
+    if APEX_AVAILABLE:
+        model, optimizer = amp.initialize(
+            model, optimizer, opt_level="O2"
+        )
 
     train_loader, valid_loader = dataloaders.get_dataloaders(params)
 
@@ -25,7 +37,7 @@ def run_training(model_id="ssdlite", benchmark_train=False, benchmark_inference=
     if benchmark_train:
         model_evaluator = None
         train_benchmark.train(model, optimizer, train_loader, model_evaluator,
-                              detection_loss, params, verbose)
+                              detection_loss, params, verbose, APEX_AVAILABLE)
     if benchmark_inference:
         model_evaluator = inference_benchmark.Model_evaluator(
             valid_loader, detection_loss, writer=None, params=params)
