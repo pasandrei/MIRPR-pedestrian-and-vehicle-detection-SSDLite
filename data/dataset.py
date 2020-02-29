@@ -9,6 +9,7 @@ from general_config.anchor_config import default_boxes
 from utils.preprocessing import match, prepare_gt, get_bboxes
 
 from albumentations import (
+    Resize,
     RandomResizedCrop,
     HorizontalFlip,
     Rotate,
@@ -52,13 +53,16 @@ class CocoDetection(VisionDataset):
         self.anchors_ltrb = default_boxes(order='ltrb')
         self.anchors_xywh = default_boxes(order='xywh')
 
-        self.augmentations = self.get_aug([RandomResizedCrop(height=300, width=300, scale=(0.4, 1.0)),
+        self.augmentations = self.get_aug([RandomResizedCrop(height=self.params.input_height,
+                                                             width=self.params.input_width, scale=(0.4, 1.0)),
                                            HorizontalFlip(), Rotate(limit=10),
                                            Blur(p=0.2), CLAHE(p=0.25), ChannelDropout(p=0.1),
                                            CoarseDropout(max_holes=8, max_height=20, max_width=20),
                                            GaussNoise(p=0.15), RandomBrightnessContrast(),
                                            RandomGamma(), ToGray(p=0.25),
                                            ], min_visibility=0.15)
+
+        self.just_resize = self.get_aug([Resize(height=self.params.input_height, width=self.params.input_width)])
 
     def __getitem__(self, batched_indices):
         """
@@ -77,12 +81,12 @@ class CocoDetection(VisionDataset):
             # get useful annotations
             bboxes, category_ids = get_bboxes(target)
 
+            album_annotation = {'image': np.array(img), 'bboxes': bboxes, 'category_id': category_ids}
             if self.augmentation:
-                album_annotation = {'image': np.array(img), 'bboxes': bboxes, 'category_id': category_ids}
-                augmented = self.augmentations(**album_annotation)
-                image, bboxes, category_ids = augmented.values()
+                transform_result = self.augmentations(**album_annotation)
             else:
-                image = np.array(img)
+                transform_result = self.just_resize(**album_annotation)
+            image, bboxes, category_ids = transform_result.values()
 
             # bring bboxes to correct format and check they are valid
             target = prepare_gt(image, bboxes, category_ids)
