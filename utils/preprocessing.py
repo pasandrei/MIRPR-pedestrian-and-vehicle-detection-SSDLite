@@ -4,7 +4,9 @@ import itertools
 import copy
 
 from math import sqrt
+from general_config import classes_config
 from utils.box_computations import jaccard, wh2corners
+from general_config.system_device import device
 
 
 def map_to_ground_truth(overlaps, gt_bbox, gt_class, params):
@@ -166,3 +168,15 @@ def get_bboxes(coco_annotation):
         gt_classes.append(obj['category_id'])
 
     return gt_bboxes, gt_classes
+
+
+def map_id_to_idx(class_ids):
+    """
+    maps the tensor of class ids to indeces
+    """
+    class_idx = torch.zeros(class_ids.shape, dtype=int)
+    for k, v in classes_config.training_ids2_idx.items():
+        class_idx[class_ids == k] = v
+
+    class_idx = class_idx.to(device)
+    return class_idx

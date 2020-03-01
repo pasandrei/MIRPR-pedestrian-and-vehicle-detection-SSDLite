@@ -5,7 +5,7 @@ from misc.model_output_handler import Model_output_handler
 
 from utils.postprocessing import plot_bounding_boxes, plot_anchor_gt, nms
 from utils.box_computations import jaccard, wh2corners_numpy, get_IoU, wh2corners
-from utils.preprocessing import map_to_ground_truth
+from utils.preprocessing import map_to_ground_truth, map_id_to_idx
 
 from general_config.anchor_config import default_boxes, feat_size, k_list
 
@@ -92,7 +92,8 @@ def mean_mapping_IOU(image, anchors, pos_idx, gt_bbox_for_matched_anchors, size,
     return ious.mean()
 
 
-def inspect_anchors(image, anchors, gt_bbox_for_matched_anchors, gt_classes_for_matched_anchors, pos_idx, size, visualize_anchors, visualize_anchor_gt_pair):
+def inspect_anchors(image, anchors, gt_bbox_for_matched_anchors, gt_classes_for_matched_anchors,
+                    pos_idx, size, visualize_anchors, visualize_anchor_gt_pair):
     """
     thoroughly inspect anchors and mapping
     returns the mean IoU of mapped anchors and the number of mapped anchors for each grid
@@ -113,8 +114,8 @@ def inspect_anchors(image, anchors, gt_bbox_for_matched_anchors, gt_classes_for_
 
 
 def test_anchor_mapping(image, bbox_predictions, classification_predictions, gt_bbox, gt_class,
-                        image_info, params, model_outputs, visualize_anchors, visualize_anchor_gt_pair
-                        verbose=False, very_verbose=False):
+                        image_info, params, model_outputs, visualize_anchors, visualize_anchor_gt_pair,
+                        all_anchor_classes, verbose=False, very_verbose=False):
     """
     Args:
     image - C x H x W normalized tensor
@@ -149,6 +150,7 @@ def test_anchor_mapping(image, bbox_predictions, classification_predictions, gt_
     pos_idx = (pos_idx.cpu().numpy())
     gt_bbox = output_handler._rescale_bboxes(gt_bbox, image_info[1])
     gt_class = gt_class.cpu().numpy()
+    all_anchor_classes = map_id_to_idx(all_anchor_classes).cpu().numpy()
 
     # get model predictions, unsorted and no nms
     raw_bbox_predictions = output_handler._convert_offsets_to_bboxes(
@@ -160,7 +162,7 @@ def test_anchor_mapping(image, bbox_predictions, classification_predictions, gt_
     # rescale gt bboxes and anchors
     gt_bbox_for_matched_anchors = output_handler._rescale_bboxes(
         gt_bbox_for_matched_anchors, image_info[1])
-    matched_gt_class_ids = matched_gt_class_ids[pos_idx].cpu().numpy()
+    matched_gt_class_idxs = map_id_to_idx(matched_gt_class_ids[pos_idx]).cpu().numpy()
     anchors_xywh = output_handler._rescale_bboxes(anchors_xywh, image_info[1])
 
     if model_outputs:
@@ -175,12 +177,13 @@ def test_anchor_mapping(image, bbox_predictions, classification_predictions, gt_
              image=image,
              anchors=anchors_xywh,
              gt_bbox_for_matched_anchors=gt_bbox_for_matched_anchors,
-             matched_gt_class_ids=matched_gt_class_ids,
-             verbose=verbose
-             very_verbose=False)
+             matched_gt_class_idxs=matched_gt_class_idxs,
+             all_anchor_classes=all_anchor_classes,
+             verbose=verbose,
+             very_verbose=very_verbose)
 
     return inspect_anchors(image=image, anchors=anchors_xywh, gt_bbox_for_matched_anchors=gt_bbox_for_matched_anchors,
-                           gt_classes_for_matched_anchors=matched_gt_class_ids, pos_idx=pos_idx, size=image_info[1],
+                           gt_classes_for_matched_anchors=matched_gt_class_idxs, pos_idx=pos_idx, size=image_info[1],
                            visualize_anchors=visualize_anchors, visualize_anchor_gt_pair=visualize_anchor_gt_pair)
 
 
@@ -193,9 +196,10 @@ def test(raw_bbox=None, raw_class_confidences=None, raw_class_indeces=None,
          pos_idx=None, size=(320, 320),
          image=None, anchors=None,
          gt_bbox_for_matched_anchors=None,
-         matched_gt_class_ids=None,
+         matched_gt_class_idxs=None,
+         all_anchor_classes=None,
          verbose=False,
-         very_verbose=very_verbose):
+         very_verbose=False):
     """
     what we have:
     - raw bbox and class - all the model predictions (not filtered, not sorted, no nms)
@@ -221,12 +225,12 @@ def test(raw_bbox=None, raw_class_confidences=None, raw_class_indeces=None,
                         ground_truth=True, message="Ground truth", size=size)
 
     # plot the ground truth bbox for each matched anchor, it is possible in some cases that there is no anchor for a gt bbox
-    plot_bounding_boxes(image=image, bounding_boxes=gt_bbox_for_matched_anchors, classes=matched_gt_class_ids,
+    plot_bounding_boxes(image=image, bounding_boxes=gt_bbox_for_matched_anchors, classes=matched_gt_class_idxs,
                         ground_truth=True, message="Matched Ground truth", size=size)
 
     # plot matched anchors
     plot_bounding_boxes(image=image, bounding_boxes=matched_anchors,
-                        classes=matched_gt_class_ids, ground_truth=False, message="Anchors", size=size)
+                        classes=matched_gt_class_idxs, ground_truth=False, message="Anchors", size=size)
 
     # plot anchors from which the most confident predictions were made
     plot_bounding_boxes(image=image, bounding_boxes=confident_anchors,
@@ -262,25 +266,21 @@ def test(raw_bbox=None, raw_class_confidences=None, raw_class_indeces=None,
         print("THIS IS POST NMS PREDICTIONS", post_nms_predictions,
               post_nms_predictions.shape)
 
-        for i in range(len(matched_bbox)):
-            cur_anchor_bbox = matched_anchors[i]
-            cur_pred_bbox = matched_bbox[i]
-            cur_idx = matched_indeces[i]
-            plot_bounding_boxes(image=image, bounding_boxes=cur_anchor_bbox,
-                                classes=cur_idx, ground_truth=False, message="ANCHOR", size=size)
-            plot_bounding_boxes(image=image, bounding_boxes=cur_pred_bbox, classes=cur_idx,
-                                ground_truth=False, message="PRED FROM ANCHOR", size=size)
-            print('Confidence for this pair of anchor/pred: ',
-                  matched_conf[i], size)
+        plot_pred_anchor(image=image, anchors=matched_anchors, pred_bbox=matched_bbox,
+                         anchor_classes=matched_gt_class_idxs, pred_classes=matched_indeces, size=size)
 
     if very_verbose:
-        for i in range(len(pos_idx)):
-            cur_anchor_bbox = anchors[i]
-            cur_pred_bbox = raw_bbox[i]
-            cur_idx = raw_class_indeces[i]
-            plot_bounding_boxes(image=image, bounding_boxes=cur_anchor_bbox,
-                                classes=cur_idx, ground_truth=False, message="ANCHOR", size=size)
-            plot_bounding_boxes(image=image, bounding_boxes=cur_pred_bbox, classes=cur_idx,
-                                ground_truth=False, message="PRED FROM ANCHOR", size=size)
-            print('Confidence for this pair of anchor/pred: ',
-                  raw_class_confidences[i], size)
+        plot_pred_anchor(image=image, anchors=anchors, pred_bbox=raw_bbox,
+                         anchor_classes=all_anchor_classes, pred_classes=raw_class_indeces, size=size)
+
+
+def plot_pred_anchor(image, anchors, pred_bbox, anchor_classes, pred_classes, size):
+    for cur_anchor_bbox, cur_pred_bbox, cur_anchor_idx, cur_pred_idx in zip(anchors, pred_bbox, anchor_classes, pred_classes):
+        plot_bounding_boxes(image=image, bounding_boxes=cur_anchor_bbox,
+                            classes=cur_anchor_idx, ground_truth=False, message="ANCHOR", size=size)
+        plot_bounding_boxes(image=image, bounding_boxes=cur_pred_bbox, classes=cur_pred_idx,
+                            ground_truth=False, message="PRED FROM ANCHOR", size=size)
+        print("Current class of anchor: ", cur_anchor_idx)
+        print("Current predicted class: ", cur_pred_idx)
+        # print('Confidence for this pair of anchor/pred: ',
+        #       raw_class_confidences[i], size)
