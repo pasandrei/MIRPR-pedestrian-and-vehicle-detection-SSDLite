@@ -14,8 +14,15 @@ from general_config import path_config
 from utils import prints
 from utils import training
 
+try:
+    from apex import amp
+    APEX_AVAILABLE = True
+except ImportError:
+    APEX_AVAILABLE = False
+    raise ImportError("Please install APEX from https://github.com/nvidia/apex")
 
-def run(model_id="ssdlite", train_model=False, load_checkpoint=False, eval_only=False, cross_validate=False, jaad=False):
+
+def run(model_id="ssdlite", train_model=False, load_checkpoint=False, eval_only=False, cross_validate=False, jaad=False, mixed_precision=False):
     """
     Arguments:
     model_id - id of the model to be trained
@@ -38,6 +45,11 @@ def run(model_id="ssdlite", train_model=False, load_checkpoint=False, eval_only=
 
     model = training.model_setup(params)
     optimizer = training.optimizer_setup(model, params)
+
+    if APEX_AVAILABLE and mixed_precision:
+        model, optimizer = amp.initialize(
+            model, optimizer, opt_level="O2"
+        )
 
     if jaad:
         model, _, _ = training.load_model(model, params, optimizer)
@@ -66,4 +78,4 @@ def run(model_id="ssdlite", train_model=False, load_checkpoint=False, eval_only=
 
     if train_model:
         train.train(model, optimizer, train_loader, model_evaluator,
-                    detection_loss, params, start_epoch)
+                    detection_loss, params, start_epoch, APEX_AVAILABLE and mixed_precision)
