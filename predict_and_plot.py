@@ -4,7 +4,6 @@ import torch
 from train.params import Params
 from general_config import anchor_config, path_config
 from data import dataloaders
-from architectures.models import SSDLite
 from visualize import anchor_mapping
 from utils.training import load_model, model_setup
 from general_config.system_device import device
@@ -20,7 +19,7 @@ def model_output_pipeline(model_id="ssdlite", model_outputs=False, visualize_anc
 
     if model_outputs:
         model = model_setup(params)
-        model, _, _ = load_model(model, params)
+        # model, _, _ = load_model(model, params)
         model.to(device)
         model.eval()
 
@@ -34,8 +33,8 @@ def model_output_pipeline(model_id="ssdlite", model_outputs=False, visualize_anc
                 predictions = model(batch_images)
             else:
                 n_classes = params.n_classes if params.loss_type == "BCE" else params.n_classes + 1
-                predictions = [torch.randn(params.batch_size, anchor_config.total_anchors, 4),
-                               torch.randn(params.batch_size, anchor_config.total_anchors, n_classes)]
+                predictions = [torch.randn(params.batch_size, 4, anchor_config.total_anchors),
+                               torch.randn(params.batch_size, n_classes, anchor_config.total_anchors)]
 
             for idx in range(len(batch_images)):
                 non_background = batch_targets[1][idx] != 100
