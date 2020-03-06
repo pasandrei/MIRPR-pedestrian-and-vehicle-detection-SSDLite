@@ -20,7 +20,7 @@ def model_output_pipeline(model_id="ssdlite", model_outputs=False, visualize_anc
 
     if model_outputs:
         model = model_setup(params)
-        # model, _, _ = load_model(model, params)
+        model, _, _ = load_model(model, params)
         model.to(device)
         model.eval()
 

@@ -26,18 +26,18 @@ from albumentations import (
 class CocoDetection(VisionDataset):
     """`MS Coco Detection <http://mscoco.org/dataset/#detections-challenge2016>`_ Dataset.
 
-   Args:
-       root (string): Root directory where images are downloaded to.
-       annFile (string): Path to json annotation file.
-       transform (callable, optional): A function/transform that  takes in an PIL image
-           and returns a transformed version. E.g, ``transforms.ToTensor``
-       target_transform (callable, optional): A function/transform that takes in the
-           target and transforms it.
-       transforms (callable, optional): A function/transform that takes input sample and its target as entry
-           and returns a transformed version.
+    Args:
+        root (string): Root directory where images are downloaded to.
+        annFile (string): Path to json annotation file.
+        transform (callable, optional): A function/transform that  takes in an PIL image
+            and returns a transformed version. E.g, ``transforms.ToTensor``
+        target_transform (callable, optional): A function/transform that takes in the
+            target and transforms it.
+        transforms (callable, optional): A function/transform that takes input sample and its target as entry
+            and returns a transformed version.
 
-   We are using the COCO API on top of which we build our custom data processing
-   """
+    We are using the PyTorch COCO API on top of which we build our custom data processing
+    """
 
     def __init__(self, root, annFile, transform=None, target_transform=None, transforms=None, augmentation=True, params=None):
         super().__init__(root, transforms, transform, target_transform)
@@ -63,8 +63,8 @@ class CocoDetection(VisionDataset):
 
     def __getitem__(self, batched_indices):
         """
-       return B x C x H x W image tensor and [B x img_bboxes, B x img_classes]
-       """
+        return B x C x H x W image tensor and [B x img_bboxes, B x img_classes]
+        """
         imgs, targets_bboxes, targets_classes, image_info = [], [], [], []
         for index in batched_indices:
             coco = self.coco
@@ -140,20 +140,20 @@ class CocoDetection(VisionDataset):
         valid_bboxes, valid_ids = [], []
         for bbox, id in zip(bboxes, category_ids):
             if bbox[0] <= eps or bbox[1] <= eps or (bbox[0] + bbox[2]) >= (width - eps) or (bbox[1] + bbox[3]) >= (height - eps):
-                de_taiat_x = max(0, -bbox[0])
-                de_taiat_y = max(0, -bbox[1])
+                to_cut_x = max(0, -bbox[0])
+                to_cut_y = max(0, -bbox[1])
 
                 bbox[0] = max(0, bbox[0])
                 bbox[1] = max(0, bbox[1])
 
-                bbox[2] -= de_taiat_x
-                bbox[3] -= de_taiat_y
+                bbox[2] -= to_cut_x
+                bbox[3] -= to_cut_y
 
-                de_taiat_x = min(0, width - (bbox[0] + bbox[2]))
-                de_taiat_y = min(0, height - (bbox[1] + bbox[3]))
+                to_cut_x = min(0, width - (bbox[0] + bbox[2]))
+                to_cut_y = min(0, height - (bbox[1] + bbox[3]))
 
-                bbox[2] -= de_taiat_x
-                bbox[3] -= de_taiat_y
+                bbox[2] -= to_cut_x
+                bbox[3] -= to_cut_y
             if bbox[2] * bbox[3] <= eps:
                 continue
 
