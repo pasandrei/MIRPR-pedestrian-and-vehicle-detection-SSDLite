@@ -127,11 +127,11 @@ class CocoDetection(VisionDataset):
 
     def get_aug(self, aug, min_area=0., min_visibility=0.3):
         """
-       Args:
-       aug - set of albumentation augmentations
-       min_area - minimum area to keep bbox
-       min_visibility - minimum area percentage (to keep bbox) of original bbox after transform
-       """
+        Args:
+        aug - set of albumentation augmentations
+        min_area - minimum area to keep bbox
+        min_visibility - minimum area percentage (to keep bbox) of original bbox after transform
+        """
         return Compose(aug, bbox_params=BboxParams(format='coco', min_area=min_area,
                                                    min_visibility=min_visibility, label_fields=['category_id']))
 
