@@ -134,7 +134,7 @@ def test_anchor_mapping(image, bbox_predictions, classification_predictions, gt_
 
     overlaps = jaccard(wh2corners(gt_bbox[:, :2], gt_bbox[:, 2:]), anchors_ltrb)
 
-    processed_predicted_bboxes, processed_predicted_classes, highest_confidence_for_predictions, high_confidence_indeces = output_handler._get_sorted_predictions(
+    processed_predicted_bboxes, processed_predicted_classes, highest_confidence_for_predictions, _ = output_handler._get_sorted_predictions(
         bbox_predictions, classification_predictions, image_info)
 
     # map each anchor to the highest IOU obj, gt_idx - ids of mapped objects
@@ -170,7 +170,6 @@ def test_anchor_mapping(image, bbox_predictions, classification_predictions, gt_
              gt_bbox=gt_bbox, gt_class=gt_class,
              pred_bbox=processed_predicted_bboxes, pred_class=processed_predicted_classes,
              highest_confidence_for_predictions=highest_confidence_for_predictions,
-             high_confidence_indeces=high_confidence_indeces,
              indeces_kept_by_nms=indeces_kept_by_nms,
              pos_idx=pos_idx,
              size=image_info[1],
@@ -191,7 +190,6 @@ def test(raw_bbox=None, raw_class_confidences=None, raw_class_indeces=None,
          gt_bbox=None, gt_class=None,
          pred_bbox=None, pred_class=None,
          highest_confidence_for_predictions=None,
-         high_confidence_indeces=None,
          indeces_kept_by_nms=None,
          pos_idx=None, size=(320, 320),
          image=None, anchors=None,
@@ -218,8 +216,6 @@ def test(raw_bbox=None, raw_class_confidences=None, raw_class_indeces=None,
     matched_conf = raw_class_confidences[pos_idx]
     matched_indeces = raw_class_indeces[pos_idx]
 
-    confident_anchors = anchors[high_confidence_indeces]
-
     # add the classes array for each bbox array
     plot_bounding_boxes(image=image, bounding_boxes=gt_bbox, classes=gt_class,
                         ground_truth=True, message="Ground truth", size=size)
@@ -231,10 +227,6 @@ def test(raw_bbox=None, raw_class_confidences=None, raw_class_indeces=None,
     # plot matched anchors
     plot_bounding_boxes(image=image, bounding_boxes=matched_anchors,
                         classes=matched_gt_class_idxs, ground_truth=False, message="Anchors", size=size)
-
-    # plot anchors from which the most confident predictions were made
-    plot_bounding_boxes(image=image, bounding_boxes=confident_anchors,
-                        classes=pred_class, ground_truth=False, message="Confident Anchors", size=size)
 
     # plot model predictions from the matched anchors, ideally, these should also have the highest confidence
     plot_bounding_boxes(image=image, bounding_boxes=matched_bbox, classes=matched_indeces,
@@ -254,9 +246,7 @@ def test(raw_bbox=None, raw_class_confidences=None, raw_class_indeces=None,
         print("MATCHED GT BBOXES: ", gt_bbox_for_matched_anchors, gt_bbox_for_matched_anchors.shape)
 
         print("Matched ANCHORS ", matched_anchors, matched_anchors.shape)
-
-        print("Confident ANCHORS ", confident_anchors, confident_anchors.shape)
-
+        
         print("Matched Pred BBOXES: (Cheated preditctions) ", matched_bbox, matched_bbox.shape)
         print('CONFIDENCES FOR PREDICTED BBOXES that matched anchors: ', matched_conf)
 
