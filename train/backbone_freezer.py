@@ -24,11 +24,12 @@ class Backbone_Freezer():
 
     def step(self, epoch, model):
         """
-        from epochs 3 to 7, unfreeze 3 layers at each epoch
+        uniformly unfreeze 15 layers from the start to the first decay
+        unfreeze the rest of the layers as well at the second_decay
         if backbone was not frozen, this has no effect
         """
-        if 3 <= epoch and epoch <= 7:
-            freeze_idx = self.freeze_idx - (epoch - 2) * 3
+        if epoch <= self.params.first_decay:
+            freeze_idx = int(19 - (15 / self.params.first_decay) * epoch)
             self.unfreeze_from(freeze_idx, model)
 
         # when the second decay is reached, unfreeze the final layers as well
