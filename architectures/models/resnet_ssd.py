@@ -46,12 +46,12 @@ class SSD300(nn.Module):
         self.backbone = backbone
 
         self.label_num = n_classes  # number of COCO classes
-        self._build_additional_features(self.feature_extractor.out_channels)
+        self._build_additional_features(self.backbone.out_channels)
         self.num_defaults = [4, 6, 6, 6, 4, 4]
         self.loc = []
         self.conf = []
 
-        for nd, oc in zip(self.num_defaults, self.feature_extractor.out_channels):
+        for nd, oc in zip(self.num_defaults, self.backbone.out_channels):
             self.loc.append(nn.Conv2d(oc, nd * 4, kernel_size=3, padding=1))
             self.conf.append(nn.Conv2d(oc, nd * self.label_num, kernel_size=3, padding=1))
 
@@ -104,7 +104,7 @@ class SSD300(nn.Module):
         return locs, confs
 
     def forward(self, x):
-        x = self.feature_extractor(x)
+        x = self.backbone(x)
 
         detection_feed = [x]
         for l in self.additional_blocks:

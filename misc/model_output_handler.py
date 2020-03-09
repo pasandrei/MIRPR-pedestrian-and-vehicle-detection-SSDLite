@@ -97,7 +97,7 @@ class Model_output_handler():
 
     def _get_predicted_class(self, prediction_confidences):
         """
-        returns class id and value of maximum confidence
+        returns class idx and value of maximum confidence
         """
         predicted_idxs = np.argmax(prediction_confidences, axis=1)
         predicted_idxs = np.reshape(predicted_idxs, (predicted_idxs.shape[0], 1))

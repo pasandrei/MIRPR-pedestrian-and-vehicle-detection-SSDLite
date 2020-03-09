@@ -86,7 +86,7 @@ def model_setup(params):
     return model
 
 
-def optimizer_setup(model, params):
+def optimizer_setup(model, params, zero_bn_bias_decay=False):
     """
     creates optimizer, can have layer specific options
     """
@@ -100,6 +100,9 @@ def optimizer_setup(model, params):
             optimizer = optimizer_handler.layer_specific_sgd(model, params)
         else:
             optimizer = optimizer_handler.plain_sgd(model, params)
+
+    if zero_bn_bias_decay:
+        optimizer = zero_wdcay_bn_bias(optimizer)
 
     return optimizer
 
@@ -145,3 +148,25 @@ def update_losses(losses, l_loss, c_loss):
     losses[1] += c_loss
     losses[2] += l_loss
     losses[3] += c_loss
+
+
+def zero_wdcay_bn_bias(optimizer):
+    """
+    regroups optimizer param groups such that weight decay on batch norm and bias layers is 0
+    """
+    new_optim = []
+    for pg in optimizer.param_groups:
+        for param in pg['params']:
+            new_group = {}
+            new_group['params'] = param
+            # copy rest of attributes as they were before
+            for k, v in pg.items():
+                if k != 'params':
+                    new_group[k] = v
+            # if bias or BN
+            if len(param.shape) == 1:
+                new_group['weight_decay'] = 0
+            new_optim.append(new_group)
+
+    # construct a similar optimizer and return it
+    return torch.optim.SGD(new_optim) if type(optimizer) == torch.optim.SGD else torch.optim.Adam(new_optim)

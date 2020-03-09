@@ -13,9 +13,6 @@ from albumentations import (
     RandomResizedCrop,
     HorizontalFlip,
     Rotate,
-    Blur,
-    CLAHE,
-    ChannelDropout,
     CoarseDropout,
     GaussNoise,
     RandomBrightnessContrast,
@@ -39,7 +36,7 @@ class CocoDetection(VisionDataset):
         transforms (callable, optional): A function/transform that takes input sample and its target as entry
             and returns a transformed version.
 
-    We are using the COCO API on top of which we build our custom data processing
+    We are using the PyTorch COCO API on top of which we build our custom data processing
     """
 
     def __init__(self, root, annFile, transform=None, target_transform=None, transforms=None, augmentation=True, params=None):
@@ -54,15 +51,15 @@ class CocoDetection(VisionDataset):
         self.anchors_xywh = default_boxes(order='xywh')
 
         self.augmentations = self.get_aug([RandomResizedCrop(height=self.params.input_height,
-                                                             width=self.params.input_width, scale=(0.4, 1.0)),
+                                                             width=self.params.input_width, scale=(0.5, 1.0)),
                                            HorizontalFlip(), Rotate(limit=10),
-                                           Blur(p=0.2), CLAHE(p=0.25), ChannelDropout(p=0.1),
                                            CoarseDropout(max_holes=8, max_height=20, max_width=20),
-                                           GaussNoise(p=0.15), RandomBrightnessContrast(),
-                                           RandomGamma(), ToGray(p=0.25),
-                                           ], min_visibility=0.15)
+                                           GaussNoise(p=0.1), RandomBrightnessContrast(),
+                                           RandomGamma(), ToGray(p=0.1),
+                                           ], min_visibility=0.25)
 
-        self.just_resize = self.get_aug([Resize(height=self.params.input_height, width=self.params.input_width)])
+        self.just_resize = self.get_aug(
+            [Resize(height=self.params.input_height, width=self.params.input_width)])
 
     def __getitem__(self, batched_indices):
         """
@@ -80,19 +77,25 @@ class CocoDetection(VisionDataset):
 
             # get useful annotations
             bboxes, category_ids = get_bboxes(target)
+            bboxes, category_ids = self.check_bbox_validity(
+                bboxes, category_ids, orig_width, orig_height)
+            if len(bboxes) == 0:
+                continue
 
-            album_annotation = {'image': np.array(img), 'bboxes': bboxes, 'category_id': category_ids}
+            album_annotation = {'image': np.array(
+                img), 'bboxes': bboxes, 'category_id': category_ids}
             if self.augmentation:
                 transform_result = self.augmentations(**album_annotation)
             else:
                 transform_result = self.just_resize(**album_annotation)
             image, bboxes, category_ids = transform_result.values()
 
-            # bring bboxes to correct format and check they are valid
-            target = prepare_gt(image, bboxes, category_ids)
-            self.check_bbox_validity(target)
-            if target[0].nelement() == 0:
+            # all bboxes might be lost after transform
+            if len(bboxes) == 0:
                 continue
+
+            # bring bboxes to correct format
+            target = prepare_gt(image, bboxes, category_ids)
 
             # get image in right format - normalized tensor
             image = F.to_tensor(image)
@@ -132,22 +135,29 @@ class CocoDetection(VisionDataset):
         return Compose(aug, bbox_params=BboxParams(format='coco', min_area=min_area,
                                                    min_visibility=min_visibility, label_fields=['category_id']))
 
-    def check_bbox_validity(self, target):
-        if target[0].nelement() == 0:
-            return
+    def check_bbox_validity(self, bboxes, category_ids, width, height):
+        eps = 0.000001
+        valid_bboxes, valid_ids = [], []
+        for bbox, id in zip(bboxes, category_ids):
+            if bbox[0] <= eps or bbox[1] <= eps or (bbox[0] + bbox[2]) >= (width - eps) or (bbox[1] + bbox[3]) >= (height - eps):
+                to_cut_x = max(0, -bbox[0])
+                to_cut_y = max(0, -bbox[1])
 
-        eps = 0.00001
-        gt_bbox = target[0]
+                bbox[0] = max(0, bbox[0])
+                bbox[1] = max(0, bbox[1])
 
-        # x and y must be positive
-        col_1_ok = gt_bbox[:, 0] > 0
-        col_2_ok = gt_bbox[:, 1] > 0
+                bbox[2] -= to_cut_x
+                bbox[3] -= to_cut_y
 
-        # width and height must be strictly greater than zero
-        col_3_ok = gt_bbox[:, 2] > eps
-        col_4_ok = gt_bbox[:, 3] > eps
+                to_cut_x = min(0, width - (bbox[0] + bbox[2]))
+                to_cut_y = min(0, height - (bbox[1] + bbox[3]))
 
-        # rows to keep
-        ok = col_1_ok * col_2_ok * col_3_ok * col_4_ok
-        target[0] = target[0][ok]
-        target[1] = target[1][ok]
+                bbox[2] -= to_cut_x
+                bbox[3] -= to_cut_y
+            if bbox[2] * bbox[3] <= eps:
+                continue
+
+            valid_bboxes.append(bbox)
+            valid_ids.append(id)
+
+        return valid_bboxes, valid_ids

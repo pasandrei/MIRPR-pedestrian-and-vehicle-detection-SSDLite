@@ -3,9 +3,9 @@ import math
 from torch import nn
 import copy
 
-from general_config import classes_config
 from general_config.system_device import device
 from general_config.anchor_config import default_boxes
+from utils.preprocessing import map_id_to_idx
 
 # inspired by fastai course
 
@@ -13,7 +13,6 @@ from general_config.anchor_config import default_boxes
 class Classification_Loss(nn.Module):
     def __init__(self, params):
         super().__init__()
-        self.id2idx = classes_config.training_ids2_idx
         self.loss_type = params.loss_type
         self.focal_loss = params.use_focal_loss
 
@@ -32,7 +31,7 @@ class Classification_Loss(nn.Module):
         """
 
         batch, n_classes, n_anchors = pred.shape
-        class_idx = self.map_id_to_idx(targ)
+        class_idx = map_id_to_idx(targ)
 
         if self.loss_type == "BCE":
             pred = pred.permute(0, 2, 1).contiguous()
@@ -65,18 +64,6 @@ class Classification_Loss(nn.Module):
         # these two combined strongly encourage the network to predict a high value when
         # there is indeed a positive example
         return w * ((1-pt).pow(gamma))
-
-    def map_id_to_idx(self, class_ids):
-        """
-        maps the tensor of class ids to indeces
-        """
-        class_idx = torch.zeros(class_ids.shape, dtype=int)
-        for k, v in self.id2idx.items():
-            class_idx[class_ids == k] = v
-
-        class_idx = class_idx.to(device)
-        return class_idx
-
 
 class Detection_Loss():
     """

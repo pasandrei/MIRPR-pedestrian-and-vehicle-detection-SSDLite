@@ -45,9 +45,11 @@ def print_train_batch_stats(model, epoch, batch_idx, data_loader, losses, optimi
         print('Mean and max weights over whole network: ', mean_weights, max_weights)
         print("-------------------------------------------------------")
 
+        last_lr = -1
         for pg in optimizer.param_groups:
-            print('Current learning_rate:', pg['lr'])
-
+            if pg['lr'] != last_lr:
+                print('Current learning_rate:', pg['lr'])
+            last_lr = pg['lr']
         losses[0], losses[1] = 0, 0
 
 

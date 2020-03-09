@@ -4,13 +4,13 @@ import torch
 from train.params import Params
 from general_config import anchor_config, path_config
 from data import dataloaders
-from architectures.models import SSDLite
 from visualize import anchor_mapping
 from utils.training import load_model, model_setup
 from general_config.system_device import device
 
 
-def model_output_pipeline(model_id="ssdlite", model_outputs=False, visualize_anchors=False, visualize_anchor_gt_pair=False):
+def model_output_pipeline(model_id="ssdlite", model_outputs=False, visualize_anchors=False,
+                          visualize_anchor_gt_pair=False, verbose=False, very_verbose=False):
     """
     model_outputs - flag to enable plotting model outputs
     visualize_anchors - flag to visualize anchors
@@ -34,11 +34,12 @@ def model_output_pipeline(model_id="ssdlite", model_outputs=False, visualize_anc
                 predictions = model(batch_images)
             else:
                 n_classes = params.n_classes if params.loss_type == "BCE" else params.n_classes + 1
-                predictions = [torch.randn(params.batch_size, anchor_config.total_anchors, 4),
-                               torch.randn(params.batch_size, anchor_config.total_anchors, n_classes)]
+                predictions = [torch.randn(params.batch_size, 4, anchor_config.total_anchors),
+                               torch.randn(params.batch_size, n_classes, anchor_config.total_anchors)]
 
             for idx in range(len(batch_images)):
                 non_background = batch_targets[1][idx] != 100
+                all_anchor_classes = batch_targets[1][idx]
                 gt_bbox = batch_targets[0][idx][non_background]
                 gt_class = batch_targets[1][idx][non_background]
 
@@ -46,7 +47,9 @@ def model_output_pipeline(model_id="ssdlite", model_outputs=False, visualize_anc
                     image=batch_images[idx], bbox_predictions=predictions[0][idx].permute(1, 0),
                     classification_predictions=predictions[1][idx].permute(1, 0),
                     gt_bbox=gt_bbox, gt_class=gt_class, image_info=images_info[idx], params=params,
-                    model_outputs=model_outputs, visualize_anchors=visualize_anchors, visualize_anchor_gt_pair=visualize_anchor_gt_pair)
+                    model_outputs=model_outputs, visualize_anchors=visualize_anchors,
+                    visualize_anchor_gt_pair=visualize_anchor_gt_pair, all_anchor_classes=all_anchor_classes,
+                    verbose=verbose, very_verbose=very_verbose)
                 total_iou += iou
                 total_maps += maps
 
