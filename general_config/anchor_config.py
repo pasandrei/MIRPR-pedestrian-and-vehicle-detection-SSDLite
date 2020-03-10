@@ -4,7 +4,7 @@ fig_size = 300
 feat_size = [19, 10, 5, 3, 2, 1]
 steps = [16, 32, 64, 100, 150, 300]
 # use the scales here: https://github.com/amdegroot/ssd.pytorch/blob/master/data/config.py
-scales = [45, 99, 153, 207, 261, 290, 315]
+scales = [20, 69, 118, 167, 216, 265, 315]
 aspect_ratios = [[2], [2, 3], [2, 3], [2, 3], [2, 3], [2, 3]]
 
 k_list = [len(aspect_ratio)*2 + 2 for aspect_ratio in aspect_ratios]

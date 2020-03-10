@@ -29,8 +29,8 @@ def resize_from_annotations_file(annotations_source, annotations_destination,
             image_info = image_id_to_image_info[image_id]
 
             annotation['bbox'][0] = annotation['bbox'][0] / image_info['width'] * target_width
-            annotation['bbox'][2] = annotation['bbox'][1] / image_info['width'] * target_width
-            annotation['bbox'][1] = annotation['bbox'][2] / image_info['height'] * target_height
+            annotation['bbox'][2] = annotation['bbox'][2] / image_info['width'] * target_width
+            annotation['bbox'][1] = annotation['bbox'][1] / image_info['height'] * target_height
             annotation['bbox'][3] = annotation['bbox'][3] / image_info['height'] * target_height
 
         for image in data['images']:

@@ -44,7 +44,7 @@ def run(model_id="ssdlite", train_model=False, load_checkpoint=False, eval_only=
     prints.print_dataset_stats(train_loader, valid_loader)
 
     model = training.model_setup(params)
-    optimizer = training.optimizer_setup(model, params)
+    optimizer = training.optimizer_setup(model, params, zero_bn_bias_decay=True)
 
     if APEX_AVAILABLE and mixed_precision:
         model, optimizer = amp.initialize(

@@ -152,8 +152,8 @@ class CocoDetection(VisionDataset):
                 to_cut_x = min(0, width - (bbox[0] + bbox[2]))
                 to_cut_y = min(0, height - (bbox[1] + bbox[3]))
 
-                bbox[2] -= to_cut_x
-                bbox[3] -= to_cut_y
+                bbox[2] -= to_cut_x + eps
+                bbox[3] -= to_cut_y + eps
             if bbox[2] * bbox[3] <= eps:
                 continue
 
