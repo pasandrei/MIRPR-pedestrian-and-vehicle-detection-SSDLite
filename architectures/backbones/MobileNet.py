@@ -159,12 +159,13 @@ class MobileNetV2(nn.Module):
         for idx, layer in enumerate(self.features):
             # want to get expansion of layer 15
             if idx == 14:
-                x = layer.conv[0](x)
-                inter = x
-                x = layer.conv[1](x)
-                x = layer.conv[2](x)
-                # print("bn is back: ", layer.conv[3])
-                x = layer.conv[3](x)
+                res_connect = x
+                for i, element in enumerate(layer.conv):
+                    x = element(x)
+                    if i == 0:
+                        inter = x
+                if layer.use_res_connect:
+                    x += res_connect
             else:
                 x = layer(x)
         return inter, x

@@ -1,8 +1,8 @@
-from train.lr_policies import retina_decay
 from train.backbone_freezer import Backbone_Freezer
-from utils.prints import print_train_batch_stats
-from general_config.system_device import device
-from utils.training import update_losses
+from utils.prints import print_train_batch_stats, print_train_stats
+from general_config.general_config import device
+from utils.training import update_losses, update_tensorboard_graphs, lr_decay_policy_setup
+from general_config import general_config
 
 import datetime
 
@@ -33,16 +33,19 @@ def train_step(model, input_, label, optimizer, losses, detection_loss, params, 
     optimizer.step()
 
 
-def train(model, optimizer, train_loader, model_evaluator, detection_loss, params, start_epoch=0,
-          use_amp=False):
+def train(model, optimizer, train_loader, model_evaluator,
+          detection_loss, params, writer, start_epoch=0, use_amp=False):
     """
     args: model - nn.Module CNN to train
           optimizer - torch.optim
+          train_loader - Dataloader object to provide data in batches
+          model_evaluator - class used to validate model
+          detection_loss - class used to handle loss
           params - json config
+          writer - tensorboard writer - logs losses and mAP
     trains model, saves best model by validation
     """
-    lr_decay_policy = retina_decay.Lr_decay(
-        lr=params.learning_rate, start_epoch=start_epoch, params=params)
+    lr_decay_policy = lr_decay_policy_setup(params, len(train_loader))
     backbone_freezer = Backbone_Freezer(params)
     losses = [0] * 4
 
@@ -54,21 +57,28 @@ def train(model, optimizer, train_loader, model_evaluator, detection_loss, param
         model.train()
 
         backbone_freezer.step(epoch, model)
-        lr_decay_policy.step(optimizer)
         print("Total number of parameters trained this epoch: ",
               sum(p.numel() for pg in optimizer.param_groups for p in pg['params'] if p.requires_grad))
 
         for batch_idx, (input_, label, _) in enumerate(train_loader):
             train_step(model, input_, label, optimizer, losses, detection_loss, params, use_amp)
 
-            print_train_batch_stats(model=model, epoch=epoch, batch_idx=batch_idx, data_loader=train_loader,
+            print_train_batch_stats(model=model, epoch=epoch, batch_idx=batch_idx,
+                                    data_loader=train_loader,
                                     losses=losses, optimizer=optimizer, params=params)
 
             if epoch == 0 and params.warm_up:
                 warm_up(train_loader, optimizer, params)
+            else:
+                lr_decay_policy.step(epoch, optimizer)
 
-        if (epoch + 1) % params.eval_step == 0:
-            model_evaluator.complete_evaluate(model, optimizer, train_loader, losses, epoch)
+        if (epoch + 1) % general_config.eval_step == 0:
+            mAP, loc_loss_val, class_loss_val = model_evaluator.complete_evaluate(model, optimizer,
+                                                                                  epoch)
+            loc_loss_train, class_loss_train = print_train_stats(
+                train_loader, losses, params)
+            update_tensorboard_graphs(writer, loc_loss_train, class_loss_train,
+                                      loc_loss_val, class_loss_val, mAP, epoch)
             losses[2], losses[3] = 0, 0
 
         losses = [0] * 4

@@ -2,7 +2,7 @@ import numpy as np
 import cv2
 
 import json
-from general_config import classes_config, path_config
+from general_config import classes_config, constants
 from utils.box_computations import get_IoU
 
 
@@ -21,8 +21,8 @@ def nms(bounding_boxes, predicted_classes, threshold=0.5):
 
     bounding_boxes MUST be sorted
     """
-    bounding_boxes = bounding_boxes[:200]
-    predicted_classes = predicted_classes[:200]
+    bounding_boxes = bounding_boxes[:100]
+    predicted_classes = predicted_classes[:100]
 
     indices = np.array(range(bounding_boxes.shape[0]))
     final_model_predictions = []
@@ -135,10 +135,10 @@ def evaluate_on_COCO_metrics(prediction_annotations):
     with open("fisierul.json", 'w') as f:
         json.dump(prediction_annotations, f)
 
-    graundtrutu = COCO(path_config.val_annotations_path)
-    predictile = graundtrutu.loadRes('fisierul.json')
+    ground_truth = COCO(constants.val_annotations_path)
+    predictions = ground_truth.loadRes('fisierul.json')
 
-    cocoevalu = COCOeval(graundtrutu, predictile, iouType='bbox')
+    cocoevalu = COCOeval(ground_truth, predictions, iouType='bbox')
 
     # cocoevalu.params.catIds = [1, 3]
 

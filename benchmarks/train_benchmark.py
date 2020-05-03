@@ -1,5 +1,5 @@
 from recordtype import recordtype
-from general_config.system_device import device
+from general_config.general_config import device
 
 import time
 

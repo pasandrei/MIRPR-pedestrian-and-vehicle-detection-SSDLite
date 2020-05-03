@@ -1,4 +1,4 @@
-from general_config import path_config
+from general_config import constants
 
 def cross_validate(model, detection_loss, valid_loader, model_evaluator, params):
     """
@@ -34,5 +34,5 @@ def cross_validate(model, detection_loss, valid_loader, model_evaluator, params)
                 params.conf_threshold = conf_range[i]
                 params.suppress_threshold = suppress_range[j]
                 params.mAP = cur_mAP
-                params.save(path_config.params_path.format(params.model_id))
+                params.save(constants.params_path.format(params.model_id))
                 print('Params saved succesfully')

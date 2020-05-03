@@ -6,7 +6,7 @@ import copy
 import torch
 
 from utils.postprocessing import *
-from general_config.system_device import device
+from general_config.general_config import device
 
 
 rootdir = 'C:\\Users\Andrei Popovici\Desktop\JAAD_stuff\JAAD-JAAD_2.0\images'

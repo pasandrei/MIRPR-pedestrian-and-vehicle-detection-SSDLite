@@ -1,9 +1,9 @@
 import json
 
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import DataLoader
 from data.dataset import CocoDetection
-from torch.utils.data.sampler import *
-from general_config import path_config
+from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler, SequentialSampler
+from general_config import constants
 
 
 def get_dataloaders(params):
@@ -20,8 +20,8 @@ def get_dataloaders_test(params):
 
 
 def get_train_dataloader(params):
-    train_annotations_path = path_config.train_annotations_path
-    train_dataset = CocoDetection(root=path_config.train_images_folder,
+    train_annotations_path = constants.train_annotations_path
+    train_dataset = CocoDetection(root=constants.train_images_folder,
                                   annFile=train_annotations_path,
                                   augmentation=True,
                                   params=params)
@@ -37,8 +37,8 @@ def get_train_dataloader(params):
 
 
 def get_valid_dataloader(params):
-    val_annotations_path = path_config.val_annotations_path
-    validation_dataset = CocoDetection(root=path_config.val_images_folder,
+    val_annotations_path = constants.val_annotations_path
+    validation_dataset = CocoDetection(root=constants.val_images_folder,
                                        annFile=val_annotations_path,
                                        augmentation=False,
                                        params=params)

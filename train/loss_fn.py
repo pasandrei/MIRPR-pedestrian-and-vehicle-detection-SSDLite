@@ -3,8 +3,9 @@ import math
 from torch import nn
 import copy
 
-from general_config.system_device import device
+from general_config.general_config import device
 from general_config.anchor_config import default_boxes
+from general_config import constants
 from utils.preprocessing import map_id_to_idx
 
 # inspired by fastai course
@@ -29,11 +30,10 @@ class Classification_Loss(nn.Module):
             for softmax it is just a list of indeces
         Returns: softmax loss or (weighted if focal) BCE loss
         """
-
         batch, n_classes, n_anchors = pred.shape
         class_idx = map_id_to_idx(targ)
 
-        if self.loss_type == "BCE":
+        if self.loss_type == constants.BCE_loss:
             pred = pred.permute(0, 2, 1).contiguous()
             one_hot = torch.nn.functional.one_hot(class_idx, num_classes=n_classes+1).float()
             one_hot = one_hot.to(device)
@@ -64,6 +64,7 @@ class Classification_Loss(nn.Module):
         # these two combined strongly encourage the network to predict a high value when
         # there is indeed a positive example
         return w * ((1-pt).pow(gamma))
+
 
 class Detection_Loss():
     """

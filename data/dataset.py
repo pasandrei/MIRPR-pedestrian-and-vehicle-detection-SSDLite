@@ -39,7 +39,8 @@ class CocoDetection(VisionDataset):
     We are using the PyTorch COCO API on top of which we build our custom data processing
     """
 
-    def __init__(self, root, annFile, transform=None, target_transform=None, transforms=None, augmentation=True, params=None):
+    def __init__(self, root, annFile, transform=None,
+                 target_transform=None, transforms=None, augmentation=True, params=None):
         super().__init__(root, transforms, transform, target_transform)
         from pycocotools.coco import COCO
         self.coco = COCO(annFile)
@@ -51,12 +52,13 @@ class CocoDetection(VisionDataset):
         self.anchors_xywh = default_boxes(order='xywh')
 
         self.augmentations = self.get_aug([RandomResizedCrop(height=self.params.input_height,
-                                                             width=self.params.input_width, scale=(0.5, 1.0)),
+                                                             width=self.params.input_width,
+                                                             scale=(0.5, 1.0)),
                                            HorizontalFlip(), Rotate(limit=10),
                                            CoarseDropout(max_holes=8, max_height=20, max_width=20),
                                            GaussNoise(p=0.1), RandomBrightnessContrast(),
                                            RandomGamma(), ToGray(p=0.1),
-                                           ], min_visibility=0.25)
+                                           ], min_visibility=0.45)
 
         self.just_resize = self.get_aug(
             [Resize(height=self.params.input_height, width=self.params.input_width)])
@@ -133,9 +135,14 @@ class CocoDetection(VisionDataset):
         min_visibility - minimum area percentage (to keep bbox) of original bbox after transform
         """
         return Compose(aug, bbox_params=BboxParams(format='coco', min_area=min_area,
-                                                   min_visibility=min_visibility, label_fields=['category_id']))
+                                                   min_visibility=min_visibility,
+                                                   label_fields=['category_id']))
 
     def check_bbox_validity(self, bboxes, category_ids, width, height):
+        """
+        Some bboxes are invalid in COCO, have to filter them out otherwise albumentations will
+        crash
+        """
         eps = 0.000001
         valid_bboxes, valid_ids = [], []
         for bbox, id in zip(bboxes, category_ids):

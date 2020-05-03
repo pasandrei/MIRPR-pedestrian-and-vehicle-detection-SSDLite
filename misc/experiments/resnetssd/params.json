@@ -3,6 +3,7 @@
     "optimizer": "sgd",
     "n_classes": 80,
     "learning_rate": 0.0026,
+    "lr_policy": "poly",
     "batch_size": 32,
     "mapping_threshold": 0.5,
     "conf_threshold": 0.1,
@@ -16,8 +17,6 @@
     "second_decay": 25,
     "decay_rate": 0.1,
     "freeze_backbone": 0,
-    "batch_stats_step": 10,
-    "eval_step": 1,
     "input_height": 300,
     "input_width": 300,
     "warm_up": 0

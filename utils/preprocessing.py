@@ -6,7 +6,7 @@ import copy
 from math import sqrt
 from general_config import classes_config
 from utils.box_computations import jaccard, wh2corners
-from general_config.system_device import device
+from general_config.general_config import device
 
 
 def map_to_ground_truth(overlaps, gt_bbox, gt_class, params):
