@@ -2,7 +2,7 @@ from train.backbone_freezer import Backbone_Freezer
 from utils.prints import print_train_batch_stats, print_train_stats
 from general_config.general_config import device
 from utils.training import update_losses, update_tensorboard_graphs, lr_decay_policy_setup
-from general_config import general_config
+from general_config import general_config, constants
 
 import datetime
 
@@ -56,7 +56,8 @@ def train(model, optimizer, train_loader, model_evaluator,
     for epoch in range(start_epoch, params.n_epochs):
         model.train()
 
-        backbone_freezer.step(epoch, model)
+        if params.model_id == constants.ssdlite:
+            backbone_freezer.step(epoch, model)
         print("Total number of parameters trained this epoch: ",
               sum(p.numel() for pg in optimizer.param_groups for p in pg['params'] if p.requires_grad))
 
@@ -68,7 +69,7 @@ def train(model, optimizer, train_loader, model_evaluator,
                                     losses=losses, optimizer=optimizer, params=params)
 
             if epoch == 0 and params.warm_up:
-                warm_up(train_loader, optimizer, params)
+                warm_up(batch_idx, len(train_loader), optimizer, params)
             else:
                 lr_decay_policy.step(epoch, optimizer)
 
@@ -84,10 +85,10 @@ def train(model, optimizer, train_loader, model_evaluator,
         losses = [0] * 4
 
 
-def warm_up(train_loader, optimizer, params):
+def warm_up(batch_idx, train_size, optimizer, params):
     """
     linearly increase learning_rate 10x during the first epoch
     """
-    train_size = len(train_loader)
+    batch_idx += 1
     for pg in optimizer.param_groups:
-        pg['lr'] += (1/train_size)*params.learning_rate*9
+        pg['lr'] = (params.learning_rate) / 10 + (batch_idx/train_size) * params.learning_rate * 0.9

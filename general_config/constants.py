@@ -18,3 +18,6 @@ retina_lr = "retina"
 
 BCE_loss = "BCE"
 softmax_loss = "softmax"
+
+ssdlite = "ssdlite"
+ssd = "resnetssd"

@@ -91,7 +91,8 @@ def load_model(model, params, optimizer):
     checkpoint = torch.load(constants.model_path.format(params.model_id))
     model.load_state_dict(checkpoint['model_state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-    start_epoch = checkpoint.get('epoch', 0)
+    # start from the next epoch, do not repeat saved one
+    start_epoch = checkpoint['epoch'] + 1
     print('Model loaded successfully')
 
     return model, optimizer, start_epoch

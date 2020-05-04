@@ -19,7 +19,7 @@ def remove_overlapping_bboxes(current_class_indeces, bounding_boxes, thresold):
     kept = []
     eliminated = {}
     for i in range(len(current_class_indeces)):
-        if i is in eliminated:
+        if i in eliminated:
             continue
         else:
             kept.append(i)
