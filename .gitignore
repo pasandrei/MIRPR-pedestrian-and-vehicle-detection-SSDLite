@@ -10,3 +10,5 @@ fisierul.json
 misc/experiments/ssdlite/model_checkpoint2
 
 misc/experiments/ssdlite/model_checkpoint_loss
+misc/experiments/ssdlite/stats.json
+misc/experiments/ssdlite/params.json
