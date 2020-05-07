@@ -2,7 +2,7 @@ import numpy as np
 import cv2
 
 import json
-from general_config import classes_config, constants
+from general_config import classes_config, constants, general_config
 from utils.box_computations import get_IoU
 
 
@@ -19,13 +19,15 @@ def remove_overlapping_bboxes(current_class_indeces, bounding_boxes, thresold):
     kept = []
     eliminated = {}
     for i in range(len(current_class_indeces)):
-        if i in eliminated:
-            continue
+        real_i_index = current_class_indeces[i]
+        if i not in eliminated:
+            kept.append(real_i_index)
         else:
-            kept.append(i)
+            continue
         # those that intersect with i are eliminated, since i is more confident
         for j in range(i+1, len(current_class_indeces)):
-            IoU = get_IoU(bounding_boxes[i], bounding_boxes[j])
+            real_j_index = current_class_indeces[j]
+            IoU = get_IoU(bounding_boxes[real_i_index], bounding_boxes[real_j_index])
             if IoU >= thresold:
                 eliminated[j] = 1
     return kept
@@ -44,15 +46,21 @@ def nms(bounding_boxes, predicted_classes, threshold=0.5):
     bounding_boxes are sorted decreasingly by confidence
     """
     # keep top 100 predictions
-    bounding_boxes = bounding_boxes[:100]
-    predicted_classes = predicted_classes[:100]
+    bounding_boxes = bounding_boxes[:200]
+    predicted_classes = predicted_classes[:200]
 
     final_model_predictions = []
-    for id in np.unique(predicted_classes):
-        # get indeces of current class
-        current_class_indeces = np.argwhere(predicted_classes == id)
-        kept_indeces = remove_overlapping_bboxes(current_class_indeces, bounding_boxes, threshold)
-        final_model_predictions.extend(kept_indeces)
+    if general_config.agnostic_nms:
+        indices = list(range(predicted_classes.shape[0]))
+        final_model_predictions = remove_overlapping_bboxes(indices,
+                                                            bounding_boxes, threshold)
+    else:
+        for id in np.unique(predicted_classes):
+            # get indeces of current class
+            current_class_indeces = np.nonzero(predicted_classes == id)[0]
+            kept_indeces = remove_overlapping_bboxes(current_class_indeces,
+                                                     bounding_boxes, threshold)
+            final_model_predictions.extend(kept_indeces)
 
     return final_model_predictions
 

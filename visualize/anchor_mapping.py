@@ -17,7 +17,7 @@ def visualize_anchor_sets(image, anchor_grid, grid_size, k, size):
     for i in range(k):
         cur_anchors = []
         for j in range(grid_size**2):
-            if random.random() > 0:
+            if random.random() > 0.75:
                 cur_anchors.append(anchor_grid[i + j*k])
         cur_anchors = np.array(cur_anchors)
         plot_bounding_boxes(image=image, bounding_boxes=cur_anchors,
@@ -246,7 +246,7 @@ def test(raw_bbox=None, raw_class_confidences=None, raw_class_indeces=None,
         print("MATCHED GT BBOXES: ", gt_bbox_for_matched_anchors, gt_bbox_for_matched_anchors.shape)
 
         print("Matched ANCHORS ", matched_anchors, matched_anchors.shape)
-        
+
         print("Matched Pred BBOXES: (Cheated preditctions) ", matched_bbox, matched_bbox.shape)
         print('CONFIDENCES FOR PREDICTED BBOXES that matched anchors: ', matched_conf)
 

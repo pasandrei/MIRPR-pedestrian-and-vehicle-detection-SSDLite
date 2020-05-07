@@ -3,6 +3,7 @@ import os
 import os.path
 import torchvision.transforms.functional as F
 import numpy as np
+import random
 from data.vision_dataset import VisionDataset
 from PIL import Image
 from general_config.anchor_config import default_boxes
@@ -48,20 +49,10 @@ class CocoDetection(VisionDataset):
         self.augmentation = augmentation
         self.params = params
 
+        self.init_augmentations()
+
         self.anchors_ltrb = default_boxes(order='ltrb')
         self.anchors_xywh = default_boxes(order='xywh')
-
-        self.augmentations = self.get_aug([RandomResizedCrop(height=self.params.input_height,
-                                                             width=self.params.input_width,
-                                                             scale=(0.5, 1.0)),
-                                           HorizontalFlip(), Rotate(limit=10),
-                                           CoarseDropout(max_holes=8, max_height=20, max_width=20),
-                                           GaussNoise(p=0.1), RandomBrightnessContrast(),
-                                           RandomGamma(), ToGray(p=0.1),
-                                           ], min_visibility=0.45)
-
-        self.just_resize = self.get_aug(
-            [Resize(height=self.params.input_height, width=self.params.input_width)])
 
     def __getitem__(self, batched_indices):
         """
@@ -87,7 +78,10 @@ class CocoDetection(VisionDataset):
             album_annotation = {'image': np.array(
                 img), 'bboxes': bboxes, 'category_id': category_ids}
             if self.augmentation:
-                transform_result = self.augmentations(**album_annotation)
+                if random.random() > 0.33:
+                    transform_result = self.crop_aug(**album_annotation)
+                else:
+                    transform_result = self.resize_aug(**album_annotation)
             else:
                 transform_result = self.just_resize(**album_annotation)
             image, bboxes, category_ids = transform_result.values()
@@ -168,3 +162,29 @@ class CocoDetection(VisionDataset):
             valid_ids.append(id)
 
         return valid_bboxes, valid_ids
+
+    def init_augmentations(self):
+        common = [HorizontalFlip(), Rotate(limit=20),
+                  CoarseDropout(max_holes=8, max_height=20, max_width=20),
+                  GaussNoise(p=0.1), RandomBrightnessContrast(),
+                  ToGray(p=0.1)]
+
+        random_crop_aug = [RandomResizedCrop(height=self.params.input_height,
+                                             width=self.params.input_width,
+                                             scale=(0.1, 1.0))]
+        random_crop_aug.extend(common)
+
+        simple_resize_aug = [Resize(height=self.params.input_height,
+                                    width=self.params.input_width)]
+        simple_resize_aug.extend(common)
+
+        crop = self.get_aug(random_crop_aug, min_visibility=0.5)
+
+        resize = self.get_aug(simple_resize_aug, min_visibility=0.5)
+
+        just_resize = self.get_aug([Resize(height=self.params.input_height,
+                                           width=self.params.input_width)])
+
+        self.crop_aug = crop
+        self.resize_aug = resize
+        self.just_resize = just_resize

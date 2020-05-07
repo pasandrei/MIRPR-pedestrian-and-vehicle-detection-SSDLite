@@ -12,3 +12,10 @@ misc/experiments/ssdlite/model_checkpoint2
 misc/experiments/ssdlite/model_checkpoint_loss
 misc/experiments/ssdlite/stats.json
 misc/experiments/ssdlite/params.json
+general_config/general_config.py
+misc/experiments/resnetssd/model_checkpoint_loss
+misc/experiments/resnetssd/model_checkpoint
+misc/experiments/resnetssd/stats.json
+misc/experiments/resnetssd/params.json
+misc/experiments/ssdlite/params.json
+misc/experiments/ssdlite/stats.json

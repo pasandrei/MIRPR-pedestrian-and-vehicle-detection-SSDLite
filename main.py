@@ -10,6 +10,7 @@ from misc import cross_validation
 from misc.model_output_handler import Model_output_handler
 from jaad_data import inference
 from general_config import constants
+from data import dataloaders
 
 from utils import prints
 from utils import training
@@ -40,9 +41,6 @@ def run(model_id="ssdlite", train_model=True, load_checkpoint=False, cross_valid
     stats = Params(constants.stats_path.format(model_id))
     prints.show_training_info(params)
 
-    train_loader, valid_loader = training.prepare_datasets(params)
-    prints.print_dataset_stats(train_loader, valid_loader)
-
     model = training.model_setup(params)
     optimizer = training.optimizer_setup(model, params)
 
@@ -59,9 +57,16 @@ def run(model_id="ssdlite", train_model=True, load_checkpoint=False, cross_valid
     # tensorboard
     writer = SummaryWriter(filename_suffix=params.model_id)
 
+    if train_model:
+        train_loader, valid_loader = training.prepare_datasets(params)
+        prints.print_dataset_stats(train_loader, valid_loader)
+    else:
+        valid_loader = dataloaders.get_dataloaders_test(params)
+
     detection_loss = Detection_Loss(params)
     model_evaluator = Model_evaluator(valid_loader, detection_loss,
                                       params=params, stats=stats)
+    lr_decay_policy = training.lr_decay_policy_setup(params, optimizer, len(train_loader))
 
     start_epoch = 0
     if load_checkpoint:
@@ -69,6 +74,8 @@ def run(model_id="ssdlite", train_model=True, load_checkpoint=False, cross_valid
     prints.print_trained_parameters_count(model, optimizer)
 
     if validate:
+        print("Checkpoint epoch: ", start_epoch)
+        prints.print_dataset_stats(valid_loader, valid_loader)
         model_evaluator.complete_evaluate(model, optimizer)
 
     if cross_validate:
@@ -77,7 +84,7 @@ def run(model_id="ssdlite", train_model=True, load_checkpoint=False, cross_valid
 
     if train_model:
         train.train(model, optimizer, train_loader, model_evaluator,
-                    detection_loss, params, writer, start_epoch,
+                    detection_loss, params, writer, lr_decay_policy, start_epoch,
                     APEX_AVAILABLE and mixed_precision)
 
 

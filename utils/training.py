@@ -53,7 +53,7 @@ def model_setup(params):
     return model
 
 
-def optimizer_setup(model, params, zero_bn_bias_decay=False):
+def optimizer_setup(model, params):
     """
     creates optimizer, can have layer specific options
     """
@@ -68,17 +68,17 @@ def optimizer_setup(model, params, zero_bn_bias_decay=False):
         else:
             optimizer = optimizer_handler.plain_sgd(model, params)
 
-    if zero_bn_bias_decay:
+    if params.zero_bn_bias_decay:
         optimizer = zero_wdcay_bn_bias(optimizer)
 
     return optimizer
 
 
-def lr_decay_policy_setup(params, loader_size=None):
+def lr_decay_policy_setup(params, optimizer, loader_size=None):
     if params.lr_policy == constants.poly_lr:
-        lr_handler = poly_lr.Poly_LR(loader_size=loader_size, params=params)
+        lr_handler = poly_lr.Poly_LR(params=params, optimizer=optimizer, loader_size=loader_size)
     elif params.lr_policy == constants.retina_lr:
-        lr_handler = retina_decay.Lr_decay(params=params)
+        lr_handler = retina_decay.Retina_decay(params=params, optimizer=optimizer)
     return lr_handler
 
 
@@ -91,11 +91,18 @@ def load_model(model, params, optimizer):
     checkpoint = torch.load(constants.model_path.format(params.model_id))
     model.load_state_dict(checkpoint['model_state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-    # start from the next epoch, do not repeat saved one
-    start_epoch = checkpoint['epoch'] + 1
+    start_epoch = checkpoint['epoch']
     print('Model loaded successfully')
 
     return model, optimizer, start_epoch
+
+
+def load_weigths_only(model, params):
+    checkpoint = torch.load(constants.model_path.format(params.model_id))
+    model.load_state_dict(checkpoint['model_state_dict'])
+    print('Weigths loaded successfully')
+
+    return model
 
 
 def save_model(epoch, model, optimizer, params, stats, msg=None, by_loss=False):
@@ -103,7 +110,7 @@ def save_model(epoch, model, optimizer, params, stats, msg=None, by_loss=False):
     if by_loss:
         model_path = constants.model_path_loss
     torch.save({
-        'epoch': epoch,
+        'epoch': epoch + 1,
         'model_state_dict': model.state_dict(),
         'optimizer_state_dict': optimizer.state_dict(),
     }, model_path.format(params.model_id))

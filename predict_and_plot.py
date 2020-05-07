@@ -5,11 +5,11 @@ from train.params import Params
 from general_config import anchor_config, constants
 from data import dataloaders
 from visualize import anchor_mapping
-from utils.training import load_model, model_setup
+from utils.training import load_weigths_only, model_setup
 from general_config.general_config import device
 
 
-def model_output_pipeline(model_id="ssdlite", model_outputs=False, visualize_anchors=False,
+def model_output_pipeline(model_id="resnetssd", model_outputs=True, visualize_anchors=False,
                           visualize_anchor_gt_pair=False, verbose=False, very_verbose=False):
     """
     model_outputs - flag to enable plotting model outputs
@@ -20,7 +20,7 @@ def model_output_pipeline(model_id="ssdlite", model_outputs=False, visualize_anc
 
     if model_outputs:
         model = model_setup(params)
-        model, _, _ = load_model(model, params)
+        model = load_weigths_only(model, params)
         model.to(device)
         model.eval()
 
@@ -58,3 +58,6 @@ def model_output_pipeline(model_id="ssdlite", model_outputs=False, visualize_anc
             print("Mean maps so far: ", total_maps / avg)
             if batch_idx == 10:
                 return
+
+if __name__ == '__main__':
+    model_output_pipeline()

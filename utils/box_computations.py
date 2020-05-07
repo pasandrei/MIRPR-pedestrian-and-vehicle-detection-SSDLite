@@ -72,7 +72,8 @@ def get_IoU(bbox1, bbox2):
 
     union_area = get_bbox_area(bbox1) + get_bbox_area(bbox2) - intersection_area
 
+    # want to eliminate invalid boxes
     if union_area == 0:
-        return -1
+        return 1
 
     return intersection_area/union_area
