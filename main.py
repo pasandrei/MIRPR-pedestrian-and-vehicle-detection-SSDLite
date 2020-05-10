@@ -66,7 +66,8 @@ def run(model_id="ssdlite", train_model=True, load_checkpoint=False, cross_valid
     detection_loss = Detection_Loss(params)
     model_evaluator = Model_evaluator(valid_loader, detection_loss,
                                       params=params, stats=stats)
-    lr_decay_policy = training.lr_decay_policy_setup(params, optimizer, len(train_loader))
+    if train_model:
+        lr_decay_policy = training.lr_decay_policy_setup(params, optimizer, len(train_loader))
 
     start_epoch = 0
     if load_checkpoint:
@@ -80,7 +81,7 @@ def run(model_id="ssdlite", train_model=True, load_checkpoint=False, cross_valid
 
     if cross_validate:
         cross_validation.cross_validate(
-            model, detection_loss, valid_loader, model_evaluator, params)
+            model, detection_loss, valid_loader, model_evaluator, params, stats)
 
     if train_model:
         train.train(model, optimizer, train_loader, model_evaluator,

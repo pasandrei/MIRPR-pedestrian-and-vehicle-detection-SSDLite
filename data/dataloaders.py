@@ -50,4 +50,4 @@ def get_valid_dataloader(params):
     return DataLoader(validation_dataset, batch_size=None,
                       shuffle=False, num_workers=4,
                       sampler=BatchSampler(SequentialSampler([i for i in range(nr_images_in_val)]),
-                                           batch_size=params.batch_size, drop_last=True))
+                                           batch_size=params.batch_size, drop_last=False))

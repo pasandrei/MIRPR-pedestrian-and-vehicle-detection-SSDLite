@@ -8,7 +8,7 @@ from general_config.anchor_config import default_boxes
 from general_config import constants
 from utils.preprocessing import map_id_to_idx
 
-# inspired by fastai course
+# inspired by fastai http://course18.fast.ai/lessons/lesson9.html course
 
 
 class Classification_Loss(nn.Module):

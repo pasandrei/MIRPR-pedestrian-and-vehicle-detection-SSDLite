@@ -163,7 +163,7 @@ def evaluate_on_COCO_metrics(prediction_annotations):
 
     cocoevalu = COCOeval(ground_truth, predictions, iouType='bbox')
 
-    # cocoevalu.params.catIds = [1, 3]
+    cocoevalu.params.catIds = [1]
 
     cocoevalu.evaluate()
     cocoevalu.accumulate()

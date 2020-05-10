@@ -78,7 +78,7 @@ class CocoDetection(VisionDataset):
             album_annotation = {'image': np.array(
                 img), 'bboxes': bboxes, 'category_id': category_ids}
             if self.augmentation:
-                if random.random() > 0.33:
+                if random.random() > 0.5:
                     transform_result = self.crop_aug(**album_annotation)
                 else:
                     transform_result = self.resize_aug(**album_annotation)
@@ -164,14 +164,13 @@ class CocoDetection(VisionDataset):
         return valid_bboxes, valid_ids
 
     def init_augmentations(self):
-        common = [HorizontalFlip(), Rotate(limit=20),
-                  CoarseDropout(max_holes=8, max_height=20, max_width=20),
-                  GaussNoise(p=0.1), RandomBrightnessContrast(),
-                  ToGray(p=0.1)]
+        common = [HorizontalFlip(), Rotate(limit=10),
+                  RandomBrightnessContrast(),
+                  ToGray(p=0.05)]
 
         random_crop_aug = [RandomResizedCrop(height=self.params.input_height,
                                              width=self.params.input_width,
-                                             scale=(0.1, 1.0))]
+                                             scale=(0.35, 1.0))]
         random_crop_aug.extend(common)
 
         simple_resize_aug = [Resize(height=self.params.input_height,

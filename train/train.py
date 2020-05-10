@@ -73,7 +73,7 @@ def train(model, optimizer, train_loader, model_evaluator,
                                     data_loader=train_loader,
                                     losses=losses, optimizer=optimizer, params=params)
 
-        if (epoch + 1) % general_config.eval_step == 0 or epoch == 0:
+        if (epoch + 1) % general_config.eval_step == 0:
             mAP, loc_loss_val, class_loss_val = model_evaluator.complete_evaluate(model, optimizer,
                                                                                   epoch)
             loc_loss_train, class_loss_train = print_train_stats(

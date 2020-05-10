@@ -44,10 +44,16 @@ aspect_ratios = [[2], [2, 3], [2, 3], [2, 3], [2, 3], [2, 3]]
 # scales = [21, 45, 99, 153, 207, 261, 315]
 # aspect_ratios = [[2], [2, 3], [2, 3], [2, 3], [2], [2]]
 
+
+only_vertical = True
+default_boxes = DefaultBoxes(fig_size, feat_size, steps,
+                             scales, aspect_ratios, only_vertical=only_vertical)
+
 k_list = [len(aspect_ratio)*2 + 2 for aspect_ratio in aspect_ratios]
+if only_vertical:
+    k_list = [len(aspect_ratio) + 2 for aspect_ratio in aspect_ratios]
+
 
 total_anchors = 0
 for (size, k) in zip(feat_size, k_list):
     total_anchors += size*size*k
-
-default_boxes = DefaultBoxes(fig_size, feat_size, steps, scales, aspect_ratios)

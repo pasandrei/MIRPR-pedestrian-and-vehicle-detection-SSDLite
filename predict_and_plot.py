@@ -2,7 +2,7 @@ import numpy as np
 import torch
 
 from train.params import Params
-from general_config import anchor_config, constants
+from general_config import anchor_config, constants, classes_config
 from data import dataloaders
 from visualize import anchor_mapping
 from utils.training import load_weigths_only, model_setup
@@ -33,7 +33,7 @@ def model_output_pipeline(model_id="resnetssd", model_outputs=True, visualize_an
                 batch_images = batch_images.to(device)
                 predictions = model(batch_images)
             else:
-                n_classes = params.n_classes if params.loss_type == "BCE" else params.n_classes + 1
+                n_classes = len(classes_config.training_ids)
                 predictions = [torch.randn(params.batch_size, 4, anchor_config.total_anchors),
                                torch.randn(params.batch_size, n_classes, anchor_config.total_anchors)]
 

@@ -1,7 +1,6 @@
 {
     "model_id": "resnetssd",
     "optimizer": "sgd",
-    "n_classes": 80,
     "learning_rate": 0.0026,
     "lr_policy": "retina",
     "batch_size": 16,

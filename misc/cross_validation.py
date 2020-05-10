@@ -1,6 +1,7 @@
 from general_config import constants
 
-def cross_validate(model, detection_loss, valid_loader, model_evaluator, params):
+
+def cross_validate(model, detection_loss, valid_loader, model_evaluator, params, stats):
     """
     Goal: find the best pair of confidence threshold and NMS suppression threshold
     Args:
@@ -13,10 +14,11 @@ def cross_validate(model, detection_loss, valid_loader, model_evaluator, params)
 
     best_conf_threshold, best_suppress_threshold, best_mAP = 0, 0, 0
 
-    conf_range = [(0.2 + i / 100) for i in range(26)]
-    suppress_range = [(0.4 + i / 50) for i in range(11)]
+    conf_range = [(0.01 + i / 100) for i in range(10)]
+    suppress_range = [(0.4 + i / 15) for i in range(5)]
 
     print(conf_range)
+    print(suppress_range)
     for i in range(len(conf_range)):
         for j in range(len(suppress_range)):
             print("Current best hyperparams: ")
@@ -33,6 +35,7 @@ def cross_validate(model, detection_loss, valid_loader, model_evaluator, params)
                 best_conf_threshold, best_suppress_threshold, best_mAP = conf_range[i], suppress_range[j], cur_mAP
                 params.conf_threshold = conf_range[i]
                 params.suppress_threshold = suppress_range[j]
-                params.mAP = cur_mAP
+                stats.mAP = cur_mAP
                 params.save(constants.params_path.format(params.model_id))
+                stats.save(constants.stats_path.format(params.model_id))
                 print('Params saved succesfully')

@@ -26,9 +26,8 @@ def extract_from_annotations_file(annotations_file_path, folder, wanted_categori
 
         useful_images_to_labels = {}
         for annotation in data['annotations']:
-            area = annotation['area']
 
-            if annotation['category_id'] in wanted_categories_id and area > 32*32:
+            if annotation['category_id'] in wanted_categories_id:
                 image_id = annotation['image_id']
 
                 if image_id not in useful_images_to_labels:
@@ -56,10 +55,10 @@ def extract_from_annotations_file(annotations_file_path, folder, wanted_categori
             json.dump(new_data, outfile)
 
 
-path = Path('D:\\COCO')
-destination = Path('D:\\COCO_new')
+path = Path('C:/Users/Dorel/Documents/COCO')
+destination = Path('C:/Users/Dorel/Documents/COCO_people')
 
-wanted_categories_id = [1, 3]
+wanted_categories_id = [1]
 
 train_annotations_path = path / 'annotations' / 'instances_train2017.json'
 train_folder_path = path / 'train2017'

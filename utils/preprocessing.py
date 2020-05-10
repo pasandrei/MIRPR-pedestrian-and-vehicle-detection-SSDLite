@@ -10,7 +10,7 @@ from general_config.general_config import device
 
 
 def map_to_ground_truth(overlaps, gt_bbox, gt_class, params):
-    # inspired by fastai course
+    # inspired by fastai http://course18.fast.ai/lessons/lesson9.html course
     """ maps priors to max IOU obj
    returns:
    - gt_bbox_for_matched_anchors: tensor of size matched_priors x 4 - essentially assigning GT bboxes to corresponding highest IOU priors
@@ -47,7 +47,7 @@ def map_to_ground_truth(overlaps, gt_bbox, gt_class, params):
 
 
 def match(anchors_ltrb, anchors_xywh, gt_bbox, gt_class, params):
-    # inspired by fastai course
+    # inspired by fastai http://course18.fast.ai/lessons/lesson9.html course
     """
     Arguments:
         gt_bbox - #obj x 4 tensor - GT bboxes for objects in the cur img
@@ -75,8 +75,10 @@ def match(anchors_ltrb, anchors_xywh, gt_bbox, gt_class, params):
 
 class DefaultBoxes(object):
     # https://github.com/NVIDIA/DeepLearningExamples/tree/master/PyTorch/Detection/SSD
-    def __init__(self, fig_size, feat_size, steps, scales, aspect_ratios, scale_xy=0.1, scale_wh=0.2):
-
+    def __init__(self, fig_size, feat_size, steps, scales,
+                 aspect_ratios, scale_xy=0.1, scale_wh=0.2, only_vertical=False):
+        self.only_vertical = only_vertical
+        print(self.only_vertical)
         self.feat_size = feat_size
         self.fig_size = fig_size
 
@@ -102,7 +104,8 @@ class DefaultBoxes(object):
 
             for alpha in aspect_ratios[idx]:
                 w, h = sk1*sqrt(alpha), sk1/sqrt(alpha)
-                all_sizes.append((w, h))
+                if not self.only_vertical:
+                    all_sizes.append((w, h))
                 all_sizes.append((h, w))
             for w, h in all_sizes:
                 for i, j in itertools.product(range(sfeat), repeat=2):
@@ -127,8 +130,8 @@ class DefaultBoxes(object):
         return self.scale_wh_
 
     def __call__(self, order="ltrb"):
-        if order == "ltrb": return self.dboxes_ltrb
-        if order == "xywh": return self.dboxes
+        if order == "ltrb": return self.dboxes_ltrb.float()
+        if order == "xywh": return self.dboxes.float()
 
 
 def prepare_gt(input_img, gt_bboxes, gt_classes):

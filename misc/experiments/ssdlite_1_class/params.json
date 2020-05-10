@@ -1,12 +1,13 @@
 {
-    "model_id": "ssdlite",
+    "model_id": "ssdlite_1_class",
     "optimizer": "sgd",
+    "n_classes": 1,
     "learning_rate": 0.0026,
     "lr_policy": "retina",
     "batch_size": 32,
     "mapping_threshold": 0.5,
-    "conf_threshold": 0.03,
-    "suppress_threshold": 0.5333333333333333,
+    "conf_threshold": 0.1,
+    "suppress_threshold": 0.46,
     "weight_decay": 0.0002,
     "loss_type": "softmax",
     "use_focal_loss": 0,
@@ -20,12 +21,13 @@
     "input_height": 300,
     "input_width": 300,
     "warm_up": 1,
-    "channels_list": [
-        576,
-        1280,
-        512,
+    "out_channels": [
+        96,
+        320,
         256,
-        256,
-        128
-    ]
+        128,
+        128,
+        64
+    ],
+    "width_mult": 1
 }

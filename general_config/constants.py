@@ -1,6 +1,7 @@
 from pathlib import Path
 
-dataset_root = Path('C:/Users/Dorel/Documents/COCO')
+dataset_root = Path('C:/Users/Dorel/Documents/COCO_people')
+print(dataset_root)
 
 train_annotations_path = dataset_root / 'annotations/instances_train2017.json'
 train_images_folder = dataset_root / 'train2017'
@@ -21,3 +22,4 @@ softmax_loss = "softmax"
 
 ssdlite = "ssdlite"
 ssd = "resnetssd"
+ssd_modified = "ssdlite_1_class"
