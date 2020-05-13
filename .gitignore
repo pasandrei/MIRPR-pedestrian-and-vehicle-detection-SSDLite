@@ -19,3 +19,10 @@ misc/experiments/resnetssd/stats.json
 misc/experiments/resnetssd/params.json
 misc/experiments/ssdlite/params.json
 misc/experiments/ssdlite/stats.json
+misc/experiments/ssdlite_1_class/model_checkpoint
+misc/experiments/ssdlite_1_class/model_checkpoint_loss
+*.jpg
+*.mp4
+misc/experiments/resnetssd/stats.json
+misc/experiments/ssdlite/stats.json
+misc/experiments/ssdlite_1_class/stats.json

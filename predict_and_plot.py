@@ -2,21 +2,21 @@ import numpy as np
 import torch
 
 from train.params import Params
-from general_config import anchor_config, constants, classes_config
+from general_config import anchor_config, constants, classes_config, general_config
 from data import dataloaders
 from visualize import anchor_mapping
 from utils.training import load_weigths_only, model_setup
 from general_config.general_config import device
 
 
-def model_output_pipeline(model_id="resnetssd", model_outputs=True, visualize_anchors=False,
+def model_output_pipeline(model_outputs=True, visualize_anchors=False,
                           visualize_anchor_gt_pair=False, verbose=False, very_verbose=False):
     """
     model_outputs - flag to enable plotting model outputs
     visualize_anchors - flag to visualize anchors
     visualize_anchor_gt_pair - flag to visualize ground truth bboxes and respective anchors
     """
-    params = Params(constants.params_path.format(model_id))
+    params = Params(constants.params_path.format(general_config.model_id))
 
     if model_outputs:
         model = model_setup(params)

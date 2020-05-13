@@ -65,18 +65,6 @@ def nms(bounding_boxes, predicted_classes, threshold=0.5):
     return final_model_predictions
 
 
-def after_nms(prediction_bboxes, predicted_confidences):
-    """
-    return final model preditctions
-    """
-    kept_after_nms = nms(prediction_bboxes)
-
-    post_nms_bboxes = prediction_bboxes[kept_after_nms]
-    post_nms_confidences = predicted_confidences[kept_after_nms]
-
-    return post_nms_bboxes, post_nms_confidences
-
-
 def plot_anchor_gt(image, anchor, gt, message="no_message", size=(320, 320)):
     """
     Plots a ground truth bbox with an anchor that mapped to it
@@ -163,10 +151,41 @@ def evaluate_on_COCO_metrics(prediction_annotations):
 
     cocoevalu = COCOeval(ground_truth, predictions, iouType='bbox')
 
-    cocoevalu.params.catIds = [1]
+    # cocoevalu.params.catIds = classes_config.eval_cat_ids
 
     cocoevalu.evaluate()
     cocoevalu.accumulate()
     cocoevalu.summarize()
 
     return cocoevalu.stats[0]
+
+
+def postprocess_until_nms(output_handler, pred_boxes, pred_confs, img_size=(300, 300)):
+    """
+    Processes immediate model outputs to get data for nms
+
+    Args:
+    pred_boxes: #anchors x 4 tensor scaled in range [0,1]
+    pred_confs: #anchors x n_classes tensor of confidences
+
+    Returns:
+    ndarrays
+    """
+    # get numpy arrays of rescaled boxes and confidences minus background
+    pred_boxes, pred_confs = output_handler._convert_output_to_workable_data(
+        pred_boxes, pred_confs, img_size)
+
+    # cut predictions that are below confidence threshold
+    pred_boxes, pred_confs = output_handler._predictions_over_threshold(pred_boxes,
+                                                                        pred_confs)
+
+    # get predicted classes and respective confidences
+    pred_classes, highest_confidence_for_predictions = output_handler._get_predicted_class(
+        pred_confs)
+
+    # sort decreasingly
+    permutation = (-highest_confidence_for_predictions).argsort()
+    pred_boxes = pred_boxes[permutation]
+    pred_classes = pred_classes[permutation]
+
+    return pred_boxes, pred_classes

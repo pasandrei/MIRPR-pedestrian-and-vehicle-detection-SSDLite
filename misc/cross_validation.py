@@ -1,4 +1,4 @@
-from general_config import constants
+from general_config import constants, general_config
 
 
 def cross_validate(model, detection_loss, valid_loader, model_evaluator, params, stats):
@@ -14,8 +14,8 @@ def cross_validate(model, detection_loss, valid_loader, model_evaluator, params,
 
     best_conf_threshold, best_suppress_threshold, best_mAP = 0, 0, 0
 
-    conf_range = [(0.01 + i / 100) for i in range(10)]
-    suppress_range = [(0.4 + i / 15) for i in range(5)]
+    conf_range = [(0.01 + i / 50) for i in range(5)]
+    suppress_range = [(0.45 + i / 15) for i in range(3)]
 
     print(conf_range)
     print(suppress_range)
@@ -36,6 +36,6 @@ def cross_validate(model, detection_loss, valid_loader, model_evaluator, params,
                 params.conf_threshold = conf_range[i]
                 params.suppress_threshold = suppress_range[j]
                 stats.mAP = cur_mAP
-                params.save(constants.params_path.format(params.model_id))
-                stats.save(constants.stats_path.format(params.model_id))
+                params.save(constants.params_path.format(general_config.model_id))
+                stats.save(constants.stats_path.format(general_config.model_id))
                 print('Params saved succesfully')

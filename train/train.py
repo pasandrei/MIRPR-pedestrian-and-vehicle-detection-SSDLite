@@ -56,7 +56,7 @@ def train(model, optimizer, train_loader, model_evaluator,
     for epoch in range(start_epoch, params.n_epochs):
         model.train()
 
-        if params.model_id == constants.ssdlite:
+        if general_config.model_id == constants.ssdlite:
             backbone_freezer.step(epoch, model)
         print("Total number of parameters trained this epoch: ",
               sum(p.numel() for pg in optimizer.param_groups for p in pg['params'] if p.requires_grad))

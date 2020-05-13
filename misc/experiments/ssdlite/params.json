@@ -1,11 +1,10 @@
 {
-    "model_id": "ssdlite",
     "optimizer": "sgd",
     "learning_rate": 0.0026,
     "lr_policy": "retina",
     "batch_size": 32,
     "mapping_threshold": 0.5,
-    "conf_threshold": 0.03,
+    "conf_threshold": 0.1,
     "suppress_threshold": 0.5333333333333333,
     "weight_decay": 0.0002,
     "loss_type": "softmax",

@@ -3,7 +3,7 @@ import json
 from torch.utils.data import DataLoader
 from data.dataset import CocoDetection
 from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler, SequentialSampler
-from general_config import constants
+from general_config import constants, general_config
 
 
 def get_dataloaders(params):
@@ -31,7 +31,7 @@ def get_train_dataloader(params):
         nr_images_in_train = len(data['images'])
 
     return DataLoader(train_dataset, batch_size=None,
-                      shuffle=False, num_workers=4,
+                      shuffle=False, num_workers=general_config.num_workers,
                       sampler=BatchSampler(SubsetRandomSampler([i for i in range(nr_images_in_train)]),
                                            batch_size=params.batch_size, drop_last=True))
 
@@ -48,6 +48,6 @@ def get_valid_dataloader(params):
         nr_images_in_val = len(data['images'])
 
     return DataLoader(validation_dataset, batch_size=None,
-                      shuffle=False, num_workers=4,
+                      shuffle=False, num_workers=general_config.num_workers,
                       sampler=BatchSampler(SequentialSampler([i for i in range(nr_images_in_val)]),
                                            batch_size=params.batch_size, drop_last=False))

@@ -4,8 +4,7 @@ from data import dataloaders
 
 from architectures.models import SSDLite, resnet_ssd
 from train import optimizer_handler
-from general_config import constants, anchor_config, classes_config
-from general_config.general_config import device
+from general_config import constants, anchor_config, classes_config, general_config
 from train.lr_policies import poly_lr, retina_decay
 
 
@@ -44,14 +43,14 @@ def model_setup(params):
     creates model and moves it on to cpu/gpu
     """
     n_classes = len(classes_config.training_ids)
-    if params.model_id == constants.ssdlite:
+    if general_config.model_id == constants.ssdlite:
         model = SSDLite.SSD_Head(n_classes=n_classes, k_list=anchor_config.k_list)
-    elif params.model_id == constants.ssd:
+    elif general_config.model_id == constants.ssd:
         model = resnet_ssd.SSD300(n_classes=n_classes)
-    elif params.model_id == constants.ssd_modified:
+    elif general_config.model_id == constants.ssd_modified:
         model = SSDLite.SSD_Head(n_classes=n_classes, k_list=anchor_config.k_list,
                                  out_channels=params.out_channels, width_mult=params.width_mult)
-    model.to(device)
+    model.to(general_config.device)
 
     return model
 
@@ -91,7 +90,7 @@ def prepare_datasets(params):
 
 
 def load_model(model, params, optimizer):
-    checkpoint = torch.load(constants.model_path.format(params.model_id))
+    checkpoint = torch.load(constants.model_path.format(general_config.model_id))
     model.load_state_dict(checkpoint['model_state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
     start_epoch = checkpoint['epoch']
@@ -101,7 +100,7 @@ def load_model(model, params, optimizer):
 
 
 def load_weigths_only(model, params):
-    checkpoint = torch.load(constants.model_path.format(params.model_id))
+    checkpoint = torch.load(constants.model_path.format(general_config.model_id))
     model.load_state_dict(checkpoint['model_state_dict'])
     print('Weigths loaded successfully')
 
@@ -116,9 +115,9 @@ def save_model(epoch, model, optimizer, params, stats, msg=None, by_loss=False):
         'epoch': epoch + 1,
         'model_state_dict': model.state_dict(),
         'optimizer_state_dict': optimizer.state_dict(),
-    }, model_path.format(params.model_id))
-    params.save(constants.params_path.format(params.model_id))
-    stats.save(constants.stats_path.format(params.model_id))
+    }, model_path.format(general_config.model_id))
+    params.save(constants.params_path.format(general_config.model_id))
+    stats.save(constants.stats_path.format(general_config.model_id))
 
     print(msg)
 

@@ -12,6 +12,7 @@ def show_training_info(params):
         print(str(k) + " : " + str(v))
 
     print("List of anchors per feature map cell: ", anchor_config.k_list)
+    print("Model ID: ", general_config.model_id)
     print("-------------------------------------------------------")
 
 

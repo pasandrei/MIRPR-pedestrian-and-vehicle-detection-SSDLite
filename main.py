@@ -7,9 +7,7 @@ from train import train
 from train.params import Params
 from train.validate import Model_evaluator
 from misc import cross_validation
-from misc.model_output_handler import Model_output_handler
-from jaad_data import inference
-from general_config import constants
+from general_config import constants, general_config
 from data import dataloaders
 
 from utils import prints
@@ -23,22 +21,21 @@ except ImportError:
     raise ImportError("Please install APEX from https://github.com/nvidia/apex")
 
 
-def run(model_id="ssdlite", train_model=True, load_checkpoint=False, cross_validate=False,
-        validate=False, jaad=False, mixed_precision=False):
+def run(train_model=True, load_checkpoint=False, cross_validate=False,
+        validate=False, mixed_precision=False,
+        image_inference=False, viceo_inference=True):
     """
     Arguments:
-    model_id - id of the model to be trained
     train_model - training
     load_checkpoint - load a pretrained model
     validate - run evaluation
     cross_validate - cross validate for best nms thresold and positive confidence
-    jaad - inference on jaad videos
     """
     torch.manual_seed(2)
     random.seed(2)
 
-    params = Params(constants.params_path.format(model_id))
-    stats = Params(constants.stats_path.format(model_id))
+    params = Params(constants.params_path.format(general_config.model_id))
+    stats = Params(constants.stats_path.format(general_config.model_id))
     prints.show_training_info(params)
 
     model = training.model_setup(params)
@@ -49,13 +46,8 @@ def run(model_id="ssdlite", train_model=True, load_checkpoint=False, cross_valid
             model, optimizer, opt_level="O2"
         )
 
-    if jaad:
-        model, _, _ = training.load_model(model, params, optimizer)
-        handler = Model_output_handler(params)
-        inference.jaad_inference(model, handler)
-
     # tensorboard
-    writer = SummaryWriter(filename_suffix=params.model_id)
+    writer = SummaryWriter(filename_suffix=general_config.model_id)
 
     if train_model:
         train_loader, valid_loader = training.prepare_datasets(params)
