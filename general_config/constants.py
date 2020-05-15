@@ -1,6 +1,6 @@
 from pathlib import Path
 
-dataset_root = Path('C:/Users/Dorel/Documents/COCO')
+dataset_root = Path('C:/Users/Dorel/Documents/COCO_people')
 print(dataset_root)
 
 train_annotations_path = dataset_root / 'annotations/instances_train2017.json'

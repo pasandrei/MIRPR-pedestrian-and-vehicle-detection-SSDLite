@@ -4,7 +4,7 @@
     "lr_policy": "retina",
     "batch_size": 16,
     "mapping_threshold": 0.5,
-    "conf_threshold": 0.01,
+    "conf_threshold": 0.25,
     "suppress_threshold": 0.45,
     "weight_decay": 0.0002,
     "loss_type": "softmax",

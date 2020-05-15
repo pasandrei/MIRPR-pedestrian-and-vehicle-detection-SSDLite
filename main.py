@@ -9,6 +9,7 @@ from train.validate import Model_evaluator
 from misc import cross_validation
 from general_config import constants, general_config
 from data import dataloaders
+from custom_inference.run import Custom_Infernce
 
 from utils import prints
 from utils import training
@@ -22,14 +23,14 @@ except ImportError:
 
 
 def run(train_model=True, load_checkpoint=False, cross_validate=False,
-        validate=False, mixed_precision=False,
-        image_inference=False, viceo_inference=True):
+        validate=False, mixed_precision=False):
     """
     Arguments:
-    train_model - training
+    train_model - train model
     load_checkpoint - load a pretrained model
     validate - run evaluation
     cross_validate - cross validate for best nms thresold and positive confidence
+    mixed_precision - use mixed_precision training
     """
     torch.manual_seed(2)
     random.seed(2)

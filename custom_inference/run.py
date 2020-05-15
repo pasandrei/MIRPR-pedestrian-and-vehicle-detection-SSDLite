@@ -2,7 +2,6 @@ import torch
 import cv2
 import torchvision.transforms.functional as F
 from pathlib import Path
-import time
 
 from train.params import Params
 from misc.model_output_handler import Model_output_handler
