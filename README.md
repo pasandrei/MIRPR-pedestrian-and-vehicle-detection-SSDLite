@@ -117,6 +117,7 @@ Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.277
  
  # Speed
 - The speed of the original SSDLite and the modified version is compared for the first 100 images (batch_size = 1) of the COCO validation set, benchmarking both the time taken by the model and the postprocessing time:
+Times stated in seconds.
 
 Modified SSDLite - 0.15 confidence threshold
 ```
@@ -167,6 +168,10 @@ Percentage of nms:  55.60
  ```
  
  One issue that is worth highlighting is the time taken by NMS. When the number of boxes processed by NMS is high (capped at 200, obtained for low confidence thresholds), the time taken by NMS exceeds the processing time of the model! This is usually solved by choosing a different programming language for the implementation of NMS, such as C++, as Python is slow for this type of computation.
+ 
+ Hardware: 
+ CPU: Intel(R) Core(TM) i5-4460 CPU@ 3.20GHz
+ GPU: Nvidia GeForce GTX 1660
 
  
 References:
