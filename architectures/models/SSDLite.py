@@ -38,10 +38,11 @@ class DepthWiseConv(nn.Module):
 
 
 class SSD_Head(nn.Module):
-    def __init__(self, n_classes=81, k_list=[4, 6, 6, 6, 6, 6]):
+    def __init__(self, n_classes=81, k_list=[4, 6, 6, 6, 6, 6],
+                 out_channels=[576, 1280, 512, 256, 256, 128], width_mult=1):
         super().__init__()
-        self.backbone = mobilenet_v2(pretrained=True, width_mult=1)
-        self.out_channels = [576, 1280, 512, 256, 256, 128]
+        self.backbone = mobilenet_v2(pretrained=True, width_mult=width_mult, num_classes=n_classes)
+        self.out_channels = out_channels
 
         self.label_num = n_classes
         self._build_additional_features(self.out_channels[1:-1])
@@ -58,14 +59,15 @@ class SSD_Head(nn.Module):
         self.conf = nn.ModuleList(self.conf)
         self._init_weights()
 
-    def _build_additional_features(self, input_size):
+    def _build_additional_features(self, input_sizes):
         self.additional_blocks = []
-        for i, (input_size, output_size) in enumerate(zip(input_size[:-1], input_size[1:])):
+        for i, (input_size, output_size) in enumerate(zip(input_sizes[:-1], input_sizes[1:])):
             layer = DepthWiseConv(input_size, output_size, kernel_size=3,
                                   padding=1, stride=2)
             self.additional_blocks.append(layer)
 
-        self.additional_blocks.append(DepthWiseConv(256, 128, kernel_size=2))
+        self.additional_blocks.append(DepthWiseConv(self.out_channels[-2], self.out_channels[-1],
+                                                    kernel_size=2))
 
         self.additional_blocks = nn.ModuleList(self.additional_blocks)
 

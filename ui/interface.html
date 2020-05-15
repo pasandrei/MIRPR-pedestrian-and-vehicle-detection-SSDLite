@@ -1,0 +1,62 @@
+<!doctype html>
+<html>
+<head>
+	<title>People detection with SSDLite</title>
+  <link rel="stylesheet" type="text/css" href="interface.css">
+	<script type="text/javascript" src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+  <script src="interface.js"></script>
+</head>
+<body>
+	<h1 class="header"> People Detection </h1>
+
+	<div class="input_file">
+			<input type="file" id="file" name="files[]" onchange="loadFile(event)"/>
+			<button id="upload">Upload</button>
+	</div>
+
+	<div class="settings">
+			<div class="group">
+				<input type="number" id="nms" name="nms" max="1" min="0" value="0.5">
+				<span class="highlight"></span>
+				<span class="bar"></span>
+				<label>NMS Threshold</label>
+			</div>
+
+			<div class="group">
+				<input type="number" id="conf" name="conf" max="1" min="0"  value="0.175">
+				<span class="highlight"></span>
+				<span class="bar"></span>
+				<label>Confidence threshold</label>
+			</div>
+
+			<div class="group">
+				<input type="text" id="device" name="device" value="cpu">
+				<span class="highlight"></span>
+				<span class="bar"></span>
+				<label>Device</label>
+			</div>
+	</div>
+
+  <div class="compare_in_out">
+		<div class="labeled_image"
+			<label for="input" id="input_label">Input Image</label>
+	    <img class="orig_img" id="input"/>
+		</div>
+		<div class="labeled_image"
+			<label for="output">Processed Image</label>
+			<canvas class="output" id = "drawing"></canvas>
+		</div>
+	</div>
+
+	<div class="static_info">
+
+	</div>
+
+	<div class="run_info">
+		<label for="nr_detections">Number of detections: </label>
+		<p id="nr_detections"></p>
+		<label for="time_taken">Time taken (seconds): </label>
+		<p id="time_taken"></p>
+	</div>
+
+</body>

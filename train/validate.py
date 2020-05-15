@@ -3,35 +3,32 @@ import datetime
 
 from misc.model_output_handler import Model_output_handler
 from utils import postprocessing, training, prints
-from general_config.system_device import device
+from general_config.general_config import device
 
 
 class Model_evaluator():
 
-    def __init__(self, valid_loader, detection_loss, writer=None, params=None, stats=None):
+    def __init__(self, valid_loader, detection_loss, params=None, stats=None):
         """
         class used to evaluate the model on the validation set
         ARGS:
         - valid_loader - validation set dataloader
         - detection_loss - class used to compute loss
-        - writer - tensorboard writer - logs losses and mAP
         - stats - Params object to save performance
         """
         self.valid_loader = valid_loader
         self.detection_loss = detection_loss
         self.output_handler = Model_output_handler(params)
-        self.writer = writer
         self.params = params
         self.stats = stats
 
-    def complete_evaluate(self, model, optimizer, train_loader, losses=[0, 0, 0, 0], epoch=0):
+    def complete_evaluate(self, model, optimizer, epoch=0):
         """
-        evaluates model performance of the validation set, saves current model, optimizer, stats if it is better that the best so far
+        evaluates model performance of the validation set, saves current model,
+        optimizer stats if it is better that the best so far
+
         also logs info to tensorboard
         """
-        loc_loss_train, class_loss_train = prints.print_train_stats(
-            train_loader, losses, self.params)
-
         print('Validation start...')
         model.eval()
         with torch.no_grad():
@@ -71,10 +68,8 @@ class Model_evaluator():
                 training.save_model(epoch, model, optimizer, self.params,
                                     self.stats, msg=msg, by_loss=True)
 
-            # tensorboard
             loc_loss_val, class_loss_val = losses[2] / val_set_size, losses[3] / val_set_size
-            training.update_tensorboard_graphs(self.writer, loc_loss_train, class_loss_train,
-                                               loc_loss_val, class_loss_val, mAP, epoch)
+            return mAP, loc_loss_val, class_loss_val
 
         print('Validation finished')
 

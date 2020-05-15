@@ -100,6 +100,7 @@ class MobileNetV2(nn.Module):
             block: Module specifying inverted residual building block for mobilenet
         """
         super(MobileNetV2, self).__init__()
+        self.num_classes = num_classes
 
         if block is None:
             block = InvertedResidual
@@ -136,8 +137,9 @@ class MobileNetV2(nn.Module):
                 features.append(block(input_channel, output_channel, stride, expand_ratio=t))
                 input_channel = output_channel
 
-        # building last several layers
-        features.append(ConvBNReLU(input_channel, self.last_channel, kernel_size=1))
+        if self.num_classes != 2:
+            # building last several layers
+            features.append(ConvBNReLU(input_channel, self.last_channel, kernel_size=1))
 
         # make it nn.Sequential
         self.features = nn.Sequential(*features)
@@ -159,12 +161,16 @@ class MobileNetV2(nn.Module):
         for idx, layer in enumerate(self.features):
             # want to get expansion of layer 15
             if idx == 14:
-                x = layer.conv[0](x)
-                inter = x
-                x = layer.conv[1](x)
-                x = layer.conv[2](x)
-                # print("bn is back: ", layer.conv[3])
-                x = layer.conv[3](x)
+                res_connect = x
+                for i, element in enumerate(layer.conv):
+                    x = element(x)
+                    if self.num_classes == 2:
+                        inter = res_connect
+                    else:
+                        if i == 0:
+                            inter = x
+                if layer.use_res_connect:
+                    x += res_connect
             else:
                 x = layer(x)
         return inter, x

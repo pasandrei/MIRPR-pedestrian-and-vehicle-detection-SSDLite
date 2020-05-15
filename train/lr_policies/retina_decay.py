@@ -1,24 +1,19 @@
-class Lr_decay:
+from train.lr_policies.base_lr_handler import BaseLrHandler
+
+
+class Retina_decay(BaseLrHandler):
     """
     Implements learning rate decay similar to the retina net paper:
-    initial learning rate of 0.01, which is then
-    divided by 10 at certain steps
+    initial learning rate which is then divided by 10 at certain steps
     """
-    def __init__(self, lr, start_epoch, params):
-        self.lr = lr
-        self.current_step = start_epoch
-        self.params = params
+    def __init__(self, optimizer, params):
+        super(Retina_decay, self).__init__(optimizer, params)
 
-    def step(self, optimizer):
-        self.current_step += 1
+    def step(self, epoch):
+        if epoch == self.params.first_decay:
+            for idx, param_gr in enumerate(self.optimizer.param_groups):
+                param_gr['lr'] = self.param_group_lrs[idx] * self.params.decay_rate
 
-        if self.current_step == self.params.first_decay:
-            # don't want to decay backbone here as it starts at a lower lr, if it is frozen
-            for idx, param_gr in enumerate(optimizer.param_groups):
-                if idx == 0 and self.params.freeze_backbone:
-                    continue
-                param_gr['lr'] *= self.params.decay_rate
-
-        if self.current_step == self.params.second_decay:
-            for param_gr in optimizer.param_groups:
-                param_gr['lr'] *= self.params.decay_rate
+        if epoch == self.params.second_decay:
+            for idx, param_gr in enumerate(self.optimizer.param_groups):
+                param_gr['lr'] = self.param_group_lrs[idx] * (self.params.decay_rate ** 2)

@@ -3,17 +3,17 @@ import math
 from torch import nn
 import copy
 
-from general_config import classes_config
-from general_config.system_device import device
+from general_config.general_config import device
 from general_config.anchor_config import default_boxes
+from general_config import constants
+from utils.preprocessing import map_id_to_idx
 
-# inspired by fastai course
+# inspired by fastai http://course18.fast.ai/lessons/lesson9.html course
 
 
 class Classification_Loss(nn.Module):
     def __init__(self, params):
         super().__init__()
-        self.id2idx = classes_config.training_ids2_idx
         self.loss_type = params.loss_type
         self.focal_loss = params.use_focal_loss
 
@@ -30,11 +30,10 @@ class Classification_Loss(nn.Module):
             for softmax it is just a list of indeces
         Returns: softmax loss or (weighted if focal) BCE loss
         """
-
         batch, n_classes, n_anchors = pred.shape
-        class_idx = self.map_id_to_idx(targ)
+        class_idx = map_id_to_idx(targ)
 
-        if self.loss_type == "BCE":
+        if self.loss_type == constants.BCE_loss:
             pred = pred.permute(0, 2, 1).contiguous()
             one_hot = torch.nn.functional.one_hot(class_idx, num_classes=n_classes+1).float()
             one_hot = one_hot.to(device)

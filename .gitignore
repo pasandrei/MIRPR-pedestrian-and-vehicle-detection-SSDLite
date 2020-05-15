@@ -1,6 +1,4 @@
 *.pyc
-*.ipynb
-*.ipynb
 runs/
 misc/experiments/ssdlite/model_checkpoint
 misc/experiments/ssdlite/model_checkpoint-Copy1
@@ -10,3 +8,27 @@ fisierul.json
 misc/experiments/ssdlite/model_checkpoint2
 
 misc/experiments/ssdlite/model_checkpoint_loss
+misc/experiments/ssdlite/stats.json
+misc/experiments/ssdlite/params.json
+general_config/general_config.py
+misc/experiments/resnetssd/model_checkpoint_loss
+misc/experiments/resnetssd/model_checkpoint
+misc/experiments/resnetssd/stats.json
+misc/experiments/resnetssd/params.json
+misc/experiments/ssdlite/params.json
+misc/experiments/ssdlite/stats.json
+misc/experiments/ssdlite_1_class/model_checkpoint
+misc/experiments/ssdlite_1_class/model_checkpoint_loss
+*.mp4
+misc/experiments/resnetssd/stats.json
+misc/experiments/ssdlite/stats.json
+misc/experiments/ssdlite_1_class/stats.json
+.ipynb_checkpoints/general_testing-checkpoint.ipynb
+.ipynb_checkpoints/nms_testing-checkpoint.ipynb
+.ipynb_checkpoints/Run-checkpoint.ipynb
+.ipynb_checkpoints/test_custom_inference-checkpoint.ipynb
+.ipynb_checkpoints/tutorial_notebook-checkpoint.ipynb
+general_testing.ipynb
+nms_testing.ipynb
+Run.ipynb
+test_custom_inference.ipynb
