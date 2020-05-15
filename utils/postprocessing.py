@@ -189,3 +189,13 @@ def postprocess_until_nms(output_handler, pred_boxes, pred_confs, img_size=(300,
     pred_classes = pred_classes[permutation]
 
     return pred_boxes, pred_classes
+
+
+def clip_boxes(boxes, width, height):
+    """
+    boxes: ndarray of (x1,y1,x2,y2) boxes
+    """
+    boxes[:, 0] = np.clip(boxes[:, 0], 0, width-1)
+    boxes[:, 2] = np.clip(boxes[:, 2], 0, width-1)
+    boxes[:, 1] = np.clip(boxes[:, 1], 0, height-1)
+    boxes[:, 3] = np.clip(boxes[:, 3], 0, height-1)

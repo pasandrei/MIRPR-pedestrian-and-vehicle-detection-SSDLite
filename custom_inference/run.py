@@ -2,23 +2,24 @@ import torch
 import cv2
 import torchvision.transforms.functional as F
 from pathlib import Path
+import time
 
 from train.params import Params
 from misc.model_output_handler import Model_output_handler
 from general_config import constants, general_config
 from utils import training
-from utils.postprocessing import nms, postprocess_until_nms
+from utils.postprocessing import nms, postprocess_until_nms, clip_boxes
 from utils.box_computations import wh2corners_numpy
 
 
 class Custom_Infernce():
-    def __init__(self, model_id="ssdlite_1_class"):
-        self.model_id = model_id
-        self.params = Params(constants.params_path.format(model_id))
+    def __init__(self):
+        self.params = Params(constants.params_path.format(general_config.model_id))
+        self.device = general_config.device
 
         self.model = training.model_setup(self.params)
         self.model = training.load_weigths_only(self.model, self.params)
-        self.model = self.model.to(general_config.device)
+        self.model = self.model.to(self.device)
         self.model.eval()
 
         self.output_handler = Model_output_handler(self.params)
@@ -33,14 +34,17 @@ class Custom_Infernce():
         If modify_image flag is True, the boxes are drawn on the given image, otherwise this
         function just returns the predicted boxes
 
-        custom_settings, if set, should be a tuple of (nms_threshold, conf_threshold), this
+        custom_settings, if set, should be a tuple of (nms_threshold, conf_threshold, device), this
+        device - cuda:0 or cpu
         !!! overwrites the original settings
         """
         if custom_settings:
             print("Current custom settings: ", custom_settings)
-            nms_thresh, conf_thresh = custom_settings
+            nms_thresh, conf_thresh, device = custom_settings
             self.output_handler.suppress_threshold = nms_thresh
-            self.output_handler.conf_threshold = conf_thresh
+            self.output_handler.confidence_threshold = conf_thresh
+            self.device = device
+            self.model.to(self.device)
         with torch.no_grad():
             original_image = image.copy()
             heigth, width, _ = original_image.shape
@@ -49,7 +53,8 @@ class Custom_Infernce():
             image = F.to_tensor(image)
             image = F.normalize(image, mean=[0.485, 0.456, 0.406],
                                 std=[0.229, 0.224, 0.225])
-            image = image.to(general_config.device)
+
+            image = image.to(self.device)
             image = image.unsqueeze(dim=0)
             boxes, confs = self.model(image)
             boxes = boxes.squeeze().permute(1, 0)
@@ -62,6 +67,8 @@ class Custom_Infernce():
             kept_indeces = nms(boxes, classes, self.output_handler.suppress_threshold)
 
             boxes = boxes[kept_indeces].astype(int)
+            # clip values in image range
+            clip_boxes(boxes, width, heigth)
             if modify_image:
                 image = self.plot_boxes(original_image, boxes)
                 return image
