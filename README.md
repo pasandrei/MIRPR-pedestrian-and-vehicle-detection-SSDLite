@@ -11,6 +11,7 @@ Before training or inference, there are several settings one can configure, all 
   - The model to use: change `model_id` in `general_config.py` to one of the 3 available in `constants.py`
   - To use the full COCO dataset or use only images that contain annotations of people, change `dataset_root` path in `constants.py`. The dataset should be up one directory of the project. When using the dataset containing only person annotations, the model should be set up accordingly. This is done in `classes_config.py`, by default, only the modified SSDLite is trained only on people. Change `model_to_ids` if some other setup is desired.
   - To play around with the anchor configuration of the models, change `model_to_anchors` in `anchor_config.py`
+  - The device stuff is run on is also set from `general_config.py`, can be "cpu" or "cuda:0"
 
 # Models description
 - The SSD with ResNet backbone is taken from [2], and is trained and used only for benchmarking. The trainig setup is also similar to the one described in [2]
@@ -25,7 +26,7 @@ Before training or inference, there are several settings one can configure, all 
 
 # Inference
 - Inference can be done on images or .mp4 videos following the example in the [`tutorial_notebook.ipynb`](https://github.com/pasandrei/MIRPR-pedestrian-and-vehicle-detection-SSDLite/blob/develop/tutorial_notebook.ipynb)
-- Speed benchmarks are also available.
+- Speed benchmarks are also available, which can be run on cpu or gpu.
 
 # Results
 - The following two results represent the performance of ResNet SSD and SSDLite on the COCO validation set:

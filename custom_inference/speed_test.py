@@ -11,9 +11,9 @@ from data import dataloaders
 
 
 class Speed_testing():
-    def __init__(self, runs=100, print_each_run=False, device="cpu"):
+    def __init__(self, runs=100, print_each_run=False):
         self.runs = runs
-        self.device = device
+        self.device = general_config.device
         self.params = Params(constants.params_path.format(general_config.model_id))
 
         self.model = training.model_setup(self.params)
