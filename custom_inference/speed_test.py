@@ -71,12 +71,12 @@ class Speed_testing():
         print("\n\n\n")
 
         total_model, total_pre_nms, total_nms = sum(times_model), sum(times_pre_nms), sum(times_nms)
-        print("Total time of model: ", total_model)
-        print("Mean time model: ", total_model / len(times_model))
-        print("Total time of pre nms: ", total_pre_nms)
-        print("Mean time pre nms: ", total_pre_nms / len(times_pre_nms))
-        print("Total time of nms: ", total_nms)
-        print("Mean time nms: ", total_nms / len(times_nms))
+        print("Total time of model: ", "{:.2f}".format(total_model))
+        print("Mean time model: ", "{:.2f}".format(total_model / len(times_model)))
+        print("Total time of pre nms: ", "{:.2f}".format(total_pre_nms))
+        print("Mean time pre nms: ", "{:.2f}".format(total_pre_nms / len(times_pre_nms)))
+        print("Total time of nms: ", "{:.2f}".format(total_nms))
+        print("Mean time nms: ", "{:.2f}".format(total_nms / len(times_nms)))
         print("Mean number of boxes processed by nms: ", "{:.2f}".format(in_nms_boxes / len(times_nms)))
 
         print("\n\n\n")
