@@ -23,7 +23,7 @@ except ImportError:
 
 
 def run(train_model=True, load_checkpoint=False, cross_validate=False,
-        validate=False, mixed_precision=False):
+        validate=False, mixed_precision=False, test_dev=False):
     """
     Arguments:
     train_model - train model
@@ -31,6 +31,7 @@ def run(train_model=True, load_checkpoint=False, cross_validate=False,
     validate - run evaluation
     cross_validate - cross validate for best nms thresold and positive confidence
     mixed_precision - use mixed_precision training
+    test_dev - run model on coco test-dev set
     """
     torch.manual_seed(2)
     random.seed(2)
@@ -47,6 +48,19 @@ def run(train_model=True, load_checkpoint=False, cross_validate=False,
             model, optimizer, opt_level="O2"
         )
 
+    start_epoch = 0
+    if load_checkpoint:
+        model, optimizer, start_epoch = training.load_model(model, params, optimizer)
+    prints.print_trained_parameters_count(model, optimizer)
+
+    if test_dev:
+        print("Running evaluation on test-dev")
+        test_loader = dataloaders.get_test_dev(params)
+        prints.print_dataset_stats(valid_loader=test_loader)
+        test_model_evaluator = Model_evaluator(test_loader, params=params)
+        test_model_evaluator.only_mAP(model)
+        return
+
     # tensorboard
     writer = SummaryWriter(filename_suffix=general_config.model_id)
 
@@ -62,14 +76,9 @@ def run(train_model=True, load_checkpoint=False, cross_validate=False,
     if train_model:
         lr_decay_policy = training.lr_decay_policy_setup(params, optimizer, len(train_loader))
 
-    start_epoch = 0
-    if load_checkpoint:
-        model, optimizer, start_epoch = training.load_model(model, params, optimizer)
-    prints.print_trained_parameters_count(model, optimizer)
-
     if validate:
         print("Checkpoint epoch: ", start_epoch)
-        prints.print_dataset_stats(valid_loader, valid_loader)
+        prints.print_dataset_stats(valid_loader=valid_loader)
         model_evaluator.complete_evaluate(model, optimizer)
 
     if cross_validate:

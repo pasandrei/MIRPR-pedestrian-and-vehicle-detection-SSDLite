@@ -8,7 +8,7 @@ from general_config.general_config import device
 
 class Model_evaluator():
 
-    def __init__(self, valid_loader, detection_loss, params=None, stats=None):
+    def __init__(self, valid_loader, detection_loss=None, params=None, stats=None):
         """
         class used to evaluate the model on the validation set
         ARGS:
@@ -84,6 +84,9 @@ class Model_evaluator():
             for batch_idx, (input_, label, image_info) in enumerate(self.valid_loader):
                 input_ = input_.to(device)
                 output = model(input_)
+
+                if batch_idx % 50 == 0:
+                    print("Done ", batch_idx + 1, " batches")
 
                 prediction_annotations, prediction_id = postprocessing.prepare_outputs_for_COCOeval(
                     output, image_info, prediction_annotations, prediction_id, self.output_handler)

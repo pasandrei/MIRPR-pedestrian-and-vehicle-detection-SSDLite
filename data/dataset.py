@@ -41,13 +41,15 @@ class CocoDetection(VisionDataset):
     """
 
     def __init__(self, root, annFile, transform=None,
-                 target_transform=None, transforms=None, augmentation=True, params=None):
+                 target_transform=None, transforms=None, augmentation=True, params=None,
+                 run_type="train"):
         super().__init__(root, transforms, transform, target_transform)
         from pycocotools.coco import COCO
         self.coco = COCO(annFile)
         self.ids = list(sorted(self.coco.imgs.keys()))
         self.augmentation = augmentation
         self.params = params
+        self.run_type = run_type
 
         self.init_augmentations()
 
@@ -72,6 +74,12 @@ class CocoDetection(VisionDataset):
             bboxes, category_ids = get_bboxes(target)
             bboxes, category_ids = self.check_bbox_validity(
                 bboxes, category_ids, orig_width, orig_height)
+
+            if self.run_type == "test":
+                # If we are using the official test dataset we must
+                # not ignore images without annotations
+                bboxes = [[3, 3, 100, 100]]
+                category_ids = [0]
             if len(bboxes) == 0:
                 continue
 

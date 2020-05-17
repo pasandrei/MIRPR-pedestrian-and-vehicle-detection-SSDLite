@@ -15,6 +15,24 @@ def get_dataloaders(params):
     return train_dataloader, valid_dataloader
 
 
+def get_test_dev(params):
+    test_annotations_path = constants.test_annotations_path
+    test_dataset = CocoDetection(root=constants.test_images_folder,
+                                 annFile=test_annotations_path,
+                                 augmentation=False,
+                                 params=params,
+                                 run_type="test")
+
+    with open(test_annotations_path) as json_file:
+        data = json.load(json_file)
+        nr_images_in_test = len(data['images'])
+
+    return DataLoader(test_dataset, batch_size=None,
+                      shuffle=False, num_workers=general_config.num_workers,
+                      sampler=BatchSampler(SubsetRandomSampler([i for i in range(nr_images_in_test)]),
+                                           batch_size=params.batch_size, drop_last=False))
+
+
 def get_dataloaders_test(params):
     return get_valid_dataloader(params)
 

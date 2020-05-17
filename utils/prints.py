@@ -71,11 +71,13 @@ def print_batch_stats(batch_idx, data_loader, loc_loss, class_loss, one_nth_of_l
         avg_factor, loc_loss / avg_factor, class_loss / avg_factor))
 
 
-def print_dataset_stats(train_loader, valid_loader):
-    print('Train size: ', len(train_loader), len(
-        train_loader.dataset), len(train_loader.sampler.sampler))
-    print('Val size: ', len(valid_loader), len(
-        valid_loader.dataset), len(valid_loader.sampler.sampler))
+def print_dataset_stats(train_loader=None, valid_loader=None):
+    if train_loader:
+        print('Train size: ', len(train_loader), len(
+            train_loader.dataset), len(train_loader.sampler.sampler))
+    if valid_loader:
+        print('Val size: ', len(valid_loader), len(
+            valid_loader.dataset), len(valid_loader.sampler.sampler))
 
     print("-------------------------------------------------------")
 
