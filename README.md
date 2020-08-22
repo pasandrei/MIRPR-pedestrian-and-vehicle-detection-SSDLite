@@ -2,6 +2,7 @@
 
   - This repo provides training, validation and inference support for three detection models: SSD + ResNet [1][2], SSDLite [3] and a modified version of SSDLite used for detecting the person class only.
   - Training and validation is done on the COCO [4] dataset, pycocotools being used for evaluation.
+  - To create an anaconda environment with the necessary packages to run the code use requirements.txt
   
 # The dataset
 This repo also uses a subset of COCO that contains images with only the annotations of the person class. To obtain this dataset, run `coco_subset_getter.py` from /utils. Make sure to first create an empty directory structure similar to the original, in the same directory.
