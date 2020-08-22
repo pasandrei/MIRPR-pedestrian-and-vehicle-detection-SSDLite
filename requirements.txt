@@ -28,7 +28,6 @@ beautifulsoup4=4.8.2=py37_0
 bitarray=1.2.1=py37he774522_0
 bkcharts=0.2=py37_0
 blas=1.0=mkl
-bleach=3.1.0=py37_0
 blosc=1.16.3=h7bd577a_0
 bokeh=1.4.0=py37_0
 boto=2.49.0=py37_0
@@ -190,7 +189,7 @@ patsy=0.5.1=py37_0
 pep8=1.7.1=py37_0
 pexpect=4.8.0=py37_0
 pickleshare=0.7.5=py37_0
-pillow=7.0.0=py37hcc1f983_0
+Pillow>=7.1.0
 pip=20.0.2=py37_1
 pkginfo=1.5.0.1=py37_0
 pluggy=0.13.1=py37_0
@@ -208,7 +207,6 @@ pycocotools=2.0=pypi_0
 pycodestyle=2.5.0=py37_0
 pycosat=0.6.3=py37he774522_0
 pycparser=2.19=py37_0
-pycrypto=2.6.1=py37hfa6e2cd_9
 pycurl=7.43.0.5=py37h7a1dbc1_0
 pydocstyle=4.0.1=py_0
 pyflakes=2.1.1=py37_0
