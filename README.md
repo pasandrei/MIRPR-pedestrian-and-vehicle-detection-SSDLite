@@ -2,8 +2,8 @@
 
   - This repo provides training, validation and inference support for three detection models: SSD + ResNet [1][2], SSDLite [3] and a modified version of SSDLite used for detecting the person class only.
   - Training and validation is done on the COCO [4] dataset, pycocotools being used for evaluation.
-  - To create an anaconda environment with the necessary packages to run the code use requirements.txt
-  - For testing and inference, pretrained models are available at: [`models`](https://drive.google.com/drive/folders/10uh10oTM9su3tfaMHVLiG6h2e6YmA1V7?usp=sharing). Each `model_checkpoint.pt` file should
+  - **Environment:** To create an anaconda environment with the necessary packages to run the code use requirements.txt
+  - **Pretrained Models:** For testing and inference, pretrained models are available at: [`models`](https://drive.google.com/drive/folders/10uh10oTM9su3tfaMHVLiG6h2e6YmA1V7?usp=sharing). Each `model_checkpoint.pt` file should
   be placed in the corresponding experiment folder in `misc/experiments`.
   
 # The dataset
@@ -19,7 +19,7 @@ Before training or inference, there are several settings one can configure, all 
 # Models description
 - The SSD with ResNet backbone is taken from [2], and is trained and used only for benchmarking. The trainig setup is also similar to the one described in [2]
 - The SSDLite is obtained by replacing regular convolutions from the original with depth wise separable ones and replacing the ResNet backbone with MobileNetV2, as explained in [3].
-- The modified SSDLite uses fewer channels than the regular one, and is placed on top of the second to last MobileNetV2 layer (with 320 filters), instead of the last one (with 1280 filters), this idea is inspired from a semantic segmentation setup described in [3]. Also, only vertical and square anchor boxes are used. These modifications were made to optimise speed and performance when detecting only people. The resulting model has only 2M parameters.
+- The modified SSDLite uses fewer channels than the regular one, and is placed on top of the second to last MobileNetV2 layer (with 320 filters), instead of the last one (with 1280 filters), this idea is inspired from a semantic segmentation setup described in [3]. Also, only vertical and square anchor boxes are used. These modifications were made to optimise speed and performance when detecting only people. The resulting model has only **2M parameters**.
     
 # Training and evaluation
   - Data augmentation: all models are trained with data augmentation, specifically the following are employed: random crops, rotations, photometric distorsions and horizontal flipping.
