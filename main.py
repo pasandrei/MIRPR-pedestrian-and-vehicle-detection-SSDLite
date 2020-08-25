@@ -32,6 +32,7 @@ def run(train_model=True, load_checkpoint=False, cross_validate=False,
     cross_validate - cross validate for best nms thresold and positive confidence
     mixed_precision - use mixed_precision training
     """
+    torch.backends.cudnn.benchmark = True
     torch.manual_seed(2)
     random.seed(2)
 

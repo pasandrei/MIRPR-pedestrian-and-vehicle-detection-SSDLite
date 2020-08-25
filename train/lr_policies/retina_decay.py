@@ -17,3 +17,7 @@ class Retina_decay(BaseLrHandler):
         if epoch == self.params.second_decay:
             for idx, param_gr in enumerate(self.optimizer.param_groups):
                 param_gr['lr'] = self.param_group_lrs[idx] * (self.params.decay_rate ** 2)
+
+        if epoch == self.params.third_decay:
+            for idx, param_gr in enumerate(self.optimizer.param_groups):
+                param_gr['lr'] = self.param_group_lrs[idx] * (self.params.decay_rate ** 3)

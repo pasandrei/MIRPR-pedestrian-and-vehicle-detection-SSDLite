@@ -69,6 +69,8 @@ def optimizer_setup(model, params):
             optimizer = optimizer_handler.layer_specific_sgd(model, params)
         else:
             optimizer = optimizer_handler.plain_sgd(model, params)
+    elif params.optimizer == 'rmsprop':
+        optimizer = optimizer_handler.rmsprop(model, params)
 
     if params.zero_bn_bias_decay:
         optimizer = zero_wdcay_bn_bias(optimizer)

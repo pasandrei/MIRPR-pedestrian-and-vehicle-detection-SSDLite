@@ -14,10 +14,7 @@ from albumentations import (
     RandomResizedCrop,
     HorizontalFlip,
     Rotate,
-    CoarseDropout,
-    GaussNoise,
-    RandomBrightnessContrast,
-    RandomGamma,
+    RGBShift,
     ToGray,
     Compose,
     BboxParams
@@ -165,21 +162,21 @@ class CocoDetection(VisionDataset):
 
     def init_augmentations(self):
         common = [HorizontalFlip(), Rotate(limit=10),
-                  RandomBrightnessContrast(),
-                  ToGray(p=0.05)]
+                  RGBShift(r_shift_limit=40, g_shift_limit=40, b_shift_limit=40),
+                  ToGray(p=0.02)]
 
         random_crop_aug = [RandomResizedCrop(height=self.params.input_height,
                                              width=self.params.input_width,
-                                             scale=(0.35, 1.0))]
+                                             scale=(0.5, 1.0))]
         random_crop_aug.extend(common)
 
         simple_resize_aug = [Resize(height=self.params.input_height,
                                     width=self.params.input_width)]
         simple_resize_aug.extend(common)
 
-        crop = self.get_aug(random_crop_aug, min_visibility=0.5)
+        crop = self.get_aug(random_crop_aug, min_visibility=0.75)
 
-        resize = self.get_aug(simple_resize_aug, min_visibility=0.5)
+        resize = self.get_aug(simple_resize_aug, min_visibility=0.75)
 
         just_resize = self.get_aug([Resize(height=self.params.input_height,
                                            width=self.params.input_width)])

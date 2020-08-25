@@ -62,8 +62,8 @@ def train(model, optimizer, train_loader, model_evaluator,
               sum(p.numel() for pg in optimizer.param_groups for p in pg['params'] if p.requires_grad))
 
         for batch_idx, (input_, label, _) in enumerate(train_loader):
-            if epoch == 0 and params.warm_up:
-                lr_decay_policy.warm_up(batch_idx, len(train_loader))
+            if epoch < params.warm_up:
+                lr_decay_policy.warm_up(len(train_loader))
             else:
                 lr_decay_policy.step(epoch)
 

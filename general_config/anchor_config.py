@@ -5,7 +5,7 @@ model_id = general_config.model_id
 
 # SSDLite modified
 ssd_classic_19_19_vertical = {
-    'fig_size': 300,
+    'fig_size': 320,
     'feat_size': [19, 10, 5, 3, 2, 1],
     'steps': [16, 32, 64, 100, 150, 300],
     'scales': [45, 99, 153, 207, 261, 280, 315],
@@ -15,8 +15,8 @@ ssd_classic_19_19_vertical = {
 
 # SSDLite
 ssd_classic_19_19 = {
-    'fig_size': 300,
-    'feat_size': [19, 10, 5, 3, 2, 1],
+    'fig_size': 320,
+    'feat_size': [20, 10, 5, 3, 2, 1],
     'steps': [16, 32, 64, 100, 150, 300],
     'scales': [45, 99, 153, 207, 261, 280, 315],
     'aspect_ratios': [[2], [2, 3], [2, 3], [2, 3], [2, 3], [2, 3]],

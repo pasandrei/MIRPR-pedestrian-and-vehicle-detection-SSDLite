@@ -32,3 +32,5 @@ general_testing.ipynb
 nms_testing.ipynb
 Run.ipynb
 test_custom_inference.ipynb
+
+.idea/
