@@ -14,13 +14,6 @@ from custom_inference.run import Custom_Infernce
 from utils import prints
 from utils import training
 
-try:
-    from apex import amp
-    APEX_AVAILABLE = True
-except ImportError:
-    APEX_AVAILABLE = False
-    raise ImportError("Please install APEX from https://github.com/nvidia/apex")
-
 
 def run(train_model=True, load_checkpoint=False, cross_validate=False,
         validate=False, mixed_precision=False, test_dev=False):
@@ -43,10 +36,7 @@ def run(train_model=True, load_checkpoint=False, cross_validate=False,
     model = training.model_setup(params)
     optimizer = training.optimizer_setup(model, params)
 
-    if APEX_AVAILABLE and mixed_precision:
-        model, optimizer = amp.initialize(
-            model, optimizer, opt_level="O2"
-        )
+    scaler = torch.amp.GradScaler('cuda') if mixed_precision else None
 
     start_epoch = 0
     if load_checkpoint:
@@ -88,8 +78,8 @@ def run(train_model=True, load_checkpoint=False, cross_validate=False,
     if train_model:
         train.train(model, optimizer, train_loader, model_evaluator,
                     detection_loss, params, writer, lr_decay_policy, start_epoch,
-                    APEX_AVAILABLE and mixed_precision)
+                    scaler)
 
 
 if __name__ == '__main__':
-    run()
+    run(mixed_precision=True)

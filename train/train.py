@@ -4,37 +4,36 @@ from general_config.general_config import device
 from utils.training import update_losses, update_tensorboard_graphs
 from general_config import general_config, constants
 
+import torch
 import datetime
 
-try:
-    from apex import amp
-except ImportError:
-    raise ImportError("Please install APEX from https://github.com/nvidia/apex")
 
-
-def train_step(model, input_, label, optimizer, losses, detection_loss, params, use_amp=False):
+def train_step(model, input_, label, optimizer, losses, detection_loss, params, scaler=None):
     input_ = input_.to(device)
     label[0] = label[0].to(device)
     label[1] = label[1].to(device)
     optimizer.zero_grad()
-    output = model(input_)
 
-    l_loss, c_loss = detection_loss.ssd_loss(output, label)
-    loss = l_loss + c_loss
-
-    update_losses(losses, l_loss.item(), c_loss.item())
-
-    if use_amp:
-        with amp.scale_loss(loss, optimizer) as scaled_loss:
-            scaled_loss.backward()
+    if scaler is not None:
+        with torch.amp.autocast('cuda'):
+            output = model(input_)
+            l_loss, c_loss = detection_loss.ssd_loss(output, label)
+            loss = l_loss + c_loss
+        update_losses(losses, l_loss.item(), c_loss.item())
+        scaler.scale(loss).backward()
+        scaler.step(optimizer)
+        scaler.update()
     else:
+        output = model(input_)
+        l_loss, c_loss = detection_loss.ssd_loss(output, label)
+        loss = l_loss + c_loss
+        update_losses(losses, l_loss.item(), c_loss.item())
         loss.backward()
-
-    optimizer.step()
+        optimizer.step()
 
 
 def train(model, optimizer, train_loader, model_evaluator,
-          detection_loss, params, writer, lr_decay_policy, start_epoch=0, use_amp=False):
+          detection_loss, params, writer, lr_decay_policy, start_epoch=0, scaler=None):
     """
     args: model - nn.Module CNN to train
           optimizer - torch.optim
@@ -67,7 +66,7 @@ def train(model, optimizer, train_loader, model_evaluator,
             else:
                 lr_decay_policy.step(epoch)
 
-            train_step(model, input_, label, optimizer, losses, detection_loss, params, use_amp)
+            train_step(model, input_, label, optimizer, losses, detection_loss, params, scaler)
 
             print_train_batch_stats(model=model, epoch=epoch, batch_idx=batch_idx,
                                     data_loader=train_loader,

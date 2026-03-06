@@ -1,5 +1,7 @@
 *.pyc
 runs/
+data/
+.venv/
 misc/experiments/ssdlite/model_checkpoint
 misc/experiments/ssdlite/model_checkpoint-Copy1
 

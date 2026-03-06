@@ -56,64 +56,75 @@ class CocoDetection(VisionDataset):
         self.anchors_ltrb = default_boxes(order='ltrb')
         self.anchors_xywh = default_boxes(order='xywh')
 
+    def _process_single(self, index):
+        """Process a single image. Returns (image, gt_bbox, gt_class, info) or None if skipped."""
+        coco = self.coco
+        img_id = self.ids[index]
+        ann_ids = coco.getAnnIds(imgIds=img_id)
+        target = coco.loadAnns(ann_ids)
+        path = coco.loadImgs(img_id)[0]['file_name']
+        img = Image.open(os.path.join(self.root, path)).convert('RGB')
+        orig_width, orig_height = img.size
+
+        bboxes, category_ids = get_bboxes(target)
+        bboxes, category_ids = self.check_bbox_validity(
+            bboxes, category_ids, orig_width, orig_height)
+
+        if self.run_type == "test":
+            bboxes = [[3, 3, 100, 100]]
+            category_ids = [0]
+        if len(bboxes) == 0:
+            return None
+
+        album_annotation = {'image': np.array(
+            img), 'bboxes': bboxes, 'category_id': category_ids}
+        if self.augmentation:
+            if random.random() > 0.5:
+                transform_result = self.crop_aug(**album_annotation)
+            else:
+                transform_result = self.resize_aug(**album_annotation)
+        else:
+            transform_result = self.just_resize(**album_annotation)
+        image, bboxes, category_ids = transform_result.values()
+
+        if len(bboxes) == 0:
+            return None
+
+        target = prepare_gt(image, bboxes, category_ids)
+        image = F.to_tensor(image)
+        image = F.normalize(image, mean=[0.485, 0.456, 0.406],
+                            std=[0.229, 0.224, 0.225])
+        gt_bbox, gt_class = match(self.anchors_ltrb, self.anchors_xywh,
+                                  target[0], target[1], self.params)
+
+        return image, gt_bbox, gt_class, (img_id, (orig_width, orig_height))
+
     def __getitem__(self, batched_indices):
         """
         return B x C x H x W image tensor and [B x img_bboxes, B x img_classes]
+        Always returns exactly len(batched_indices) samples by replacing
+        skipped images with random alternatives.
         """
+        batch_size = len(batched_indices)
         imgs, targets_bboxes, targets_classes, image_info = [], [], [], []
+
         for index in batched_indices:
-            coco = self.coco
-            img_id = self.ids[index]
-            ann_ids = coco.getAnnIds(imgIds=img_id)
-            target = coco.loadAnns(ann_ids)
-            path = coco.loadImgs(img_id)[0]['file_name']
-            img = Image.open(os.path.join(self.root, path)).convert('RGB')
-            orig_width, orig_height = img.size
+            result = self._process_single(index)
+            if result is not None:
+                imgs.append(result[0])
+                targets_bboxes.append(result[1])
+                targets_classes.append(result[2])
+                image_info.append(result[3])
 
-            # get useful annotations
-            bboxes, category_ids = get_bboxes(target)
-            bboxes, category_ids = self.check_bbox_validity(
-                bboxes, category_ids, orig_width, orig_height)
-
-            if self.run_type == "test":
-                # If we are using the official test dataset we must
-                # not ignore images without annotations
-                bboxes = [[3, 3, 100, 100]]
-                category_ids = [0]
-            if len(bboxes) == 0:
-                continue
-
-            album_annotation = {'image': np.array(
-                img), 'bboxes': bboxes, 'category_id': category_ids}
-            if self.augmentation:
-                if random.random() > 0.5:
-                    transform_result = self.crop_aug(**album_annotation)
-                else:
-                    transform_result = self.resize_aug(**album_annotation)
-            else:
-                transform_result = self.just_resize(**album_annotation)
-            image, bboxes, category_ids = transform_result.values()
-
-            # all bboxes might be lost after transform
-            if len(bboxes) == 0:
-                continue
-
-            # bring bboxes to correct format
-            target = prepare_gt(image, bboxes, category_ids)
-
-            # get image in right format - normalized tensor
-            image = F.to_tensor(image)
-            image = F.normalize(image, mean=[0.485, 0.456, 0.406],
-                                std=[0.229, 0.224, 0.225])
-
-            # #anchors x 4 and #anchors x 1
-            gt_bbox, gt_class = match(self.anchors_ltrb, self.anchors_xywh,
-                                      target[0], target[1], self.params)
-
-            imgs.append(image)
-            targets_bboxes.append(gt_bbox)
-            targets_classes.append(gt_class)
-            image_info.append((img_id, (orig_width, orig_height)))
+        # fill any gaps with random replacement images
+        while len(imgs) < batch_size:
+            index = random.randint(0, len(self.ids) - 1)
+            result = self._process_single(index)
+            if result is not None:
+                imgs.append(result[0])
+                targets_bboxes.append(result[1])
+                targets_classes.append(result[2])
+                image_info.append(result[3])
 
         # B x C x H x W
         batch_images = torch.stack(imgs)

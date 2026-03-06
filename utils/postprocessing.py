@@ -1,68 +1,44 @@
 import numpy as np
 import cv2
+import torch
+import torchvision
 
 import json
 from general_config import classes_config, constants, general_config
-from utils.box_computations import get_IoU
 
 
 from pycocotools.cocoeval import COCOeval
 from pycocotools.coco import COCO
 
 
-def remove_overlapping_bboxes(current_class_indeces, bounding_boxes, thresold):
-    """
-    Args:
-    current_class_indeces: ndarray of current class indeces, sorted decreasingly by confidence
-    bounding_boxes: ndarray of predicted bboxes
-    """
-    kept = []
-    eliminated = {}
-    for i in range(len(current_class_indeces)):
-        real_i_index = current_class_indeces[i]
-        if i not in eliminated:
-            kept.append(real_i_index)
-        else:
-            continue
-        # those that intersect with i are eliminated, since i is more confident
-        for j in range(i+1, len(current_class_indeces)):
-            real_j_index = current_class_indeces[j]
-            IoU = get_IoU(bounding_boxes[real_i_index], bounding_boxes[real_j_index])
-            if IoU >= thresold:
-                eliminated[j] = 1
-    return kept
-
-
 def nms(bounding_boxes, predicted_classes, threshold=0.5):
     """
     args:
-        bounding_boxes: nr_bboxes x 4 sorted by confidence
-        predicted_classes: classes predicted by the model
+        bounding_boxes: nr_bboxes x 4 numpy array in corner format [x1,y1,x2,y2], sorted by confidence
+        predicted_classes: numpy array of classes predicted by the model
         threshold: bboxes with IoU above threshold will be removed
 
     returns:
         final_model_predictions: indices of kept bboxes
-
-    bounding_boxes are sorted decreasingly by confidence
     """
-    # keep top 100 predictions
     bounding_boxes = bounding_boxes[:200]
     predicted_classes = predicted_classes[:200]
 
-    final_model_predictions = []
-    if general_config.agnostic_nms:
-        indices = list(range(predicted_classes.shape[0]))
-        final_model_predictions = remove_overlapping_bboxes(indices,
-                                                            bounding_boxes, threshold)
-    else:
-        for id in np.unique(predicted_classes):
-            # get indeces of current class
-            current_class_indeces = np.nonzero(predicted_classes == id)[0]
-            kept_indeces = remove_overlapping_bboxes(current_class_indeces,
-                                                     bounding_boxes, threshold)
-            final_model_predictions.extend(kept_indeces)
+    n = bounding_boxes.shape[0]
+    if n == 0:
+        return []
 
-    return final_model_predictions
+    boxes_t = torch.from_numpy(bounding_boxes).float()
+    # scores derived from sort order (already sorted by decreasing confidence)
+    scores = torch.arange(n, 0, -1).float()
+
+    if general_config.agnostic_nms:
+        keep = torchvision.ops.nms(boxes_t, scores, threshold)
+        return keep.numpy().tolist()
+    else:
+        classes_t = torch.from_numpy(predicted_classes.reshape(-1)).float()
+        keep = torchvision.ops.batched_nms(boxes_t, scores, classes_t, threshold)
+        return keep.numpy().tolist()
 
 
 def plot_anchor_gt(image, anchor, gt, message="no_message", size=(320, 320)):
