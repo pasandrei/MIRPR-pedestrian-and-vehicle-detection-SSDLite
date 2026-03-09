@@ -29,6 +29,7 @@ def get_test_dev(params):
 
     return DataLoader(test_dataset, batch_size=None,
                       shuffle=False, num_workers=general_config.num_workers,
+                      persistent_workers=True, prefetch_factor=3,
                       sampler=BatchSampler(SubsetRandomSampler([i for i in range(nr_images_in_test)]),
                                            batch_size=params.batch_size, drop_last=False))
 
@@ -50,6 +51,7 @@ def get_train_dataloader(params):
 
     return DataLoader(train_dataset, batch_size=None,
                       shuffle=False, num_workers=general_config.num_workers,
+                      persistent_workers=True, prefetch_factor=3,
                       sampler=BatchSampler(SubsetRandomSampler([i for i in range(nr_images_in_train)]),
                                            batch_size=params.batch_size, drop_last=True))
 
@@ -67,5 +69,6 @@ def get_valid_dataloader(params):
 
     return DataLoader(validation_dataset, batch_size=None,
                       shuffle=False, num_workers=general_config.num_workers,
+                      persistent_workers=True, prefetch_factor=3,
                       sampler=BatchSampler(SequentialSampler([i for i in range(nr_images_in_val)]),
                                            batch_size=params.batch_size, drop_last=False))
