@@ -15,8 +15,53 @@ from utils import prints
 from utils import training
 
 
+def benchmark_num_workers(model, optimizer, detection_loss, params, scaler, candidates=[8, 16], warmup=20, count=200):
+    """Benchmarks different num_workers values and sets the fastest one."""
+    import time
+    from data import dataloaders as dl
+
+    best_time, best_workers = float('inf'), candidates[0]
+    for nw in candidates:
+        general_config.num_workers = nw
+        loader, _ = dl.get_dataloaders(params)
+        model.train()
+        for i, (input_, label, _) in enumerate(loader):
+            if i >= warmup + count:
+                break
+            input_ = input_.to(general_config.device)
+            label[0] = label[0].to(general_config.device)
+            label[1] = label[1].to(general_config.device)
+            optimizer.zero_grad()
+            if scaler is not None:
+                with torch.amp.autocast('cuda'):
+                    output = model(input_)
+                    l_loss, c_loss = detection_loss.ssd_loss(output, label)
+                    loss = l_loss + c_loss
+                scaler.scale(loss).backward()
+                scaler.step(optimizer)
+                scaler.update()
+            else:
+                output = model(input_)
+                l_loss, c_loss = detection_loss.ssd_loss(output, label)
+                loss = l_loss + c_loss
+                loss.backward()
+                optimizer.step()
+            if i == warmup - 1:
+                torch.cuda.synchronize()
+                start = time.time()
+        torch.cuda.synchronize()
+        elapsed = time.time() - start
+        print(f"num_workers={nw}: {count} batches in {elapsed:.2f}s ({elapsed/count*1000:.1f}ms/batch)")
+        if elapsed < best_time:
+            best_time, best_workers = elapsed, nw
+
+    print(f"Selected num_workers={best_workers}")
+    general_config.num_workers = best_workers
+
+
 def run(train_model=True, load_checkpoint=False, cross_validate=False,
-        validate=False, mixed_precision=False, test_dev=False):
+        validate=False, mixed_precision=False, test_dev=False,
+        auto_workers=False):
     """
     Arguments:
     train_model - train model
@@ -25,6 +70,7 @@ def run(train_model=True, load_checkpoint=False, cross_validate=False,
     cross_validate - cross validate for best nms thresold and positive confidence
     mixed_precision - use mixed_precision training
     test_dev - run model on coco test-dev set
+    auto_workers - benchmark num_workers 8 vs 16 and pick the fastest
     """
     torch.manual_seed(2)
     random.seed(2)
@@ -37,6 +83,14 @@ def run(train_model=True, load_checkpoint=False, cross_validate=False,
     optimizer = training.optimizer_setup(model, params)
 
     scaler = torch.amp.GradScaler('cuda') if mixed_precision else None
+
+    if auto_workers:
+        detection_loss = Detection_Loss(params)
+        benchmark_num_workers(model, optimizer, detection_loss, params, scaler)
+        # reinitialize model and optimizer after benchmark
+        model = training.model_setup(params)
+        optimizer = training.optimizer_setup(model, params)
+        scaler = torch.amp.GradScaler('cuda') if mixed_precision else None
 
     start_epoch = 0
     if load_checkpoint:
