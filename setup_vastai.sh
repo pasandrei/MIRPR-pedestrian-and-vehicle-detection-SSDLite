@@ -3,7 +3,7 @@
 #
 # Usage:
 #   1. Rent a GPU instance on vast.ai with:
-#      - Docker image: pytorch/pytorch:2.6.0-cuda12.8-cudnn9-runtime
+#      - Docker image: pytorch/pytorch:2.7.0-cuda12.8-cudnn9-runtime
 #      - Disk space: 50GB+ (or use persistent /workspace storage)
 #   2. SSH into the instance
 #   3. Run: bash setup_vastai.sh
