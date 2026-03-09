@@ -35,7 +35,11 @@ pip install --quiet \
     tensorboard \
     opencv-python-headless \
     aria2p
-apt-get update -qq && apt-get install -y -qq aria2 unzip >/dev/null 2>&1 || true
+apt-get update -qq && apt-get install -y -qq aria2 unzip gcc >/dev/null 2>&1 || true
+# torch.compile needs libcuda.so symlink (runtime images only have libcuda.so.1)
+if [ ! -f /usr/lib/x86_64-linux-gnu/libcuda.so ] && [ -f /usr/lib/x86_64-linux-gnu/libcuda.so.1 ]; then
+    ln -s /usr/lib/x86_64-linux-gnu/libcuda.so.1 /usr/lib/x86_64-linux-gnu/libcuda.so
+fi
 
 # ---- 3. Download COCO dataset ----
 # Use /workspace for persistent storage across vast.ai instances
