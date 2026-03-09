@@ -9,9 +9,9 @@ import datetime
 
 
 def train_step(model, input_, label, optimizer, losses, detection_loss, params, scaler=None):
-    input_ = input_.to(device)
-    label[0] = label[0].to(device)
-    label[1] = label[1].to(device)
+    input_ = input_.to(device, non_blocking=True)
+    label[0] = label[0].to(device, non_blocking=True)
+    label[1] = label[1].to(device, non_blocking=True)
     optimizer.zero_grad()
 
     if scaler is not None:

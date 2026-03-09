@@ -80,6 +80,7 @@ def run(train_model=True, load_checkpoint=False, cross_validate=False,
     prints.show_training_info(params)
 
     model = training.model_setup(params)
+    model = torch.compile(model)
     optimizer = training.optimizer_setup(model, params)
 
     scaler = torch.amp.GradScaler('cuda') if mixed_precision else None
@@ -89,6 +90,7 @@ def run(train_model=True, load_checkpoint=False, cross_validate=False,
         benchmark_num_workers(model, optimizer, detection_loss, params, scaler)
         # reinitialize model and optimizer after benchmark
         model = training.model_setup(params)
+        model = torch.compile(model)
         optimizer = training.optimizer_setup(model, params)
         scaler = torch.amp.GradScaler('cuda') if mixed_precision else None
 
