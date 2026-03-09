@@ -77,7 +77,7 @@ class SSD_Head(nn.Module):
         for layer in layers:
             for param in layer.parameters():
                 if param.dim() > 1:
-                    nn.init.xavier_uniform_(param)
+                    nn.init.normal_(param, mean=0, std=0.03)
 
     # Shape the classifier to the view of bboxes
     def bbox_view(self, src, loc, conf):
