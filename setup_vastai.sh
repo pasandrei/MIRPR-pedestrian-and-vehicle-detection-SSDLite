@@ -53,9 +53,11 @@ download_coco() {
     local dir="$1"
     cd "$dir"
 
+    HF_BASE="https://huggingface.co/datasets/pcuenq/coco-2017-mirror/resolve/main"
+
     if [ ! -d "train2017" ]; then
-        echo "  Downloading train2017 (~18GB)..."
-        wget -q --show-progress http://images.cocodataset.org/zips/train2017.zip
+        echo "  Downloading train2017 (~19GB)..."
+        wget -q --show-progress "$HF_BASE/train2017.zip"
         unzip -q train2017.zip
         rm train2017.zip
     else
@@ -63,8 +65,8 @@ download_coco() {
     fi
 
     if [ ! -d "val2017" ]; then
-        echo "  Downloading val2017 (~1GB)..."
-        wget -q --show-progress http://images.cocodataset.org/zips/val2017.zip
+        echo "  Downloading val2017 (~800MB)..."
+        wget -q --show-progress "$HF_BASE/val2017.zip"
         unzip -q val2017.zip
         rm val2017.zip
     else
@@ -73,7 +75,7 @@ download_coco() {
 
     if [ ! -d "annotations" ]; then
         echo "  Downloading annotations (~250MB)..."
-        wget -q --show-progress http://images.cocodataset.org/annotations/annotations_trainval2017.zip
+        wget -q --show-progress "$HF_BASE/annotations_trainval2017.zip"
         unzip -q annotations_trainval2017.zip
         rm annotations_trainval2017.zip
     else
