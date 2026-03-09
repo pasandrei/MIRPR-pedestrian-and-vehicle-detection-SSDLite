@@ -98,13 +98,6 @@ if [ -d "/workspace" ]; then
     echo "  Symlinked data/COCO -> $COCO_DIR"
 fi
 
-# Create stats.json if missing (removed from git tracking)
-STATS_FILE="misc/experiments/ssdlite/stats.json"
-if [ ! -f "$STATS_FILE" ]; then
-    echo '{"loss": 9999, "mAP": 0}' > "$STATS_FILE"
-    echo "  Created $STATS_FILE"
-fi
-
 # ---- 4. Verify setup ----
 echo "[4/5] Verifying setup..."
 python -c "
