@@ -16,12 +16,16 @@ set -e
 echo "=== SSDLite Training Setup for vast.ai ==="
 
 # ---- 1. Clone repo ----
-echo "[1/5] Cloning repository..."
-REPO_DIR="MIRPR-pedestrian-and-vehicle-detection-SSDLite"
-if [ ! -d "$REPO_DIR" ]; then
-    git clone https://github.com/pasandrei/MIRPR-pedestrian-and-vehicle-detection-SSDLite.git
+echo "[1/5] Setting up repository..."
+if [ -f "setup_vastai.sh" ] && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    echo "  Already inside repo, skipping clone"
+else
+    REPO_DIR="MIRPR-pedestrian-and-vehicle-detection-SSDLite"
+    if [ ! -d "$REPO_DIR" ]; then
+        git clone https://github.com/pasandrei/MIRPR-pedestrian-and-vehicle-detection-SSDLite.git
+    fi
+    cd "$REPO_DIR"
 fi
-cd "$REPO_DIR"
 
 # ---- 2. Install dependencies ----
 echo "[2/5] Installing Python dependencies..."
