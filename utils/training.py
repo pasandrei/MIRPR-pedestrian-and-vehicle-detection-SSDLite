@@ -5,7 +5,7 @@ from data import dataloaders
 from architectures.models import SSDLite, resnet_ssd
 from train import optimizer_handler
 from general_config import constants, anchor_config, classes_config, general_config
-from train.lr_policies import poly_lr, retina_decay
+from train.lr_policies import poly_lr, retina_decay, cosine_lr
 
 
 def update_tensorboard_graphs(writer, loc_loss_train, class_loss_train,
@@ -50,6 +50,17 @@ def model_setup(params):
     elif general_config.model_id == constants.ssd_modified:
         model = SSDLite.SSD_Head(n_classes=n_classes, k_list=anchor_config.k_list,
                                  out_channels=params.out_channels, width_mult=params.width_mult)
+
+    # BN tuning on new layers only (not pretrained backbone)
+    # Intermediate between PyTorch defaults (momentum=0.1, eps=1e-5)
+    # and TF OD API (momentum=0.0003, eps=0.001)
+    new_layers = [model.additional_blocks, model.loc, model.conf]
+    for layer_group in new_layers:
+        for m in layer_group.modules():
+            if isinstance(m, torch.nn.BatchNorm2d):
+                m.momentum = 0.01
+                m.eps = 0.001
+
     model.to(general_config.device)
 
     return model
@@ -69,6 +80,8 @@ def optimizer_setup(model, params):
             optimizer = optimizer_handler.layer_specific_sgd(model, params)
         else:
             optimizer = optimizer_handler.plain_sgd(model, params)
+    elif params.optimizer == 'rmsprop':
+        optimizer = optimizer_handler.plain_rmsprop(model, params)
 
     if params.zero_bn_bias_decay:
         optimizer = zero_wdcay_bn_bias(optimizer)
@@ -81,6 +94,8 @@ def lr_decay_policy_setup(params, optimizer, loader_size=None):
         lr_handler = poly_lr.Poly_LR(params=params, optimizer=optimizer, loader_size=loader_size)
     elif params.lr_policy == constants.retina_lr:
         lr_handler = retina_decay.Retina_decay(params=params, optimizer=optimizer)
+    elif params.lr_policy == constants.cosine_lr:
+        lr_handler = cosine_lr.Cosine_LR(params=params, optimizer=optimizer)
     return lr_handler
 
 
@@ -153,4 +168,9 @@ def zero_wdcay_bn_bias(optimizer):
             new_optim.append(new_group)
 
     # construct a similar optimizer and return it
-    return torch.optim.SGD(new_optim) if type(optimizer) == torch.optim.SGD else torch.optim.Adam(new_optim)
+    if type(optimizer) == torch.optim.SGD:
+        return torch.optim.SGD(new_optim)
+    elif type(optimizer) == torch.optim.RMSprop:
+        return torch.optim.RMSprop(new_optim)
+    else:
+        return torch.optim.Adam(new_optim)

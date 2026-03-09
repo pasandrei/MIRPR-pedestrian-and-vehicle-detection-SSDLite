@@ -119,6 +119,10 @@ def prepare_outputs_for_COCOeval(output, image_info, prediction_annotations, pre
 
 
 def evaluate_on_COCO_metrics(prediction_annotations):
+    if len(prediction_annotations) == 0:
+        print("No predictions generated, mAP = 0")
+        return 0.0
+
     with open("fisierul.json", 'w') as f:
         json.dump(prediction_annotations, f)
 
