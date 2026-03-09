@@ -30,10 +30,12 @@ fi
 # ---- 2. Install dependencies ----
 echo "[2/5] Installing Python dependencies..."
 pip install --quiet \
-    albumentations \
+    'albumentations<2' \
     pycocotools \
     tensorboard \
-    opencv-python-headless
+    opencv-python-headless \
+    aria2p
+apt-get update -qq && apt-get install -y -qq aria2 unzip >/dev/null 2>&1 || true
 
 # ---- 3. Download COCO dataset ----
 # Use /workspace for persistent storage across vast.ai instances
@@ -57,7 +59,7 @@ download_coco() {
 
     if [ ! -d "train2017" ]; then
         echo "  Downloading train2017 (~19GB)..."
-        wget -q --show-progress "$HF_BASE/train2017.zip"
+        aria2c -x 16 -s 16 -q --auto-file-renaming=false -o train2017.zip "$HF_BASE/train2017.zip"
         unzip -q train2017.zip
         rm train2017.zip
     else
@@ -66,7 +68,7 @@ download_coco() {
 
     if [ ! -d "val2017" ]; then
         echo "  Downloading val2017 (~800MB)..."
-        wget -q --show-progress "$HF_BASE/val2017.zip"
+        aria2c -x 16 -s 16 -q --auto-file-renaming=false -o val2017.zip "$HF_BASE/val2017.zip"
         unzip -q val2017.zip
         rm val2017.zip
     else
@@ -75,7 +77,7 @@ download_coco() {
 
     if [ ! -d "annotations" ]; then
         echo "  Downloading annotations (~250MB)..."
-        wget -q --show-progress "$HF_BASE/annotations_trainval2017.zip"
+        aria2c -x 16 -s 16 -q --auto-file-renaming=false -o annotations_trainval2017.zip "$HF_BASE/annotations_trainval2017.zip"
         unzip -q annotations_trainval2017.zip
         rm annotations_trainval2017.zip
     else
@@ -94,6 +96,13 @@ if [ -d "/workspace" ]; then
     fi
     ln -sf "$COCO_DIR" data/COCO
     echo "  Symlinked data/COCO -> $COCO_DIR"
+fi
+
+# Create stats.json if missing (removed from git tracking)
+STATS_FILE="misc/experiments/ssdlite/stats.json"
+if [ ! -f "$STATS_FILE" ]; then
+    echo '{"loss": 9999, "mAP": 0}' > "$STATS_FILE"
+    echo "  Created $STATS_FILE"
 fi
 
 # ---- 4. Verify setup ----
