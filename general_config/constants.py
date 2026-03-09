@@ -18,6 +18,7 @@ model_path_loss = 'misc/experiments/{}/model_checkpoint_loss'
 
 poly_lr = "poly"
 retina_lr = "retina"
+cosine_lr = "cosine"
 
 BCE_loss = "BCE"
 softmax_loss = "softmax"

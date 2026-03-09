@@ -156,7 +156,7 @@ class CocoDetection(VisionDataset):
         return valid_bboxes, valid_ids
 
     def init_augmentations(self):
-        common = [HorizontalFlip(), Rotate(limit=10),
+        common = [HorizontalFlip(),
                   RandomBrightnessContrast(),
                   ToGray(p=0.05)]
 

@@ -31,3 +31,9 @@ def plain_adam(model, params):
 def plain_sgd(model, params):
     return optim.SGD(model.parameters(), lr=params.learning_rate,
                      weight_decay=params.weight_decay, momentum=0.9)
+
+
+def plain_rmsprop(model, params):
+    return optim.RMSprop(model.parameters(), lr=params.learning_rate,
+                         weight_decay=params.weight_decay, momentum=0.9,
+                         alpha=0.9, eps=1.0)
