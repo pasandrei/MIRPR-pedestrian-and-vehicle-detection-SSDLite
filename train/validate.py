@@ -33,7 +33,7 @@ class Model_evaluator():
         model.eval()
         with torch.no_grad():
             losses = [0] * 4
-            val_set_size = len(self.valid_loader.sampler.sampler)
+            val_set_size = len(self.valid_loader.dataset)
 
             prediction_annotations = []
             prediction_id = 0

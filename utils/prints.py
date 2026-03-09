@@ -74,10 +74,10 @@ def print_batch_stats(batch_idx, data_loader, loc_loss, class_loss, one_nth_of_l
 def print_dataset_stats(train_loader=None, valid_loader=None):
     if train_loader:
         print('Train size: ', len(train_loader), len(
-            train_loader.dataset), len(train_loader.sampler.sampler))
+            train_loader.dataset), len(train_loader.dataset))
     if valid_loader:
         print('Val size: ', len(valid_loader), len(
-            valid_loader.dataset), len(valid_loader.sampler.sampler))
+            valid_loader.dataset), len(valid_loader.dataset))
 
     print("-------------------------------------------------------")
 
@@ -86,7 +86,7 @@ def print_train_stats(train_loader, losses, params):
     """
     prints all epoch losses averaged on a single sample
     """
-    eval_step_avg_factor = general_config.eval_step * len(train_loader.sampler.sampler)
+    eval_step_avg_factor = general_config.eval_step * len(train_loader.dataset)
     loc_loss_train, class_loss_train = losses[2] / \
         eval_step_avg_factor, losses[3] / eval_step_avg_factor
 

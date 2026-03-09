@@ -1,4 +1,3 @@
-import torch
 import os
 import os.path
 import torchvision.transforms.functional as F
@@ -99,43 +98,17 @@ class CocoDetection(VisionDataset):
 
         return image, gt_bbox, gt_class, (img_id, (orig_width, orig_height))
 
-    def __getitem__(self, batched_indices):
+    def __getitem__(self, index):
         """
-        return B x C x H x W image tensor and [B x img_bboxes, B x img_classes]
-        Always returns exactly len(batched_indices) samples by replacing
-        skipped images with random alternatives.
+        Returns a single (image, gt_bbox, gt_class, info) sample.
+        If the requested index yields no valid bboxes, retries with
+        random indices until a valid sample is found.
         """
-        batch_size = len(batched_indices)
-        imgs, targets_bboxes, targets_classes, image_info = [], [], [], []
-
-        for index in batched_indices:
-            result = self._process_single(index)
-            if result is not None:
-                imgs.append(result[0])
-                targets_bboxes.append(result[1])
-                targets_classes.append(result[2])
-                image_info.append(result[3])
-
-        # fill any gaps with random replacement images
-        while len(imgs) < batch_size:
+        result = self._process_single(index)
+        while result is None:
             index = random.randint(0, len(self.ids) - 1)
             result = self._process_single(index)
-            if result is not None:
-                imgs.append(result[0])
-                targets_bboxes.append(result[1])
-                targets_classes.append(result[2])
-                image_info.append(result[3])
-
-        # B x C x H x W
-        batch_images = torch.stack(imgs)
-
-        # B x #anchors x 4 and 1 respectively
-        batch_bboxes = torch.stack(targets_bboxes)
-        batch_class_ids = torch.stack(targets_classes)
-
-        label = (batch_bboxes, batch_class_ids)
-
-        return batch_images, label, image_info
+        return result
 
     def __len__(self):
         return len(self.ids)

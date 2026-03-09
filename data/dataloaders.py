@@ -1,9 +1,16 @@
-import json
-
+import torch
 from torch.utils.data import DataLoader
 from data.dataset import CocoDetection
-from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler, SequentialSampler
 from general_config import constants, general_config
+
+
+def collate_fn(batch):
+    """Stack tensors into batches, keep image_info as a list of tuples."""
+    images = torch.stack([item[0] for item in batch])
+    bboxes = torch.stack([item[1] for item in batch])
+    classes = torch.stack([item[2] for item in batch])
+    infos = [item[3] for item in batch]
+    return images, [bboxes, classes], infos
 
 
 def get_dataloaders(params):
@@ -23,15 +30,10 @@ def get_test_dev(params):
                                  params=params,
                                  run_type="test")
 
-    with open(test_annotations_path) as json_file:
-        data = json.load(json_file)
-        nr_images_in_test = len(data['images'])
-
-    return DataLoader(test_dataset, batch_size=None,
+    return DataLoader(test_dataset, batch_size=params.batch_size,
                       shuffle=False, num_workers=general_config.num_workers,
                       persistent_workers=True, prefetch_factor=3,
-                      sampler=BatchSampler(SubsetRandomSampler([i for i in range(nr_images_in_test)]),
-                                           batch_size=params.batch_size, drop_last=False))
+                      pin_memory=True, collate_fn=collate_fn)
 
 
 def get_dataloaders_test(params):
@@ -45,15 +47,10 @@ def get_train_dataloader(params):
                                   augmentation=True,
                                   params=params)
 
-    with open(train_annotations_path) as json_file:
-        data = json.load(json_file)
-        nr_images_in_train = len(data['images'])
-
-    return DataLoader(train_dataset, batch_size=None,
-                      shuffle=False, num_workers=general_config.num_workers,
+    return DataLoader(train_dataset, batch_size=params.batch_size,
+                      shuffle=True, num_workers=general_config.num_workers,
                       persistent_workers=True, prefetch_factor=3,
-                      sampler=BatchSampler(SubsetRandomSampler([i for i in range(nr_images_in_train)]),
-                                           batch_size=params.batch_size, drop_last=True))
+                      pin_memory=True, drop_last=True, collate_fn=collate_fn)
 
 
 def get_valid_dataloader(params):
@@ -63,12 +60,7 @@ def get_valid_dataloader(params):
                                        augmentation=False,
                                        params=params)
 
-    with open(val_annotations_path) as json_file:
-        data = json.load(json_file)
-        nr_images_in_val = len(data['images'])
-
-    return DataLoader(validation_dataset, batch_size=None,
+    return DataLoader(validation_dataset, batch_size=params.batch_size,
                       shuffle=False, num_workers=general_config.num_workers,
                       persistent_workers=True, prefetch_factor=3,
-                      sampler=BatchSampler(SequentialSampler([i for i in range(nr_images_in_val)]),
-                                           batch_size=params.batch_size, drop_last=False))
+                      pin_memory=True, collate_fn=collate_fn)
