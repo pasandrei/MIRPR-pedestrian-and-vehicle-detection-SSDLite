@@ -121,10 +121,10 @@ class Detection_Loss():
         # B x 1
         classification_loss = self.classification_loss(pos_mask, pos_num, pred_id, gt_id)
 
-        # normalize by mappings per each image in the batch then take the mean
-        # we skip images without annotations, so no element in pos_num is 0
-        localization_loss = (localization_loss / pos_num.float()).mean(dim=0)
-        classification_loss = (classification_loss / pos_num.float()).mean(dim=0)
+        # normalize by total positive anchors across the entire batch (TF OD API style)
+        total_pos = pos_num.float().sum().clamp(min=1)
+        localization_loss = localization_loss.sum() / total_pos
+        classification_loss = classification_loss.sum() / total_pos
         return localization_loss, classification_loss
 
     def hard_negative_mining(self, pos_mask, pos_num, losses, ids_for_anchors, ratio=3):
