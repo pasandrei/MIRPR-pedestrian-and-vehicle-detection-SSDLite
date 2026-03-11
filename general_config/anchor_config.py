@@ -19,9 +19,8 @@ ssd_classic_19_19 = {
     'feat_size': [20, 10, 5, 3, 2, 1],
     'steps': [16, 32, 64, 107, 160, 320],
     'scales': [64, 112, 160, 208, 256, 304, 320],
-    'aspect_ratios': [[2], [2, 3], [2, 3], [2, 3], [2, 3], [2, 3]],
-    'only_vertical': False,
-    'reduce_first_layer': True
+    'aspect_ratios': [[2, 3], [2, 3], [2, 3], [2, 3], [2, 3], [2, 3]],
+    'only_vertical': False
 }
 
 # classic SSD
@@ -40,28 +39,14 @@ model_to_anchors = {
     constants.ssdlite: ssd_classic_19_19
 }
 
-anchor_cfg = model_to_anchors[model_id]
-fig_size = anchor_cfg['fig_size']
-feat_size = anchor_cfg['feat_size']
-steps = anchor_cfg['steps']
-scales = anchor_cfg['scales']
-aspect_ratios = anchor_cfg['aspect_ratios']
-only_vertical = anchor_cfg['only_vertical']
-reduce_first_layer = anchor_cfg.get('reduce_first_layer', False)
+fig_size, feat_size, steps, scales, aspect_ratios, only_vertical = model_to_anchors[model_id].values()
 
 default_boxes = DefaultBoxes(fig_size, feat_size, steps,
-                             scales, aspect_ratios, only_vertical=only_vertical,
-                             reduce_first_layer=reduce_first_layer)
+                             scales, aspect_ratios, only_vertical=only_vertical)
 
-k_list = []
-for i, aspect_ratio in enumerate(aspect_ratios):
-    if only_vertical:
-        k = len(aspect_ratio) + 2
-    else:
-        k = len(aspect_ratio) * 2 + 2
-    if reduce_first_layer and i == 0:
-        k -= 1  # drop the extra scale anchor
-    k_list.append(k)
+k_list = [len(aspect_ratio)*2 + 2 for aspect_ratio in aspect_ratios]
+if only_vertical:
+    k_list = [len(aspect_ratio) + 2 for aspect_ratio in aspect_ratios]
 
 total_anchors = 0
 for (size, k) in zip(feat_size, k_list):

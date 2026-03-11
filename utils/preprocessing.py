@@ -76,10 +76,8 @@ def match(anchors_ltrb, anchors_xywh, gt_bbox, gt_class, params):
 class DefaultBoxes(object):
     # https://github.com/NVIDIA/DeepLearningExamples/tree/master/PyTorch/Detection/SSD
     def __init__(self, fig_size, feat_size, steps, scales,
-                 aspect_ratios, scale_xy=0.1, scale_wh=0.2, only_vertical=False,
-                 reduce_first_layer=False):
+                 aspect_ratios, scale_xy=0.1, scale_wh=0.2, only_vertical=False):
         self.only_vertical = only_vertical
-        self.reduce_first_layer = reduce_first_layer
         self.feat_size = feat_size
         self.fig_size = fig_size
 
@@ -101,10 +99,7 @@ class DefaultBoxes(object):
             sk1 = scales[idx]/fig_size
             sk2 = scales[idx+1]/fig_size
             sk3 = sqrt(sk1*sk2)
-            if self.reduce_first_layer and idx == 0:
-                all_sizes = [(sk1, sk1)]
-            else:
-                all_sizes = [(sk1, sk1), (sk3, sk3)]
+            all_sizes = [(sk1, sk1), (sk3, sk3)]
 
             for alpha in aspect_ratios[idx]:
                 w, h = sk1*sqrt(alpha), sk1/sqrt(alpha)
