@@ -12,8 +12,6 @@ from utils.preprocessing import match, prepare_gt, get_bboxes
 from albumentations import (
     Resize,
     HorizontalFlip,
-    RandomBrightnessContrast,
-    ToGray,
     Compose,
     BboxParams
 )
@@ -242,8 +240,6 @@ class CocoDetection(VisionDataset):
             Resize(height=self.params.input_height,
                    width=self.params.input_width),
             HorizontalFlip(),
-            RandomBrightnessContrast(),
-            ToGray(p=0.05),
         ]
         self.train_aug = self.get_aug(train_aug, min_visibility=0.3)
         self.just_resize = self.get_aug([

@@ -1,8 +1,8 @@
 {
     "optimizer": "sgd",
-    "learning_rate": 0.01,
+    "learning_rate": 0.05,
     "lr_policy": "cosine",
-    "batch_size": 64,
+    "batch_size": 192,
     "mapping_threshold": 0.5,
     "conf_threshold": 0.03,
     "suppress_threshold": 0.5333333333333333,
@@ -10,7 +10,7 @@
     "loss_type": "softmax",
     "use_focal_loss": 0,
     "use_hard_negative_mining": 1,
-    "n_epochs": 100,
+    "n_epochs": 200,
     "first_decay": 66,
     "second_decay": 86,
     "decay_rate": 0.1,
@@ -18,7 +18,7 @@
     "zero_bn_bias_decay": 1,
     "input_height": 320,
     "input_width": 320,
-    "warm_up": 1,
+    "warm_up": 5,
     "channels_list": [
         576,
         1280,
