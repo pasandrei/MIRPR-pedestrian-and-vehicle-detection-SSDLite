@@ -38,6 +38,24 @@ class DepthWiseConv(nn.Module):
         return self.pw_conv(self.ds_conv(x))
 
 
+class InvertedBottleneckBlock(nn.Module):
+    """
+    Inverted bottleneck extra block matching the reference SSDLite design:
+    1x1 squeeze → DW 3x3 stride-2 → 1x1 expand
+    """
+
+    def __init__(self, in_planes, out_planes, stride=2):
+        super().__init__()
+        mid_planes = out_planes // 2
+        self.squeeze = ConvBNReLU(in_planes, mid_planes, kernel_size=1, bias=False)
+        self.dw = ConvBNReLU(mid_planes, mid_planes, kernel_size=3,
+                             stride=stride, groups=mid_planes, padding=1, bias=False)
+        self.expand = ConvBNReLU(mid_planes, out_planes, kernel_size=1, bias=False)
+
+    def forward(self, x):
+        return self.expand(self.dw(self.squeeze(x)))
+
+
 class SSD_Head(nn.Module):
     def __init__(self, n_classes=81, k_list=[4, 6, 6, 6, 6, 6],
                  out_channels=[576, 1280, 512, 256, 256, 128], width_mult=1):
@@ -63,12 +81,11 @@ class SSD_Head(nn.Module):
     def _build_additional_features(self, input_sizes):
         self.additional_blocks = []
         for i, (input_size, output_size) in enumerate(zip(input_sizes[:-1], input_sizes[1:])):
-            layer = DepthWiseConv(input_size, output_size, kernel_size=3,
-                                  padding=1, stride=2)
-            self.additional_blocks.append(layer)
+            self.additional_blocks.append(InvertedBottleneckBlock(input_size, output_size, stride=2))
 
-        self.additional_blocks.append(DepthWiseConv(self.out_channels[-2], self.out_channels[-1],
-                                                    kernel_size=2))
+        # Last block: 2x2 → 1x1 (stride=2 with 3x3 kernel on 2x2 input, padding=1)
+        self.additional_blocks.append(InvertedBottleneckBlock(
+            self.out_channels[-2], self.out_channels[-1], stride=2))
 
         self.additional_blocks = nn.ModuleList(self.additional_blocks)
 
