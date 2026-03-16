@@ -33,7 +33,6 @@ class Model_evaluator():
         model.eval()
         with torch.no_grad():
             losses = [0] * 4
-            val_set_size = len(self.valid_loader.dataset)
 
             prediction_annotations = []
             prediction_id = 0
@@ -56,7 +55,7 @@ class Model_evaluator():
 
             mAP = postprocessing.evaluate_on_COCO_metrics(prediction_annotations)
 
-            val_loss = (losses[2] + losses[3]) / val_set_size
+            val_loss = (losses[2] + losses[3]) / len(self.valid_loader)
             if self.stats.mAP < mAP:
                 self.stats.mAP = mAP
                 msg = 'Model saved succesfully'
@@ -68,7 +67,7 @@ class Model_evaluator():
                 training.save_model(epoch, model, optimizer, self.params,
                                     self.stats, msg=msg, by_loss=True)
 
-            loc_loss_val, class_loss_val = losses[2] / val_set_size, losses[3] / val_set_size
+            loc_loss_val, class_loss_val = losses[2] / len(self.valid_loader), losses[3] / len(self.valid_loader)
             return mAP, loc_loss_val, class_loss_val
 
         print('Validation finished')

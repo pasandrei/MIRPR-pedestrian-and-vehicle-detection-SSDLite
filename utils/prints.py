@@ -66,8 +66,8 @@ def print_val_batch_stats(model, batch_idx, data_loader, losses, params):
 def print_batch_stats(batch_idx, data_loader, loc_loss, class_loss, one_nth_of_loader, params):
     print('Batch: {} of {}'.format(batch_idx, len(data_loader)))
 
-    avg_factor = one_nth_of_loader * params.batch_size
-    print('Loss in the past {} samples: Localization {} Classification {}'.format(
+    avg_factor = one_nth_of_loader
+    print('Loss in the past {} batches: Localization {} Classification {}'.format(
         avg_factor, loc_loss / avg_factor, class_loss / avg_factor))
 
 
@@ -84,9 +84,10 @@ def print_dataset_stats(train_loader=None, valid_loader=None):
 
 def print_train_stats(train_loader, losses, params):
     """
-    prints all epoch losses averaged on a single sample
+    prints all epoch losses averaged per batch (each batch loss is already
+    normalized by total positive anchors in the loss function)
     """
-    eval_step_avg_factor = general_config.eval_step * len(train_loader.dataset)
+    eval_step_avg_factor = general_config.eval_step * len(train_loader)
     loc_loss_train, class_loss_train = losses[2] / \
         eval_step_avg_factor, losses[3] / eval_step_avg_factor
 
