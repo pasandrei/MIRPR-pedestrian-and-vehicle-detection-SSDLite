@@ -61,7 +61,7 @@ def benchmark_num_workers(model, optimizer, detection_loss, params, scaler, cand
 
 def run(train_model=True, load_checkpoint=False, cross_validate=False,
         validate=False, mixed_precision=False, test_dev=False,
-        auto_workers=False):
+        auto_workers=False, run_name=None):
     """
     Arguments:
     train_model - train model
@@ -108,7 +108,10 @@ def run(train_model=True, load_checkpoint=False, cross_validate=False,
         return
 
     # tensorboard
-    writer = SummaryWriter(filename_suffix=general_config.model_id)
+    if run_name:
+        writer = SummaryWriter(comment=f"_{run_name}")
+    else:
+        writer = SummaryWriter(filename_suffix=general_config.model_id)
 
     if train_model:
         train_loader, valid_loader = training.prepare_datasets(params)
