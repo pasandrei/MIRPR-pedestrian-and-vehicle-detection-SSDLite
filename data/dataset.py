@@ -12,10 +12,47 @@ from utils.preprocessing import match, prepare_gt, get_bboxes
 from albumentations import (
     Resize,
     HorizontalFlip,
-    RandomBrightnessContrast,
     Compose,
     BboxParams
 )
+
+
+def ssd_random_zoom_out(image, bboxes, category_ids, p=0.5,
+                        max_scale=4.0,
+                        mean=(123, 117, 104)):
+    """
+    SSD expand/zoom-out augmentation. Places the image on a larger canvas
+    filled with mean pixel values, creating synthetic zoomed-out views.
+
+    Args:
+        image: numpy array (H, W, 3)
+        bboxes: list of [x, y, w, h] in COCO format
+        category_ids: list of category IDs
+        p: probability of applying the transform
+        max_scale: maximum canvas scale (1.0 to max_scale)
+        mean: fill color (ImageNet mean in 0-255 range)
+    """
+    if random.random() > p:
+        return image, bboxes, category_ids
+
+    h, w = image.shape[:2]
+    scale = random.uniform(1.0, max_scale)
+    new_h, new_w = int(h * scale), int(w * scale)
+
+    # Create canvas filled with mean
+    canvas = np.full((new_h, new_w, 3), mean, dtype=image.dtype)
+
+    # Random placement
+    top = random.randint(0, new_h - h)
+    left = random.randint(0, new_w - w)
+    canvas[top:top + h, left:left + w] = image
+
+    # Adjust bboxes (shift by placement offset)
+    new_bboxes = []
+    for b in bboxes:
+        new_bboxes.append([b[0] + left, b[1] + top, b[2], b[3]])
+
+    return canvas, new_bboxes, category_ids
 
 
 def ssd_random_crop(image, bboxes, category_ids,
@@ -154,8 +191,11 @@ class CocoDetection(VisionDataset):
             return None
 
         if self.augmentation:
+            image_np = np.array(img)
+            image_np, bboxes, category_ids = ssd_random_zoom_out(
+                image_np, bboxes, category_ids)
             image_np, bboxes, category_ids = ssd_random_crop(
-                np.array(img), bboxes, category_ids)
+                image_np, bboxes, category_ids)
             if len(bboxes) == 0:
                 return None
             album_annotation = {'image': image_np, 'bboxes': bboxes,
@@ -241,7 +281,6 @@ class CocoDetection(VisionDataset):
             Resize(height=self.params.input_height,
                    width=self.params.input_width),
             HorizontalFlip(),
-            RandomBrightnessContrast(),
         ]
         self.train_aug = self.get_aug(train_aug, min_visibility=0.3)
         self.just_resize = self.get_aug([
