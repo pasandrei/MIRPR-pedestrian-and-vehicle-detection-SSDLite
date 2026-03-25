@@ -193,7 +193,7 @@ class CocoDetection(VisionDataset):
         if self.augmentation:
             image_np = np.array(img)
             image_np, bboxes, category_ids = ssd_random_zoom_out(
-                image_np, bboxes, category_ids)
+                image_np, bboxes, category_ids, p=0.2)
             image_np, bboxes, category_ids = ssd_random_crop(
                 image_np, bboxes, category_ids)
             if len(bboxes) == 0:
