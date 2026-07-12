@@ -13,19 +13,29 @@
 
 set -e
 
-echo "=== SSDLite Training Setup for vast.ai ==="
+# Branch carrying the active training recipe + eval-harness fixes.
+# NOTE: the repo's default branch (master) does NOT have these — always deploy this branch.
+BRANCH="${TRAIN_BRANCH:-map-improvements}"
+
+echo "=== SSDLite Training Setup for vast.ai (branch: $BRANCH) ==="
 
 # ---- 1. Clone repo ----
 echo "[1/5] Setting up repository..."
 if [ -f "setup_vastai.sh" ] && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    echo "  Already inside repo, skipping clone"
+    echo "  Already inside repo, syncing to $BRANCH"
+    git fetch --quiet origin "$BRANCH"
+    git checkout "$BRANCH"
+    git pull --quiet --ff-only origin "$BRANCH"
 else
     REPO_DIR="MIRPR-pedestrian-and-vehicle-detection-SSDLite"
     if [ ! -d "$REPO_DIR" ]; then
-        git clone https://github.com/pasandrei/MIRPR-pedestrian-and-vehicle-detection-SSDLite.git
+        git clone --branch "$BRANCH" https://github.com/pasandrei/MIRPR-pedestrian-and-vehicle-detection-SSDLite.git
     fi
     cd "$REPO_DIR"
+    git checkout "$BRANCH"
+    git pull --quiet --ff-only origin "$BRANCH"
 fi
+echo "  Deployed commit: $(git log -1 --format='%h %s')"
 
 # ---- 2. Install dependencies ----
 echo "[2/5] Installing Python dependencies..."
@@ -128,10 +138,11 @@ print('Dependencies: OK')
 echo ""
 echo "=== Setup complete ==="
 echo ""
-echo "To start training (use screen to survive SSH disconnect):"
+echo "To start training from scratch (use screen to survive SSH disconnect):"
 echo "  screen -S train"
-echo "  PYTHONUNBUFFERED=1 python main.py > training.log 2>&1 &"
-echo "  tail -f training.log"
+echo "  RUN=b32_lr0165_zoomout20pct_\$(date +%m%d)"
+echo "  PYTHONUNBUFFERED=1 python -c \"from main import run; run(mixed_precision=True, run_name='\$RUN')\" > training_\$RUN.log 2>&1 &"
+echo "  tail -f training_\$RUN.log"
 echo "  # Ctrl+A, D to detach; screen -r train to reattach"
 echo ""
 echo "To monitor progress:"
