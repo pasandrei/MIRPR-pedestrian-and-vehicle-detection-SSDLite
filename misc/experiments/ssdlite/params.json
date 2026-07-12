@@ -4,7 +4,7 @@
     "lr_policy": "cosine",
     "batch_size": 192,
     "mapping_threshold": 0.5,
-    "conf_threshold": 0.03,
+    "conf_threshold": 0.001,
     "suppress_threshold": 0.5333333333333333,
     "weight_decay": 4e-05,
     "loss_type": "softmax",

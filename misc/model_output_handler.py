@@ -151,7 +151,7 @@ class Model_output_handler():
         scale_bboxes[:, 2] *= width
         scale_bboxes[:, 1] *= height
         scale_bboxes[:, 3] *= height
-        return (scale_bboxes.cpu().numpy()).astype(int)
+        return scale_bboxes.cpu().numpy()
 
 
 class UnNormalize(object):
