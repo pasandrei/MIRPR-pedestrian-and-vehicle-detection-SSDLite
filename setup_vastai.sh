@@ -29,11 +29,12 @@ if [ -f "setup_vastai.sh" ] && git rev-parse --is-inside-work-tree >/dev/null 2>
 else
     REPO_DIR="MIRPR-pedestrian-and-vehicle-detection-SSDLite"
     if [ ! -d "$REPO_DIR" ]; then
-        git clone --branch "$BRANCH" https://github.com/pasandrei/MIRPR-pedestrian-and-vehicle-detection-SSDLite.git
+        # Shallow single-branch clone: the full history carries large committed
+        # binaries (~hundreds of MB) that stall on slow links; we only need the tip.
+        git clone --depth 1 --single-branch --branch "$BRANCH" \
+            https://github.com/pasandrei/MIRPR-pedestrian-and-vehicle-detection-SSDLite.git
     fi
     cd "$REPO_DIR"
-    git checkout "$BRANCH"
-    git pull --quiet --ff-only origin "$BRANCH"
 fi
 echo "  Deployed commit: $(git log -1 --format='%h %s')"
 
