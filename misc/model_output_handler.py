@@ -55,22 +55,22 @@ class Model_output_handler():
 
     def _get_sorted_predictions(self, bbox_predictions, classification_predictions, image_info):
         """
-        Returns the predicted bboxes, class ids and confidences sorted by confidence and above
-        a given threshold
+        Multi-label decode: each anchor emits a (box, class, score) candidate for every
+        class above the confidence threshold, sorted by score. An ambiguous box can thus
+        compete under several classes (per-class NMS resolves the overlaps downstream).
         """
         prediction_bboxes, prediction_confidences = self._convert_output_to_workable_data(
             bbox_predictions, classification_predictions, image_info[1])
 
-        prediction_bboxes, prediction_confidences = self._predictions_over_threshold(
-            prediction_bboxes, prediction_confidences)
+        anchor_idx, class_idx = np.where(prediction_confidences > self.confidence_threshold)
+        scores = prediction_confidences[anchor_idx, class_idx]
 
-        prediction_bboxes, predicted_classes, highest_confidence_for_predictions, high_confidence_indeces = self._sort_predictions_by_confidence(
-            prediction_bboxes, prediction_confidences)
+        permutation = (-scores).argsort()
+        prediction_bboxes = prediction_bboxes[anchor_idx[permutation]]
+        predicted_classes = class_idx[permutation].reshape(-1, 1)
+        scores = scores[permutation].reshape(-1, 1)
 
-        highest_confidence_for_predictions = np.reshape(
-            highest_confidence_for_predictions, (highest_confidence_for_predictions.shape[0], 1))
-
-        return prediction_bboxes, predicted_classes, highest_confidence_for_predictions, high_confidence_indeces
+        return prediction_bboxes, predicted_classes, scores, permutation
 
     def _predictions_over_threshold(self, prediction_bboxes, predicted_confidences):
         """

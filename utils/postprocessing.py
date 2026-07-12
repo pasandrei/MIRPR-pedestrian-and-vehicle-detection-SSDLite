@@ -21,8 +21,8 @@ def nms(bounding_boxes, predicted_classes, threshold=0.5):
     returns:
         final_model_predictions: indices of kept bboxes
     """
-    bounding_boxes = bounding_boxes[:400]
-    predicted_classes = predicted_classes[:400]
+    bounding_boxes = bounding_boxes[:1000]
+    predicted_classes = predicted_classes[:1000]
 
     n = bounding_boxes.shape[0]
     if n == 0:
