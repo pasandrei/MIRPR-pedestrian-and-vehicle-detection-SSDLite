@@ -66,6 +66,20 @@ def model_setup(params):
     return model
 
 
+def ema_setup(model, params):
+    """
+    creates the EMA shadow model (TF OD API trains with use_moving_average
+    decay 0.9999 by default and evaluates the averaged weights)
+    returns None when use_ema is off, so callers can pass it through untouched
+    """
+    if not getattr(params, 'use_ema', 0):
+        return None
+    decay = getattr(params, 'ema_decay', 0.9999)
+    return torch.optim.swa_utils.AveragedModel(
+        model, multi_avg_fn=torch.optim.swa_utils.get_ema_multi_avg_fn(decay),
+        use_buffers=True)
+
+
 def optimizer_setup(model, params):
     """
     creates optimizer, can have layer specific options
@@ -104,11 +118,17 @@ def prepare_datasets(params):
     return train_loader, valid_loader
 
 
-def load_model(model, params, optimizer):
+def load_model(model, params, optimizer, ema_model=None):
     checkpoint = torch.load(constants.model_path.format(general_config.model_id))
     model.load_state_dict(checkpoint['model_state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
     start_epoch = checkpoint['epoch']
+    if ema_model is not None:
+        if 'ema_state_dict' in checkpoint:
+            ema_model.load_state_dict(checkpoint['ema_state_dict'])
+            print('EMA state loaded successfully')
+        else:
+            print('Checkpoint has no EMA state, EMA restarts from current weights')
     print('Model loaded successfully from epoch: ', start_epoch)
 
     return model, optimizer, start_epoch
@@ -122,15 +142,20 @@ def load_weigths_only(model, params):
     return model
 
 
-def save_model(epoch, model, optimizer, params, stats, msg=None, by_loss=False):
+def save_model(epoch, model, optimizer, params, stats, msg=None, by_loss=False, ema_model=None):
     model_path = constants.model_path
     if by_loss:
         model_path = constants.model_path_loss
-    torch.save({
+    checkpoint = {
         'epoch': epoch + 1,
         'model_state_dict': model.state_dict(),
         'optimizer_state_dict': optimizer.state_dict(),
-    }, model_path.format(general_config.model_id))
+    }
+    if ema_model is not None:
+        # the mAP in stats was achieved by these averaged weights; load them
+        # into a plain model by stripping the 'module.' prefix
+        checkpoint['ema_state_dict'] = ema_model.state_dict()
+    torch.save(checkpoint, model_path.format(general_config.model_id))
     params.save(constants.params_path.format(general_config.model_id))
     stats.save(constants.stats_path.format(general_config.model_id))
 

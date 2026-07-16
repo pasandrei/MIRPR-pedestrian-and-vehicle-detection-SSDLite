@@ -98,9 +98,12 @@ def run(train_model=True, load_checkpoint=False, cross_validate=False,
         optimizer = training.optimizer_setup(model, params)
         scaler = torch.amp.GradScaler('cuda') if mixed_precision else None
 
+    ema_model = training.ema_setup(model, params)
+
     start_epoch = 0
     if load_checkpoint:
-        model, optimizer, start_epoch = training.load_model(model, params, optimizer)
+        model, optimizer, start_epoch = training.load_model(model, params, optimizer,
+                                                            ema_model=ema_model)
     prints.print_trained_parameters_count(model, optimizer)
 
     if test_dev:
@@ -132,7 +135,7 @@ def run(train_model=True, load_checkpoint=False, cross_validate=False,
     if validate:
         print("Checkpoint epoch: ", start_epoch)
         prints.print_dataset_stats(valid_loader=valid_loader)
-        model_evaluator.complete_evaluate(model, optimizer)
+        model_evaluator.complete_evaluate(model, optimizer, ema_model=ema_model)
 
     if cross_validate:
         cross_validation.cross_validate(
@@ -141,7 +144,7 @@ def run(train_model=True, load_checkpoint=False, cross_validate=False,
     if train_model:
         train.train(model, optimizer, train_loader, model_evaluator,
                     detection_loss, params, writer, lr_decay_policy, start_epoch,
-                    scaler)
+                    scaler, ema_model)
 
 
 if __name__ == '__main__':
