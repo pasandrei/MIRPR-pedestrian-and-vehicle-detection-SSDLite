@@ -8,7 +8,8 @@ import torch
 import datetime
 
 
-def train_step(model, input_, label, optimizer, losses, detection_loss, params, scaler=None):
+def train_step(model, input_, label, optimizer, losses, detection_loss, params, scaler=None,
+               ema_model=None):
     input_ = input_.to(device, non_blocking=True)
     label[0] = label[0].to(device, non_blocking=True)
     label[1] = label[1].to(device, non_blocking=True)
@@ -31,9 +32,13 @@ def train_step(model, input_, label, optimizer, losses, detection_loss, params, 
         loss.backward()
         optimizer.step()
 
+    if ema_model is not None:
+        ema_model.update_parameters(model)
+
 
 def train(model, optimizer, train_loader, model_evaluator,
-          detection_loss, params, writer, lr_decay_policy, start_epoch=0, scaler=None):
+          detection_loss, params, writer, lr_decay_policy, start_epoch=0, scaler=None,
+          ema_model=None):
     """
     args: model - nn.Module CNN to train
           optimizer - torch.optim
@@ -67,7 +72,8 @@ def train(model, optimizer, train_loader, model_evaluator,
             else:
                 lr_decay_policy.step(epoch)
 
-            train_step(model, input_, label, optimizer, losses, detection_loss, params, scaler)
+            train_step(model, input_, label, optimizer, losses, detection_loss, params, scaler,
+                       ema_model)
 
             print_train_batch_stats(model=model, epoch=epoch, batch_idx=batch_idx,
                                     data_loader=train_loader,
@@ -75,7 +81,7 @@ def train(model, optimizer, train_loader, model_evaluator,
 
         if (epoch + 1) % general_config.eval_step == 0:
             mAP, loc_loss_val, class_loss_val = model_evaluator.complete_evaluate(model, optimizer,
-                                                                                  epoch)
+                                                                                  epoch, ema_model)
             loc_loss_train, class_loss_train = print_train_stats(
                 train_loader, losses, params)
             update_tensorboard_graphs(writer, loc_loss_train, class_loss_train,

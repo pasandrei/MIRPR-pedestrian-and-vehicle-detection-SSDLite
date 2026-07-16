@@ -19,6 +19,8 @@
     "input_height": 320,
     "input_width": 320,
     "warm_up": 10,
+    "use_ema": 1,
+    "ema_decay": 0.9999,
     "channels_list": [
         576,
         1280,
