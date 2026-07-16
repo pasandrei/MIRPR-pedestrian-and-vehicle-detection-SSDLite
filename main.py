@@ -2,6 +2,9 @@ from torch.utils.tensorboard import SummaryWriter
 from train.loss_fn import Detection_Loss
 import torch
 import random
+import datetime
+import os
+import socket
 
 from train import train
 from train.params import Params
@@ -13,6 +16,20 @@ from custom_inference.run import Custom_Infernce
 
 from utils import prints
 from utils import training
+
+
+def run_log_dir(run_name=None):
+    """
+    Builds a TensorBoard run directory name that sorts chronologically, e.g.
+    runs/2026-07-16_22-21-34_hostname[_run_name] (torch's own default,
+    e.g. Jul16_22-21-34_hostname, does not: month abbreviations don't sort
+    alphabetically in calendar order and there is no year).
+    """
+    timestamp = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+    name = f"{timestamp}_{socket.gethostname()}"
+    if run_name:
+        name += f"_{run_name}"
+    return os.path.join('runs', name)
 
 
 def benchmark_num_workers(model, optimizer, detection_loss, params, scaler, candidates=[8, 16], warmup=20, count=200):
@@ -116,9 +133,9 @@ def run(train_model=True, load_checkpoint=False, cross_validate=False,
 
     # tensorboard
     if run_name:
-        writer = SummaryWriter(comment=f"_{run_name}")
+        writer = SummaryWriter(log_dir=run_log_dir(run_name))
     else:
-        writer = SummaryWriter(filename_suffix=general_config.model_id)
+        writer = SummaryWriter(log_dir=run_log_dir(), filename_suffix=general_config.model_id)
 
     if train_model:
         train_loader, valid_loader = training.prepare_datasets(params)
