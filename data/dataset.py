@@ -86,7 +86,9 @@ def ssd_random_crop(image, bboxes, category_ids,
     for _ in range(max_attempts):
         # Sample crop dimensions
         ar = random.uniform(0.5, 2.0)
-        area_frac = random.uniform(0.3, 1.0)
+        # TF ssd_random_crop samples area in [0.1, 1.0] (~3.2x max zoom-in);
+        # [0.3, 1.0] only reached ~1.8x and was the largest remaining data diff
+        area_frac = random.uniform(0.1, 1.0)
         crop_h = int(round(sqrt(h * w * area_frac / ar)))
         crop_w = int(round(crop_h * ar))
         if crop_w > w or crop_h > h or crop_w <= 0 or crop_h <= 0:
