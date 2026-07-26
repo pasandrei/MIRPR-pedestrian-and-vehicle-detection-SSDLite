@@ -4,10 +4,11 @@ Single-shot object detection on COCO in PyTorch, built from scratch: SSD300 with
 backbone, SSDLite with MobileNetV2, and a person-only SSDLite variant of ~2M parameters.
 
 The SSDLite implementation was taken through a systematic optimization campaign
-(March to July 2026) that raised it from **0.177 to 0.212 mAP** on COCO val2017, reaching
-parity with torchvision's official `ssdlite320_mobilenet_v3_large` (0.213) while using the
-older MobileNetV2 backbone and 4.49M parameters. Every change was tested in isolation and
-logged, including the ones that did not work:
+(March to July 2026) that raised it from **0.177 to 0.212 mAP** on COCO val2017. That
+**matches** torchvision's official `ssdlite320_mobilenet_v3_large` (0.213 on the same split
+and evaluation, a difference inside run-to-run noise), and it does so with the older
+MobileNetV2 backbone. Every change was tested in isolation and logged, including the ones
+that did not work:
 
 - [`docs/experiment_report.md`](docs/experiment_report.md) walks through the whole campaign,
   with the mAP impact of each change.
@@ -83,9 +84,9 @@ SSDLite
  Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.640
 ```
 
-The SSDLite result above (**0.212 mAP**, 4.49M params) is the outcome of a March–July 2026
-optimization campaign that raised it from 0.177. It reaches parity with torchvision's official
-`ssdlite320_mobilenet_v3_large` (0.213 on the same val2017 split and evaluation) despite using
+The SSDLite result above (**0.212 mAP**, 4.49M params) is the outcome of a March to July 2026
+optimization campaign that raised it from 0.177. It **matches** torchvision's official
+`ssdlite320_mobilenet_v3_large` (0.213 on the same val2017 split and evaluation) while using
 the older MobileNetV2 backbone. See [`docs/experiment_report.md`](docs/experiment_report.md) for
 the full write-up: every change tested, its mAP impact, and what did not work.
 

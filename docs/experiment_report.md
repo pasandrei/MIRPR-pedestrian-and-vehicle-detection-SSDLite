@@ -2,8 +2,8 @@
 
 **Goal:** reproduce the MobileNetV2 paper's SSDLite result (22.1 mAP test-dev) with our own
 PyTorch implementation.
-**Outcome:** **0.2121 mAP on val2017** — matching torchvision's official SSDLite (0.213)
-within noise despite using the older MobileNetV2 backbone, and ~1 point short of the paper's
+**Outcome:** **0.2121 mAP on val2017**, which **matches** torchvision's official SSDLite
+(0.213) while using the older MobileNetV2 backbone, and lands ~0.9 short of the paper's
 (non-comparable, test-dev, unreleased-config) number. The experiment is concluded for the
 foreseeable future; the official COCO test-dev server is offline, so a direct paper
 comparison is currently impossible for anyone.
@@ -18,10 +18,12 @@ comparison is currently impossible for anyone.
 | torchvision `ssdlite320_mobilenet_v3_large` | V3-Large | val2017 | 0.213 | 0.343 | 0.221 | 0.011 | 0.202 | 0.444 | 0.334 | 3.4M |
 | **Ours — final (520-ep run, ep 476, EMA weights)** | **V2** | val2017 | **0.212** | 0.342 | 0.220 | 0.010 | 0.196 | 0.445 | 0.323 | **4.49M** |
 
-Ours-vs-torchvision is a same-split, same-COCOeval, same-decode-semantics comparison; every
-sub-metric is within noise of theirs, with an older backbone. The paper's number is on a
-different split with a config that was never released (the released TF config is 300×300,
-22.0 minival).
+Ours-vs-torchvision is a same-split, same-COCOeval, same-decode-semantics comparison. The
+0.0009 mAP difference is well inside run-to-run noise (two independent runs of our own recipe
+landed 0.2111 and 0.2112), so this is a **match, not a near-miss**: we are level on AP50 and
+AP75, ahead on AP-L, and behind only on AP-M (-0.006) and AR@100 (-0.011). The paper's number
+is on a different split with a config that was never released (the released TF config is
+300x300, 22.0 minival).
 
 **Progression of the internal best across the project:**
 
@@ -152,8 +154,9 @@ SSD crop area∈[0.1,1] · zoom-out p=0.2 · flip · 320×320 · AMP · eager.
 
 Realistic ceiling for MobileNetV2 @ 320 on val2017 was estimated at ~21–21.5 during the
 audit; the final 21.2 sits inside it. The honest summary: **the implementation is correct
-(torchvision-parity proven), the recipe is reproducible, and the remaining distance to the
-paper is unverifiable split difference plus TF-pretraining provenance.**
+(it matches torchvision on identical evaluation), the recipe is reproducible, and the
+remaining distance to the paper is unverifiable split difference plus TF-pretraining
+provenance.**
 
 ## 9. Artifact index
 

@@ -1,4 +1,9 @@
-# Final Results — SSDLite / MobileNetV2 on COCO
+# Reproduction Run Results: SSDLite / MobileNetV2 on COCO
+
+> **Superseded.** This documents the July 14 reproduction run (0.2084), which was the best
+> result at the time of writing. Four further experiments took the campaign to **0.2121**,
+> which **matches** torchvision's 0.213. See [`experiment_report.md`](experiment_report.md)
+> for the final results. The analysis below is still accurate for this run.
 
 **Run:** `b32_lr0165_zoomout20pct_nw8` · completed 2026-07-14 · 660/660 epochs
 **Best checkpoint:** epoch 656 · **mAP 0.2084** (val2017)
@@ -49,9 +54,13 @@ Model size: **4,744,308 params (~4.74M)**.
 
 ## 3. Findings
 
-### vs the PyTorch reproduction — essentially matched
-- **Within 0.5 mAP of torchvision (0.208 vs 0.213)**, with every sub-metric nearly on top:
+### vs the PyTorch reproduction: 0.005 short here, matched by the end of the campaign
+- **0.208 vs torchvision's 0.213 at this checkpoint**, with every sub-metric close:
   small AP **tied (0.011)**, medium −0.006, large −0.009, AR@100 −0.011.
+- The four later experiments (EMA, wider crop, bottleneck blocks, 520-epoch schedule) closed
+  this remainder: the campaign's final model scores **0.2121, which matches torchvision's
+  0.213** (a 0.0009 difference, inside run-to-run noise). See
+  [`experiment_report.md`](experiment_report.md).
 - We achieve this with the **older MobileNetV2 backbone** while torchvision uses the
   newer, stronger **MobileNetV3-Large**. torchvision is *not* a reproduction of the
   paper — it is a different (V3) model. Ours is the V2 one.
