@@ -21,8 +21,8 @@ def nms(bounding_boxes, predicted_classes, threshold=0.5):
     returns:
         final_model_predictions: indices of kept bboxes
     """
-    bounding_boxes = bounding_boxes[:200]
-    predicted_classes = predicted_classes[:200]
+    bounding_boxes = bounding_boxes[:1000]
+    predicted_classes = predicted_classes[:1000]
 
     n = bounding_boxes.shape[0]
     if n == 0:
@@ -107,7 +107,7 @@ def prepare_outputs_for_COCOeval(output, image_info, prediction_annotations, pre
             pred_bbox[i], pred_class[i], image_info[i])
 
         for index in range(complete_outputs.shape[0]):
-            bbox = [int(x) for x in complete_outputs[index][:4]]
+            bbox = [round(float(x), 2) for x in complete_outputs[index][:4]]
 
             prediction_id += 1
             prediction_annotations.append(
@@ -119,6 +119,10 @@ def prepare_outputs_for_COCOeval(output, image_info, prediction_annotations, pre
 
 
 def evaluate_on_COCO_metrics(prediction_annotations):
+    if len(prediction_annotations) == 0:
+        print("No predictions generated, mAP = 0")
+        return 0.0
+
     with open("fisierul.json", 'w') as f:
         json.dump(prediction_annotations, f)
 

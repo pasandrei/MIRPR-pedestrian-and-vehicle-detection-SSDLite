@@ -3,6 +3,7 @@ import os.path
 import torchvision.transforms.functional as F
 import numpy as np
 import random
+from math import sqrt
 from data.vision_dataset import VisionDataset
 from PIL import Image
 from general_config.anchor_config import default_boxes
@@ -10,17 +11,131 @@ from utils.preprocessing import match, prepare_gt, get_bboxes
 
 from albumentations import (
     Resize,
-    RandomResizedCrop,
     HorizontalFlip,
-    Rotate,
-    CoarseDropout,
-    GaussNoise,
-    RandomBrightnessContrast,
-    RandomGamma,
-    ToGray,
     Compose,
     BboxParams
 )
+
+
+def ssd_random_zoom_out(image, bboxes, category_ids, p=0.5,
+                        max_scale=4.0,
+                        mean=(123, 117, 104)):
+    """
+    SSD expand/zoom-out augmentation. Places the image on a larger canvas
+    filled with mean pixel values, creating synthetic zoomed-out views.
+
+    Args:
+        image: numpy array (H, W, 3)
+        bboxes: list of [x, y, w, h] in COCO format
+        category_ids: list of category IDs
+        p: probability of applying the transform
+        max_scale: maximum canvas scale (1.0 to max_scale)
+        mean: fill color (ImageNet mean in 0-255 range)
+    """
+    if random.random() > p:
+        return image, bboxes, category_ids
+
+    h, w = image.shape[:2]
+    scale = random.uniform(1.0, max_scale)
+    new_h, new_w = int(h * scale), int(w * scale)
+
+    # Create canvas filled with mean
+    canvas = np.full((new_h, new_w, 3), mean, dtype=image.dtype)
+
+    # Random placement
+    top = random.randint(0, new_h - h)
+    left = random.randint(0, new_w - w)
+    canvas[top:top + h, left:left + w] = image
+
+    # Adjust bboxes (shift by placement offset)
+    new_bboxes = []
+    for b in bboxes:
+        new_bboxes.append([b[0] + left, b[1] + top, b[2], b[3]])
+
+    return canvas, new_bboxes, category_ids
+
+
+def ssd_random_crop(image, bboxes, category_ids,
+                    min_iou_choices=(0.0, 0.1, 0.3, 0.5, 0.7, 0.9, 1.0),
+                    max_attempts=50):
+    """
+    TF Object Detection API style SSD random crop.
+
+    Randomly selects a minimum IoU threshold, then samples crops until one
+    satisfies the constraint against GT boxes. Keeps boxes whose center
+    falls within the crop.
+
+    Args:
+        image: numpy array (H, W, 3)
+        bboxes: list of [x, y, w, h] in COCO format (absolute pixel coords)
+        category_ids: list of category IDs parallel to bboxes
+    Returns:
+        (cropped_image, filtered_bboxes, filtered_category_ids)
+    """
+    h, w = image.shape[:2]
+    min_iou = random.choice(min_iou_choices)
+
+    if min_iou == 1.0:
+        return image, bboxes, category_ids
+
+    # Convert GT boxes to xyxy for IoU computation
+    gt_xyxy = []
+    for b in bboxes:
+        gt_xyxy.append([b[0], b[1], b[0] + b[2], b[1] + b[3]])
+
+    for _ in range(max_attempts):
+        # Sample crop dimensions
+        ar = random.uniform(0.5, 2.0)
+        area_frac = random.uniform(0.3, 1.0)
+        crop_h = int(round(sqrt(h * w * area_frac / ar)))
+        crop_w = int(round(crop_h * ar))
+        if crop_w > w or crop_h > h or crop_w <= 0 or crop_h <= 0:
+            continue
+
+        # Sample crop position
+        crop_x = random.randint(0, w - crop_w)
+        crop_y = random.randint(0, h - crop_h)
+        crop_xyxy = [crop_x, crop_y, crop_x + crop_w, crop_y + crop_h]
+
+        # Check overlap constraint (fraction of GT box covered by crop)
+        overlaps = []
+        for gt in gt_xyxy:
+            ix1 = max(crop_xyxy[0], gt[0])
+            iy1 = max(crop_xyxy[1], gt[1])
+            ix2 = min(crop_xyxy[2], gt[2])
+            iy2 = min(crop_xyxy[3], gt[3])
+            inter = max(0, ix2 - ix1) * max(0, iy2 - iy1)
+            gt_area = (gt[2] - gt[0]) * (gt[3] - gt[1])
+            overlaps.append(inter / gt_area if gt_area > 0 else 0)
+        if max(overlaps) < min_iou:
+            continue
+
+        # Keep boxes whose center falls inside crop
+        new_bboxes = []
+        new_ids = []
+        for b, cat_id, gt in zip(bboxes, category_ids, gt_xyxy):
+            cx = b[0] + b[2] / 2
+            cy = b[1] + b[3] / 2
+            if crop_x <= cx <= crop_x + crop_w and crop_y <= cy <= crop_y + crop_h:
+                # Clip to crop boundaries and adjust to crop origin
+                nx1 = max(gt[0], crop_x) - crop_x
+                ny1 = max(gt[1], crop_y) - crop_y
+                nx2 = min(gt[2], crop_x + crop_w) - crop_x
+                ny2 = min(gt[3], crop_y + crop_h) - crop_y
+                nw = nx2 - nx1
+                nh = ny2 - ny1
+                if nw > 0 and nh > 0:
+                    new_bboxes.append([nx1, ny1, nw, nh])
+                    new_ids.append(cat_id)
+
+        if len(new_bboxes) == 0:
+            continue
+
+        cropped = image[crop_y:crop_y + crop_h, crop_x:crop_x + crop_w]
+        return cropped, new_bboxes, new_ids
+
+    # All attempts failed, return original
+    return image, bboxes, category_ids
 
 
 class CocoDetection(VisionDataset):
@@ -75,14 +190,20 @@ class CocoDetection(VisionDataset):
         if len(bboxes) == 0:
             return None
 
-        album_annotation = {'image': np.array(
-            img), 'bboxes': bboxes, 'category_id': category_ids}
         if self.augmentation:
-            if random.random() > 0.5:
-                transform_result = self.crop_aug(**album_annotation)
-            else:
-                transform_result = self.resize_aug(**album_annotation)
+            image_np = np.array(img)
+            image_np, bboxes, category_ids = ssd_random_zoom_out(
+                image_np, bboxes, category_ids, p=0.2)
+            image_np, bboxes, category_ids = ssd_random_crop(
+                image_np, bboxes, category_ids)
+            if len(bboxes) == 0:
+                return None
+            album_annotation = {'image': image_np, 'bboxes': bboxes,
+                                'category_id': category_ids}
+            transform_result = self.train_aug(**album_annotation)
         else:
+            album_annotation = {'image': np.array(img), 'bboxes': bboxes,
+                                'category_id': category_ids}
             transform_result = self.just_resize(**album_annotation)
         image, bboxes, category_ids = transform_result.values()
 
@@ -156,26 +277,12 @@ class CocoDetection(VisionDataset):
         return valid_bboxes, valid_ids
 
     def init_augmentations(self):
-        common = [HorizontalFlip(), Rotate(limit=10),
-                  RandomBrightnessContrast(),
-                  ToGray(p=0.05)]
-
-        random_crop_aug = [RandomResizedCrop(height=self.params.input_height,
-                                             width=self.params.input_width,
-                                             scale=(0.35, 1.0))]
-        random_crop_aug.extend(common)
-
-        simple_resize_aug = [Resize(height=self.params.input_height,
-                                    width=self.params.input_width)]
-        simple_resize_aug.extend(common)
-
-        crop = self.get_aug(random_crop_aug, min_visibility=0.5)
-
-        resize = self.get_aug(simple_resize_aug, min_visibility=0.5)
-
-        just_resize = self.get_aug([Resize(height=self.params.input_height,
-                                           width=self.params.input_width)])
-
-        self.crop_aug = crop
-        self.resize_aug = resize
-        self.just_resize = just_resize
+        train_aug = [
+            Resize(height=self.params.input_height,
+                   width=self.params.input_width),
+            HorizontalFlip(),
+        ]
+        self.train_aug = self.get_aug(train_aug, min_visibility=0.3)
+        self.just_resize = self.get_aug([
+            Resize(height=self.params.input_height,
+                   width=self.params.input_width)])

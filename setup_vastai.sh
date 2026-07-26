@@ -13,19 +13,30 @@
 
 set -e
 
-echo "=== SSDLite Training Setup for vast.ai ==="
+# Branch carrying the active training recipe + eval-harness fixes.
+# NOTE: the repo's default branch (master) does NOT have these — always deploy this branch.
+BRANCH="${TRAIN_BRANCH:-map-improvements}"
+
+echo "=== SSDLite Training Setup for vast.ai (branch: $BRANCH) ==="
 
 # ---- 1. Clone repo ----
 echo "[1/5] Setting up repository..."
 if [ -f "setup_vastai.sh" ] && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    echo "  Already inside repo, skipping clone"
+    echo "  Already inside repo, syncing to $BRANCH"
+    git fetch --quiet origin "$BRANCH"
+    git checkout "$BRANCH"
+    git pull --quiet --ff-only origin "$BRANCH"
 else
     REPO_DIR="MIRPR-pedestrian-and-vehicle-detection-SSDLite"
     if [ ! -d "$REPO_DIR" ]; then
-        git clone https://github.com/pasandrei/MIRPR-pedestrian-and-vehicle-detection-SSDLite.git
+        # Shallow single-branch clone: the full history carries large committed
+        # binaries (~hundreds of MB) that stall on slow links; we only need the tip.
+        git clone --depth 1 --single-branch --branch "$BRANCH" \
+            https://github.com/pasandrei/MIRPR-pedestrian-and-vehicle-detection-SSDLite.git
     fi
     cd "$REPO_DIR"
 fi
+echo "  Deployed commit: $(git log -1 --format='%h %s')"
 
 # ---- 2. Install dependencies ----
 echo "[2/5] Installing Python dependencies..."
@@ -106,11 +117,17 @@ fi
 echo "[4/5] Verifying setup..."
 python -c "
 import torch
-print(f'PyTorch: {torch.__version__}')
-print(f'CUDA available: {torch.cuda.is_available()}')
-if torch.cuda.is_available():
-    print(f'GPU: {torch.cuda.get_device_name(0)}')
-    print(f'GPU Memory: {torch.cuda.get_device_properties(0).total_mem / 1e9:.1f} GB')
+print(f'PyTorch: {torch.__version__} (built for CUDA {torch.version.cuda})')
+assert torch.cuda.is_available(), 'CUDA not available'
+props = torch.cuda.get_device_properties(0)
+cap = torch.cuda.get_device_capability(0)
+print(f'GPU: {props.name} | sm_{cap[0]}{cap[1]} | {props.total_memory / 1e9:.1f} GB')
+# Real kernel launch — fails loudly with 'no kernel image available' if this
+# PyTorch build lacks kernels for the GPU's compute capability (e.g. Blackwell
+# sm_120 needs a cu128+ build). is_available() alone does NOT catch this.
+_x = torch.randn(2048, 2048, device='cuda')
+torch.cuda.synchronize()
+print(f'GPU compute test: OK ({(_x @ _x).sum().item():.0f})')
 
 from pathlib import Path
 coco = Path('data/COCO')
@@ -128,10 +145,11 @@ print('Dependencies: OK')
 echo ""
 echo "=== Setup complete ==="
 echo ""
-echo "To start training (use screen to survive SSH disconnect):"
+echo "To start training from scratch (use screen to survive SSH disconnect):"
 echo "  screen -S train"
-echo "  PYTHONUNBUFFERED=1 python main.py > training.log 2>&1 &"
-echo "  tail -f training.log"
+echo "  RUN=b32_lr0165_zoomout20pct_\$(date +%m%d)"
+echo "  PYTHONUNBUFFERED=1 python -c \"from main import run; run(mixed_precision=True, run_name='\$RUN')\" > training_\$RUN.log 2>&1 &"
+echo "  tail -f training_\$RUN.log"
 echo "  # Ctrl+A, D to detach; screen -r train to reattach"
 echo ""
 echo "To monitor progress:"

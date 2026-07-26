@@ -61,7 +61,7 @@ def benchmark_num_workers(model, optimizer, detection_loss, params, scaler, cand
 
 def run(train_model=True, load_checkpoint=False, cross_validate=False,
         validate=False, mixed_precision=False, test_dev=False,
-        auto_workers=False):
+        auto_workers=False, run_name=None, compile_model=False):
     """
     Arguments:
     train_model - train model
@@ -71,6 +71,8 @@ def run(train_model=True, load_checkpoint=False, cross_validate=False,
     mixed_precision - use mixed_precision training
     test_dev - run model on coco test-dev set
     auto_workers - benchmark num_workers 8 vs 16 and pick the fastest
+    compile_model - wrap the model in torch.compile (measured net-negative
+        end-to-end on our setup; kept opt-in, defaults to eager)
     """
     torch.manual_seed(2)
     random.seed(2)
@@ -80,7 +82,8 @@ def run(train_model=True, load_checkpoint=False, cross_validate=False,
     prints.show_training_info(params)
 
     model = training.model_setup(params)
-    model = torch.compile(model)
+    if compile_model:
+        model = torch.compile(model)
     optimizer = training.optimizer_setup(model, params)
 
     scaler = torch.amp.GradScaler('cuda') if mixed_precision else None
@@ -90,7 +93,8 @@ def run(train_model=True, load_checkpoint=False, cross_validate=False,
         benchmark_num_workers(model, optimizer, detection_loss, params, scaler)
         # reinitialize model and optimizer after benchmark
         model = training.model_setup(params)
-        model = torch.compile(model)
+        if compile_model:
+            model = torch.compile(model)
         optimizer = training.optimizer_setup(model, params)
         scaler = torch.amp.GradScaler('cuda') if mixed_precision else None
 
@@ -108,7 +112,10 @@ def run(train_model=True, load_checkpoint=False, cross_validate=False,
         return
 
     # tensorboard
-    writer = SummaryWriter(filename_suffix=general_config.model_id)
+    if run_name:
+        writer = SummaryWriter(comment=f"_{run_name}")
+    else:
+        writer = SummaryWriter(filename_suffix=general_config.model_id)
 
     if train_model:
         train_loader, valid_loader = training.prepare_datasets(params)

@@ -16,10 +16,11 @@ class DepthWiseConv_No_ReLu(nn.Module):
         super().__init__()
         self.ds_conv = nn.Conv2d(in_planes, in_planes, kernel_size, groups=in_planes, padding=padding)
         self.ds_bn = nn.BatchNorm2d(in_planes)
+        self.relu = nn.ReLU6(inplace=True)
         self.pw_conv = nn.Conv2d(in_planes, out_planes, kernel_size=1)
 
     def forward(self, x):
-        return self.pw_conv(self.ds_bn(self.ds_conv(x)))
+        return self.pw_conv(self.relu(self.ds_bn(self.ds_conv(x))))
 
 
 class DepthWiseConv(nn.Module):
@@ -76,7 +77,7 @@ class SSD_Head(nn.Module):
         for layer in layers:
             for param in layer.parameters():
                 if param.dim() > 1:
-                    nn.init.xavier_uniform_(param)
+                    nn.init.normal_(param, mean=0, std=0.03)
 
     # Shape the classifier to the view of bboxes
     def bbox_view(self, src, loc, conf):
