@@ -22,15 +22,19 @@ class Model_evaluator():
         self.params = params
         self.stats = stats
 
-    def complete_evaluate(self, model, optimizer, epoch=0):
+    def complete_evaluate(self, model, optimizer, epoch=0, ema_model=None):
         """
         evaluates model performance of the validation set, saves current model,
         optimizer stats if it is better that the best so far
 
+        when ema_model is given, evaluation runs on the averaged weights and the
+        checkpoint stores them alongside the raw model (which is kept for resume)
+
         also logs info to tensorboard
         """
         print('Validation start...')
-        model.eval()
+        eval_model = ema_model.module if ema_model is not None else model
+        eval_model.eval()
         with torch.no_grad():
             losses = [0] * 4
 
@@ -42,7 +46,7 @@ class Model_evaluator():
                 input_ = input_.to(device, non_blocking=True)
                 label[0] = label[0].to(device, non_blocking=True)
                 label[1] = label[1].to(device, non_blocking=True)
-                output = model(input_)
+                output = eval_model(input_)
 
                 prediction_annotations, prediction_id = postprocessing.prepare_outputs_for_COCOeval(
                     output, image_info, prediction_annotations, prediction_id, self.output_handler)
@@ -51,7 +55,7 @@ class Model_evaluator():
                 training.update_losses(losses, loc_loss.item(), class_loss.item())
 
                 prints.print_val_batch_stats(
-                    model, batch_idx, self.valid_loader, losses, self.params)
+                    eval_model, batch_idx, self.valid_loader, losses, self.params)
 
             mAP = postprocessing.evaluate_on_COCO_metrics(prediction_annotations)
 
@@ -59,13 +63,14 @@ class Model_evaluator():
             if self.stats.mAP < mAP:
                 self.stats.mAP = mAP
                 msg = 'Model saved succesfully'
-                training.save_model(epoch, model, optimizer, self.params, self.stats, msg=msg)
+                training.save_model(epoch, model, optimizer, self.params, self.stats, msg=msg,
+                                    ema_model=ema_model)
 
             if self.stats.loss > val_loss:
                 self.stats.loss = val_loss
                 msg = 'Model saved succesfully by loss'
                 training.save_model(epoch, model, optimizer, self.params,
-                                    self.stats, msg=msg, by_loss=True)
+                                    self.stats, msg=msg, by_loss=True, ema_model=ema_model)
 
             loc_loss_val, class_loss_val = losses[2] / len(self.valid_loader), losses[3] / len(self.valid_loader)
             return mAP, loc_loss_val, class_loss_val

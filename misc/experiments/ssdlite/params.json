@@ -10,7 +10,7 @@
     "loss_type": "softmax",
     "use_focal_loss": 0,
     "use_hard_negative_mining": 1,
-    "n_epochs": 660,
+    "n_epochs": 520,
     "first_decay": 66,
     "second_decay": 86,
     "decay_rate": 0.1,
@@ -19,6 +19,8 @@
     "input_height": 320,
     "input_width": 320,
     "warm_up": 10,
+    "use_ema": 1,
+    "ema_decay": 0.9999,
     "channels_list": [
         576,
         1280,

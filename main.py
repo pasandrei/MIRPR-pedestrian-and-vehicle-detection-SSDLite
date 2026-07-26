@@ -2,6 +2,9 @@ from torch.utils.tensorboard import SummaryWriter
 from train.loss_fn import Detection_Loss
 import torch
 import random
+import datetime
+import os
+import socket
 
 from train import train
 from train.params import Params
@@ -13,6 +16,20 @@ from custom_inference.run import Custom_Infernce
 
 from utils import prints
 from utils import training
+
+
+def run_log_dir(run_name=None):
+    """
+    Builds a TensorBoard run directory name that sorts chronologically, e.g.
+    runs/2026-07-16_22-21-34_hostname[_run_name] (torch's own default,
+    e.g. Jul16_22-21-34_hostname, does not: month abbreviations don't sort
+    alphabetically in calendar order and there is no year).
+    """
+    timestamp = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+    name = f"{timestamp}_{socket.gethostname()}"
+    if run_name:
+        name += f"_{run_name}"
+    return os.path.join('runs', name)
 
 
 def benchmark_num_workers(model, optimizer, detection_loss, params, scaler, candidates=[8, 16], warmup=20, count=200):
@@ -98,9 +115,12 @@ def run(train_model=True, load_checkpoint=False, cross_validate=False,
         optimizer = training.optimizer_setup(model, params)
         scaler = torch.amp.GradScaler('cuda') if mixed_precision else None
 
+    ema_model = training.ema_setup(model, params)
+
     start_epoch = 0
     if load_checkpoint:
-        model, optimizer, start_epoch = training.load_model(model, params, optimizer)
+        model, optimizer, start_epoch = training.load_model(model, params, optimizer,
+                                                            ema_model=ema_model)
     prints.print_trained_parameters_count(model, optimizer)
 
     if test_dev:
@@ -113,9 +133,9 @@ def run(train_model=True, load_checkpoint=False, cross_validate=False,
 
     # tensorboard
     if run_name:
-        writer = SummaryWriter(comment=f"_{run_name}")
+        writer = SummaryWriter(log_dir=run_log_dir(run_name))
     else:
-        writer = SummaryWriter(filename_suffix=general_config.model_id)
+        writer = SummaryWriter(log_dir=run_log_dir(), filename_suffix=general_config.model_id)
 
     if train_model:
         train_loader, valid_loader = training.prepare_datasets(params)
@@ -132,7 +152,7 @@ def run(train_model=True, load_checkpoint=False, cross_validate=False,
     if validate:
         print("Checkpoint epoch: ", start_epoch)
         prints.print_dataset_stats(valid_loader=valid_loader)
-        model_evaluator.complete_evaluate(model, optimizer)
+        model_evaluator.complete_evaluate(model, optimizer, ema_model=ema_model)
 
     if cross_validate:
         cross_validation.cross_validate(
@@ -141,7 +161,7 @@ def run(train_model=True, load_checkpoint=False, cross_validate=False,
     if train_model:
         train.train(model, optimizer, train_loader, model_evaluator,
                     detection_loss, params, writer, lr_decay_policy, start_epoch,
-                    scaler)
+                    scaler, ema_model)
 
 
 if __name__ == '__main__':
