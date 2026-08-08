@@ -1,3 +1,22 @@
+# Pedestrian and vehicle detection with SSD / SSDLite
+
+Single-shot object detection on COCO in PyTorch, built from scratch: SSD300 with a ResNet
+backbone, SSDLite with MobileNetV2, and a person-only SSDLite variant of ~2M parameters.
+
+The SSDLite implementation was taken through a systematic optimization campaign
+(March to July 2026) that raised it from **0.177 to 0.212 mAP** on COCO val2017. That
+**matches** torchvision's official `ssdlite320_mobilenet_v3_large` (0.213 on the same split
+and evaluation, a difference inside run-to-run noise), and it does so with the older
+MobileNetV2 backbone. Every change was tested in isolation and logged, including the ones
+that did not work:
+
+- [`docs/experiment_report.md`](docs/experiment_report.md) walks through the whole campaign,
+  with the mAP impact of each change.
+- [`docs/remaining_differences.md`](docs/remaining_differences.md) is a line-by-line diff of
+  our pipeline against torchvision and the TF Object Detection API.
+- [`docs/architecture_differences.md`](docs/architecture_differences.md) is the per-run ledger
+  of all ~30 training runs.
+
 # Introduction
 
   - This repo provides training, validation and inference support for three detection models: SSD + ResNet [1][2], SSDLite [3] and a modified version of SSDLite used for detecting the person class only.
@@ -51,19 +70,25 @@ ResNet SSD
 ```
 SSDLite
 ```
- Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.177
- Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=100 ] = 0.315
- Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=100 ] = 0.177
- Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.017
- Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.150
- Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.351
- Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=  1 ] = 0.180
- Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 10 ] = 0.254
- Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.265
- Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.039
- Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.252
- Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.502
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.212
+ Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=100 ] = 0.342
+ Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=100 ] = 0.220
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.010
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.196
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.445
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=  1 ] = 0.209
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 10 ] = 0.299
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.323
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.036
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.325
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.640
 ```
+
+The SSDLite result above (**0.212 mAP**, 4.49M params) is the outcome of a March to July 2026
+optimization campaign that raised it from 0.177. It **matches** torchvision's official
+`ssdlite320_mobilenet_v3_large` (0.213 on the same val2017 split and evaluation) while using
+the older MobileNetV2 backbone. See [`docs/experiment_report.md`](docs/experiment_report.md) for
+the full write-up: every change tested, its mAP impact, and what did not work.
 
 - The following three results represent the performance of the three models the COCO person validation set:
 It needs to be mentioned that ResNet SSD and SSDLite were trained on the entire COCO dataset (80 classes), and these evaluation results are obtained by only considering the person class. The modified SSDLite was trained directly and only on the person class.

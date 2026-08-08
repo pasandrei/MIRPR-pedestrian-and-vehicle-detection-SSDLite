@@ -2,6 +2,12 @@
 runs/
 data/
 .venv/
+
+# training artifacts: checkpoints, logs and COCO submission files stay local
+preserved_runs/
+training*.log
+detections_*2017_*_results.json
+detections_*2017_*_results.zip
 misc/experiments/ssdlite/model_checkpoint
 misc/experiments/ssdlite/model_checkpoint-Copy1
 
